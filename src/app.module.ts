@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import { SharedModule } from './shared/shared.module';
 import { IdentityModule } from './identity/identity.module';
 import { DatabaseModule } from './database/database.module';
+import { HealthModule } from './health/health.module';
+import { ConfigModule } from './config/config.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { DatabaseModule } from './database/database.module';
     DatabaseModule,
     SharedModule,
     IdentityModule,
+    HealthModule,
+    ConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
