@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { AppLoggerModule } from './logger/logger.module';
 
-@Module({})
+@Module({
+  imports: [AppLoggerModule],
+  exports: [AppLoggerModule],
+})
 export class SharedModule {}

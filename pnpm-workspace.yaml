@@ -1,3 +1,5 @@
+confirmModulesPurge: false
+verifyDepsBeforeRun: false
 allowBuilds:
   '@prisma/engines': true
   bcrypt: true

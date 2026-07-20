@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -11,6 +12,7 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2023",
     "sourceMap": true,
+    "types": ["jest", "node"],
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {

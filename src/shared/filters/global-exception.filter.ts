@@ -45,25 +45,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return new BaseException('Something went very wrong', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // ─── Map Mongoose / JWT errors → BaseException ────────────────────────────
+    // ─── Map Prisma / JWT errors → BaseException ──────────────────────────────
     private handleKnownErrors(error: BaseException, original: unknown): BaseException {
         const err = original as any;
 
-        if (err?.name === 'CastError') {
-            return new BaseException(`Invalid ${err.path}: ${err.value}`, HttpStatus.BAD_REQUEST);
-        }
-
-        if (err?.code === 11000) {
-            const value = Object.values(err.keyValue ?? {})[0];
+        // Prisma Unique Constraint Violation
+        if (err?.code === 'P2002') {
+            const target = Array.isArray(err?.meta?.target) ? err.meta.target.join(', ') : 'field';
             return new BaseException(
-                `Duplicate field value: "${value}". Please use another value.`,
+                `Duplicate field value for ${target}. Please use another value.`,
                 HttpStatus.BAD_REQUEST,
             );
         }
 
-        if (err?.name === 'ValidationError') {
-            const errors = Object.values(err.errors ?? {}).map((e: any) => e.message);
-            return new BaseException(`Invalid input data. ${errors.join('. ')}`, HttpStatus.BAD_REQUEST);
+        // Prisma Record Not Found
+        if (err?.code === 'P2025') {
+            return new BaseException('Requested record was not found.', HttpStatus.NOT_FOUND);
         }
 
         if (err?.name === 'JsonWebTokenError') {
