@@ -1,4 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule as NestConfigModule } from '@nestjs/config';
 
-@Module({})
-export class ConfigModule {}
+@Module({
+  imports: [
+    NestConfigModule.forRoot({
+      isGlobal: true,
+    }),
+  ],
+})
+export class ConfigModule { }

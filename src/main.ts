@@ -2,10 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from '@shared/filters/global-exception.filter';
 import { Logger } from 'nestjs-pino';
-import { setupProcessErrorHandlers } from './config/process-error-handlers';
+import { setupProcessErrorHandlers } from './process/process-error-handlers';
 import { setupMiddlewares } from './bootstrap/app.bootstrap';
 import { ConfigService } from '@nestjs/config';
-import { Logger as NestLogger } from '@nestjs/common';
+import { Logger as NestLogger, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   // Catch unexpected errors
@@ -21,6 +21,15 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // ValidationPipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
   setupMiddlewares(app);
 
   const configService = app.get(ConfigService);
