@@ -33,12 +33,14 @@ async function bootstrap() {
   setupMiddlewares(app);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') ?? 3000;
+  const port = configService.get<number>('SERVER_PORT') ?? 3000;
 
   // 3. App Listen!
   await app.listen(port);
 
   // 4. Log the message
-  NestLogger.log(`🚀 Application is running on port: ${port}`, 'Bootstrap');
+  console.log('\n\x1b[1m\x1b[36m====================================================\x1b[0m');
+  console.log(`\x1b[1m\x1b[36m    APPLICATION IS RUNNING ON PORT: ${port}         \x1b[0m`);
+  console.log('\x1b[1m\x1b[36m====================================================\x1b[0m\n');
 }
 bootstrap();
