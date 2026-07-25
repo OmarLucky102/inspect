@@ -3,6 +3,7 @@ enum Role {
     ADMIN
     MANAGER
     REVIEWER
+    USER
 }
 
 enum Provider {

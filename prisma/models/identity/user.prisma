@@ -1,10 +1,10 @@
 model User {
     id              String    @id @default(uuid()) @db.Uuid
-    email           String    @unique @db.Varchar(255)
+    email           String    @unique @db.VarChar(255)
     passwordHash    String
-    firstName       String    @db.Varchar(255)
+    firstName       String    @db.VarChar(255)
     lastName        String    @db.VarChar(255)
-    phone           String    @db.Varchar(20)
+    phone           String    @db.VarChar(20)
     role            Role      @default(USER)
     isEmailVerified Boolean   @default(false)
     emailVerifiedAt DateTime?
