@@ -1,0 +1,10 @@
+enum Role {
+    SUPER_ADMIN
+    ADMIN
+    MANAGER
+    REVIEWER
+}
+
+enum Provider {
+    GOOGLE
+}
