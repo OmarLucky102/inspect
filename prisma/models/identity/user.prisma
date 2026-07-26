@@ -13,10 +13,10 @@ model User {
     createdAt       DateTime  @default(now()) @db.Timestamp(6)
     updatedAt       DateTime  @updatedAt @db.Timestamp(6)
 
-    refreshTokens RefreshToken[]
-    // oauthAccounts           OAuthAccount[]
-    // emailVerificationTokens EmailVerificationToken[]
-    // passwordResetTokens     PasswordResetToken[]
+    refreshTokens           RefreshToken[]
+    oauthAccounts           OAuthAccount[]
+    emailVerificationTokens EmailVerificationToken[]
+    passwordResetTokens     PasswordResetToken[]
 
     @@map("users")
 }

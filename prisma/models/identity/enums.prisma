@@ -1,9 +1,11 @@
 enum Role {
     SUPER_ADMIN
-    ADMIN
+    SYSTEM_ADMIN
     MANAGER
     REVIEWER
     USER
+    VIEWER
+    REPRESENTATIVE
 }
 
 enum Provider {

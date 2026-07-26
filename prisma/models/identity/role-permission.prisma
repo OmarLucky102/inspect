@@ -1,0 +1,8 @@
+model RolePermission {
+    role         Role
+    permissionId String     @db.Uuid
+    permission   Permission @relation(fields: [permissionId], references: [id])
+
+    @@id([role, permissionId])
+    @@map("role_permissions")
+}
