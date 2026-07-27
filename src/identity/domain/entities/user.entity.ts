@@ -64,12 +64,12 @@ export class User {
     return this._roles.includes(role);
   }
 
-  public hasPermission(permission: string): boolean {
-    //example for linkeing in future 
-    const adminPermissions = ['manage_users', 'delete_records'];
-    if (this.hasRole('admin') && adminPermissions.includes(permission)) {
-      return true;
-    }
-    return false;
-  }
+//   public hasPermission(permission: string): boolean {
+//     //example for linkeing in future 
+//     const adminPermissions = ['manage_users', 'delete_records'];
+//     if (this.hasRole('admin') && adminPermissions.includes(permission)) {
+//       return true;
+//     }
+//     return false;
+//   }
 }
