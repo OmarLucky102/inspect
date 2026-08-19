@@ -1,4 +1,10 @@
 import { Role } from '../value-objects/role.enum.js';
+import {
+  UserAlreadyActiveException,
+  UserAlreadyDeactivatedException,
+  SamePasswordException,
+} from '../../../shared/exceptions/user.exceptions.js';
+
 export interface UserProps {
   id: string;
   email: string;
@@ -63,13 +69,13 @@ export class User {
   // Business Rules & Domain Logic
   public activate(): void {
     if (this.props.isActive) {
-      throw new Error('User is alredy active');
+      throw new UserAlreadyActiveException(this.props.email);
     }
     this.props.isActive = true;
   }
   public deactivate(): void {
     if (!this.props.isActive) {
-      throw new Error('User is already deactivated');
+      throw new UserAlreadyDeactivatedException(this.props.email);
     }
     this.props.isActive = false;
   }
@@ -77,7 +83,7 @@ export class User {
   //change pass for the already Logged in & Forgot Password both
   public changePassword(newPasswordHash: string): void {
     if (this.props.passwordHash === newPasswordHash) {
-      throw new Error('New password cannot be the same as the old password');
+      throw new SamePasswordException();
     }
     this.props.passwordHash = newPasswordHash;
   }

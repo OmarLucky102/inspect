@@ -21,3 +21,30 @@ export class InvalidCredentialsException extends BaseException {
     super('Invalid credentials', HttpStatus.UNAUTHORIZED);
   }
 }
+
+export class UserAlreadyActiveException extends BaseException {
+  constructor(email: string) {
+    super(
+      `User with email '${email}' is already active`,
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+export class UserAlreadyDeactivatedException extends BaseException {
+  constructor(email: string) {
+    super(
+      `User with email '${email}' is already deactivated`,
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+export class SamePasswordException extends BaseException {
+  constructor() {
+    super(
+      'New password cannot be the same as the old password',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
