@@ -1,25 +1,33 @@
 import { Role as PrismaRole } from '../../../../generated/prisma';
 import { Role as DomainRole } from '../../domain/value-objects/role.enum';
 
-const PRISMA_TO_DOMAIN_ROLE: Partial<Record<PrismaRole, DomainRole>> = {
+const PRISMA_TO_DOMAIN_ROLE: Record<PrismaRole, DomainRole> = {
   [PrismaRole.SUPER_ADMIN]: DomainRole.SUPER_ADMIN,
+  [PrismaRole.SYSTEM_ADMIN]: DomainRole.SYSTEM_ADMIN,
   [PrismaRole.MANAGER]: DomainRole.MANAGER,
   [PrismaRole.REVIEWER]: DomainRole.REVIEWER,
   [PrismaRole.USER]: DomainRole.USER,
+  [PrismaRole.VIEWER]: DomainRole.VIEWER,
+  [PrismaRole.REPRESENTATIVE]: DomainRole.REPRESENTATIVE,
 };
 
-const DOMAIN_TO_PRISMA_ROLE: Partial<Record<DomainRole, PrismaRole>> = {
+const DOMAIN_TO_PRISMA_ROLE: Record<DomainRole, PrismaRole> = {
   [DomainRole.SUPER_ADMIN]: PrismaRole.SUPER_ADMIN,
+  [DomainRole.SYSTEM_ADMIN]: PrismaRole.SYSTEM_ADMIN,
   [DomainRole.MANAGER]: PrismaRole.MANAGER,
   [DomainRole.REVIEWER]: PrismaRole.REVIEWER,
   [DomainRole.USER]: PrismaRole.USER,
+  [DomainRole.VIEWER]: PrismaRole.VIEWER,
+  [DomainRole.REPRESENTATIVE]: PrismaRole.REPRESENTATIVE,
 };
 
 export class RoleMapper {
   static toDomain(prismaRole: PrismaRole): DomainRole {
     const domainRole = PRISMA_TO_DOMAIN_ROLE[prismaRole];
     if (!domainRole) {
-      throw new Error(`Unhandled Prisma Role mapping: ${prismaRole}. This role exists in the database but not in the domain.`);
+      throw new Error(
+        `Unhandled Prisma Role mapping: ${prismaRole}. This role exists in the database but not in the domain.`,
+      );
     }
     return domainRole;
   }
@@ -28,7 +36,7 @@ export class RoleMapper {
     const prismaRole = DOMAIN_TO_PRISMA_ROLE[domainRole];
     if (!prismaRole) {
       throw new Error(
-        `Domain Role '${domainRole}' cannot be mapped to Prisma Role. It might be missing in the Prisma schema.`
+        `Domain Role '${domainRole}' cannot be mapped to Prisma Role. It might be missing in the Prisma schema.`,
       );
     }
     return prismaRole;
