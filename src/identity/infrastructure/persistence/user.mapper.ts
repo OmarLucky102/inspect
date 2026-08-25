@@ -1,5 +1,5 @@
 import { User } from '../../domain/entities/user.entity';
-import { User as PrismaUser } from '../../../../generated/prisma';
+import { User as PrismaUser } from '@prisma/client';
 import { RoleMapper } from './role.mapper';
 
 export class UserMapper {

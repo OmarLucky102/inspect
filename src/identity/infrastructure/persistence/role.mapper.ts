@@ -1,4 +1,4 @@
-import { Role as PrismaRole } from '../../../../generated/prisma';
+import { Role as PrismaRole } from '@prisma/client';
 import { Role as DomainRole } from '../../domain/value-objects/role.enum';
 
 const PRISMA_TO_DOMAIN_ROLE: Record<PrismaRole, DomainRole> = {

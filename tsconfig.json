@@ -12,19 +12,12 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2023",
     "sourceMap": true,
-    "types": [
-      "jest",
-      "node"
-    ],
+    "types": ["jest", "node"],
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@shared/*": [
-        "src/shared/*"
-      ]
+      "@/*": ["src/*"],
+      "@shared/*": ["src/shared/*"]
     },
     "incremental": true,
     "skipLibCheck": true,
