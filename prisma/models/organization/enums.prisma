@@ -1,0 +1,6 @@
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}

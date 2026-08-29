@@ -18,5 +18,8 @@ model User {
     emailVerificationTokens EmailVerificationToken[]
     passwordResetTokens     PasswordResetToken[]
 
+    //organizations
+    bankMemberships         BankMembership[]
+
     @@map("users")
 }

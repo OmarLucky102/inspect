@@ -1,0 +1,13 @@
+model BankSettings {
+  id        String   @id @default(uuid()) @db.Uuid
+  bankId    String   @unique @db.Uuid
+  logoUrl   String?
+  language  String?
+  timezone  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bank Bank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  @@map("bank_settings")
+}

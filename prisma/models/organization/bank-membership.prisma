@@ -1,0 +1,16 @@
+model BankMembership {
+  id        String           @id @default(uuid()) @db.Uuid
+  bankId    String           @db.Uuid
+  userId    String           @db.Uuid
+  isPrimary Boolean          @default(false)
+  status    MembershipStatus @default(PENDING)
+  joinedAt  DateTime         @default(now())
+
+  bank Bank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bankId, userId])
+  @@index([bankId])
+  @@index([userId])
+  @@map("bank_memberships")
+}

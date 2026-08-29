@@ -1,0 +1,16 @@
+model Bank {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  email     String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships BankMembership[]
+  invitations BankInvitation[]
+  settings    BankSettings?
+
+  @@map("banks")
+}
