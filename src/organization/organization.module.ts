@@ -10,11 +10,11 @@ import { BankService } from './application/services/bank.service';
 // Presentation — Controllers
 import { BankController } from './presentation/controllers/bank.controller';
 
-// Identity Module (for guards, user repo, bcrypt)
+// Identity Module (for guards, UserService)
 import { IdentityModule } from '../identity/identity.module';
 
 @Module({
-  imports: [IdentityModule], // Provides: JwtAuthGuard, RolesGuard, BcryptHasherService, IUserRepository (exported)
+  imports: [IdentityModule], // Provides: JwtAuthGuard, RolesGuard, UserService
   controllers: [BankController],
   providers: [
     {

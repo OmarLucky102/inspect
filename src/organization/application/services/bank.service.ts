@@ -1,28 +1,19 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { PrismaService } from '../../../database/prisma.service';
-import { IBankRepository } from '../../domain/repositories/bank.repository.interface';
-import { IBankMembershipRepository } from '../../domain/repositories/bank-membership.repository.interface';
-import { IUserRepository } from '../../../identity/domain/repositories/user.repository.interface';
-import { BcryptHasherService } from '../../../identity/infrastructure/services/bcrypt-hasher.service';
+import type { IBankRepository } from '../../domain/repositories/bank.repository.interface';
+import type { IBankMembershipRepository } from '../../domain/repositories/bank-membership.repository.interface';
 import { Bank } from '../../domain/entities/bank.entity';
 import { BankMembership } from '../../domain/entities/bank-membership.entity';
-import { User } from '../../../identity/domain/entities/user.entity';
 import { MembershipStatus } from '../../domain/value-objects/membership-status.enum';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
-import { RoleMapper } from '../../../identity/infrastructure/persistence/role.mapper';
-import { BankMembershipMapper } from '../../infrastructure/persistence/bank-membership.mapper';
-import { UserMapper } from '../../../identity/infrastructure/persistence/user.mapper';
+import { User } from '../../../identity/domain/entities/user.entity';
+import { UserService } from '../../../identity/application/services/user.service';
 import {
   BankNotFoundException,
   BankCodeAlreadyExistsException,
   BankMembershipAlreadyExistsException,
   InvalidBankMemberRoleException,
 } from '../../../shared/exceptions/organization.exceptions';
-import {
-  UserNotFoundException,
-  UserAlreadyExistsException,
-} from '../../../shared/exceptions/user.exceptions';
 
 // Roles that can belong to a bank (SUPER_ADMIN and SYSTEM_ADMIN manage platform, not banks)
 const ALLOWED_BANK_MEMBER_ROLES: Role[] = [
@@ -66,11 +57,7 @@ export class BankService {
     @Inject('IBankMembershipRepository')
     private readonly membershipRepository: IBankMembershipRepository,
 
-    @Inject('IUserRepository')
-    private readonly userRepository: IUserRepository,
-
-    private readonly bcryptHasher: BcryptHasherService,
-    private readonly prisma: PrismaService,
+    private readonly userService: UserService,
   ) {}
 
   // ── Create Bank ───────────────────────────────────────────────────────────
@@ -107,86 +94,48 @@ export class BankService {
     return bank;
   }
 
-  // ── Create User + Assign to Bank (Atomic) ────────────────────────────────
+  // ── Create User (via Identity) + Assign to Bank ──────────────────────────
   async createBankUser(
     input: CreateBankUserInput,
   ): Promise<{ user: User; membership: BankMembership }> {
     // 1. Validate bank exists
-    const bank = await this.bankRepository.findById(input.bankId);
-    if (!bank) throw new BankNotFoundException(input.bankId);
+    await this.ensureBankExists(input.bankId);
 
     // 2. Validate role is allowed for bank members
-    if (!ALLOWED_BANK_MEMBER_ROLES.includes(input.role)) {
-      throw new InvalidBankMemberRoleException(input.role);
-    }
+    this.validateBankRole(input.role);
 
-    // 3. Validate email is not taken
-    const existingUser = await this.userRepository.findByEmail(input.email);
-    if (existingUser) throw new UserAlreadyExistsException(input.email);
-
-    // 4. Hash password
-    const passwordHash = await this.bcryptHasher.hash(input.password);
-
-    const userId = randomUUID();
-    const membershipId = randomUUID();
-    const now = new Date();
-
-    // 5. Atomic transaction: create user + membership together
-    await this.prisma.$transaction(async (tx) => {
-      await tx.user.create({
-        data: {
-          id: userId,
-          email: input.email,
-          passwordHash,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          phone: input.phone,
-          role: RoleMapper.toPrisma(input.role),
-          isEmailVerified: false,
-          emailVerifiedAt: null,
-          isActive: true,
-          lastLoginAt: null,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      await tx.bankMembership.create({
-        data: {
-          id: membershipId,
-          bankId: input.bankId,
-          userId,
-          isPrimary: input.isPrimary ?? false,
-          status: 'ACTIVE',
-          joinedAt: now,
-        },
-      });
+    // 3. Create the user through the Identity abstraction (hashing, uniqueness,
+    //    persistence are handled inside Identity's UserService)
+    const user = await this.userService.createUser({
+      email: input.email,
+      password: input.password,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      phone: input.phone,
+      role: input.role,
     });
 
-    // 6. Re-fetch from DB and return as domain objects
-    const user = await this.userRepository.findById(userId);
-    const membership = await this.membershipRepository.findByBankIdAndUserId(
+    // 4. Create the bank membership (Organization responsibility)
+    const membership = this.buildMembership(
       input.bankId,
-      userId,
+      user.id,
+      input.isPrimary,
     );
+    await this.membershipRepository.save(membership);
 
-    return { user: user!, membership: membership! };
+    return { user, membership };
   }
 
   // ── Add Existing User to Bank ────────────────────────────────────────────
   async addBankMember(input: AddBankMemberInput): Promise<BankMembership> {
     // 1. Validate bank exists
-    const bank = await this.bankRepository.findById(input.bankId);
-    if (!bank) throw new BankNotFoundException(input.bankId);
+    await this.ensureBankExists(input.bankId);
 
-    // 2. Validate user exists
-    const user = await this.userRepository.findById(input.userId);
-    if (!user) throw new UserNotFoundException(input.userId);
+    // 2. Validate user exists (userService.getUserById throws if not found)
+    const user = await this.userService.getUserById(input.userId);
 
     // 3. Validate role is allowed for bank members
-    if (!ALLOWED_BANK_MEMBER_ROLES.includes(user.role)) {
-      throw new InvalidBankMemberRoleException(user.role);
-    }
+    this.validateBankRole(user.role);
 
     // 4. Check for duplicate membership
     const existing = await this.membershipRepository.findByBankIdAndUserId(
@@ -200,16 +149,39 @@ export class BankService {
       );
     }
 
-    const membership = new BankMembership({
+    const membership = this.buildMembership(
+      input.bankId,
+      input.userId,
+      input.isPrimary,
+    );
+    await this.membershipRepository.save(membership);
+    return membership;
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  private async ensureBankExists(bankId: string): Promise<void> {
+    const bank = await this.bankRepository.findById(bankId);
+    if (!bank) throw new BankNotFoundException(bankId);
+  }
+
+  private validateBankRole(role: Role): void {
+    if (!ALLOWED_BANK_MEMBER_ROLES.includes(role)) {
+      throw new InvalidBankMemberRoleException(role);
+    }
+  }
+
+  private buildMembership(
+    bankId: string,
+    userId: string,
+    isPrimary?: boolean,
+  ): BankMembership {
+    return new BankMembership({
       id: randomUUID(),
-      bankId: input.bankId,
-      userId: input.userId,
-      isPrimary: input.isPrimary ?? false,
+      bankId,
+      userId,
+      isPrimary: isPrimary ?? false,
       status: MembershipStatus.ACTIVE,
       joinedAt: new Date(),
     });
-
-    await this.membershipRepository.save(membership);
-    return membership;
   }
 }
