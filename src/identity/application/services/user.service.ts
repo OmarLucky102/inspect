@@ -27,6 +27,9 @@ export class UserService {
     private readonly bcryptHasher: BcryptHasherService,
   ) {}
 
+  async getAllUsers(): Promise<User[]> {
+    return this.userRepository.findAll();
+  }
   async getUserById(id: string): Promise<User> {
     const user = await this.userRepository.findById(id);
     if (!user) {

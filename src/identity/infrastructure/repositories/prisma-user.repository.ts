@@ -8,6 +8,13 @@ import { UserMapper } from '../persistence/user.mapper';
 export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findAll(): Promise<User[]> {
+    const rows = await this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map(UserMapper.toDomain);
+  }
+
   async findById(id: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({ where: { id } });
     if (!prismaUser) return null;

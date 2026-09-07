@@ -18,13 +18,12 @@ import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Roles } from '../../../identity/presentation/decorators/roles.decorator';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
 
-@Controller('organization/banks')
+@Controller('banks')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.SUPER_ADMIN)
 export class BankController {
   constructor(private readonly bankService: BankService) {}
 
-  // POST /organization/banks
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createBank(@Body() dto: CreateBankDto) {
@@ -49,7 +48,6 @@ export class BankController {
     };
   }
 
-  // GET /organization/banks
   @Get()
   async listBanks() {
     const banks = await this.bankService.listBanks();
@@ -67,7 +65,6 @@ export class BankController {
     };
   }
 
-  // GET /organization/banks/:bankId
   @Get(':bankId')
   async getBank(@Param('bankId', ParseUUIDPipe) bankId: string) {
     const bank = await this.bankService.getBankById(bankId);
@@ -85,7 +82,6 @@ export class BankController {
     };
   }
 
-  // POST /organization/banks/:bankId/users  — create user AND assign to bank (atomic)
   @Post(':bankId/users')
   @HttpCode(HttpStatus.CREATED)
   async createBankUser(
@@ -127,7 +123,6 @@ export class BankController {
     };
   }
 
-  // POST /organization/banks/:bankId/members  — link existing user to bank
   @Post(':bankId/members')
   @HttpCode(HttpStatus.CREATED)
   async addBankMember(
