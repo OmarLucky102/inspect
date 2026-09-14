@@ -31,7 +31,7 @@ const MIN_PASSWORD_LENGTH = 12;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function resolveDatabaseUrl(): string {
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && !/\$\{.*\}/.test(process.env.DATABASE_URL)) {
     return process.env.DATABASE_URL;
   }
 

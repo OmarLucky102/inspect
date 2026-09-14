@@ -1,7 +1,12 @@
+packages:
+  - frontend
+
 confirmModulesPurge: false
 verifyDepsBeforeRun: false
 allowBuilds:
   '@prisma/engines': true
+  '@tailwindcss/oxide': true
   bcrypt: true
+  esbuild: true
   prisma: true
   unrs-resolver: false

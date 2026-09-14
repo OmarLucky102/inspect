@@ -1,5 +1,6 @@
 {
-  "compilerOptions": {
+  "include": ["src"],
+    "compilerOptions": {
     "ignoreDeprecations": "5.0",
     "module": "node16",
     "moduleResolution": "node16",
@@ -14,6 +15,7 @@
     "sourceMap": true,
     "types": ["jest", "node"],
     "outDir": "./dist",
+    "rootDir": ".",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
