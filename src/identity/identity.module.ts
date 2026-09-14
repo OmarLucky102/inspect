@@ -3,10 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 
 // Infrastructure — Repositories
 import { PrismaUserRepository } from './infrastructure/repositories/prisma-user.repository';
+import { PrismaRefreshTokenRepository } from './infrastructure/repositories/prisma-refresh-token.repository';
 
 // Infrastructure — Services
 import { BcryptHasherService } from './infrastructure/services/bcrypt-hasher.service';
 import { JwtTokenService } from './infrastructure/services/jwt-token.service';
+import { TokenHasherService } from './infrastructure/services/token-hasher.service';
 
 // Application — Services
 import { UserService } from './application/services/user.service';
@@ -24,10 +26,14 @@ import { RolesGuard } from './presentation/guards/roles.guard';
   imports: [JwtModule.register({})],
   controllers: [AuthController, UserController],
   providers: [
-    // Repository binding (interface token → concrete implementation)
+    // Repository bindings
     {
       provide: 'IUserRepository',
       useClass: PrismaUserRepository,
+    },
+    {
+      provide: 'IRefreshTokenRepository',
+      useClass: PrismaRefreshTokenRepository,
     },
     // Application Services
     UserService,
@@ -35,7 +41,8 @@ import { RolesGuard } from './presentation/guards/roles.guard';
     // Infrastructure Services
     BcryptHasherService,
     JwtTokenService,
-    // Guards (registered as providers so they can use DI)
+    TokenHasherService,
+    // Guards
     JwtAuthGuard,
     RolesGuard,
   ],
@@ -46,6 +53,7 @@ import { RolesGuard } from './presentation/guards/roles.guard';
     RolesGuard,
     JwtTokenService,
     BcryptHasherService,
+    TokenHasherService,
   ],
 })
 export class IdentityModule {}

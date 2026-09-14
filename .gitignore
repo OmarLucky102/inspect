@@ -58,3 +58,12 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /generated/prisma
 opencode.json
 skills-lock.json
+
+## Zip 
+*.7z
+
+##Ai
+*.agent
+.agents/
+.opencode/
+.vscode/

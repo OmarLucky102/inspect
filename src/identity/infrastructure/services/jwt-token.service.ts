@@ -51,4 +51,10 @@ export class JwtTokenService {
       secret: this.configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
+
+  verifyRefreshToken(token: string): JwtPayload {
+    return this.jwtService.verify<JwtPayload>(token, {
+      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+    });
+  }
 }

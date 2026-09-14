@@ -39,8 +39,14 @@ async function bootstrap() {
   await app.listen(port);
 
   // 4. Log the message
-  console.log('\n\x1b[1m\x1b[36m====================================================\x1b[0m');
-  console.log(`\x1b[1m\x1b[36m    APPLICATION IS RUNNING ON PORT: ${port}         \x1b[0m`);
-  console.log('\x1b[1m\x1b[36m====================================================\x1b[0m\n');
+  console.log(
+    '\n\x1b[1m\x1b[36m====================================================\x1b[0m',
+  );
+  console.log(
+    `\x1b[1m\x1b[36m    APPLICATION IS RUNNING ON PORT: ${port}         \x1b[0m`,
+  );
+  console.log(
+    '\x1b[1m\x1b[36m====================================================\x1b[0m\n',
+  );
 }
 bootstrap();
