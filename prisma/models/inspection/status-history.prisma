@@ -1,0 +1,17 @@
+model InspectionStatusHistory {
+    id String @id @default(uuid()) @db.Uuid
+
+    inspectionRequestId String            @db.Uuid
+    fromStatus          InspectionStatus?
+    toStatus            InspectionStatus
+
+    changedBy String   @db.Uuid
+    changedAt DateTime @default(now())
+
+    inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
+    changer           User              @relation("StatusChanges", fields: [changedBy], references: [id])
+
+    @@index([inspectionRequestId])
+    @@index([changedBy])
+    @@map("inspection_status_history")
+}

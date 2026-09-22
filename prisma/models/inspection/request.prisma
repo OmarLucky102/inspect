@@ -1,0 +1,52 @@
+//The Core Business Model
+
+model InspectionRequest {
+    id            String @id @default(uuid()) @db.Uuid
+    requestNumber String @unique
+
+    bankId     String @db.Uuid
+    vehicleId  String @db.Uuid
+    customerId String @db.Uuid
+
+    assignedRepresentativeId String? @db.Uuid
+    assignedReviewerId       String? @db.Uuid
+
+    currentStatus InspectionStatus   @default(PENDING)
+    priority      InspectionPriority @default(MEDIUM)
+
+    latitude  Decimal? @db.Decimal(9, 6)
+    longitude Decimal? @db.Decimal(9, 6)
+    address   String?
+
+    requestedAt DateTime  @default(now())
+    assignedAt  DateTime?
+    completedAt DateTime?
+
+    notes     String?
+    createdBy String  @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    bank                   Bank     @relation(fields: [bankId], references: [id])
+    vehicle                Vehicle  @relation(fields: [vehicleId], references: [id])
+    customer               Customer @relation(fields: [customerId], references: [id])
+    assignedRepresentative User?    @relation("AssignedRepresentative", fields: [assignedRepresentativeId], references: [id])
+    assignedReviewer       User?    @relation("AssignedReviewer", fields: [assignedReviewerId], references: [id])
+    creator                User     @relation("CreatedRequests", fields: [createdBy], references: [id])
+
+    assignments        InspectionAssignment[]
+    captureSessions    CaptureSession[]
+    checklistItems     InspectionChecklistItem[]
+    marketingDecisions MarketingValueDecision[]
+    statusHistory      InspectionStatusHistory[]
+
+    @@index([bankId])
+    @@index([vehicleId])
+    @@index([customerId])
+    @@index([assignedRepresentativeId])
+    @@index([assignedReviewerId])
+    @@index([createdBy])
+    @@index([currentStatus, priority])
+    @@map("inspection_requests")
+}

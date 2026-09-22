@@ -1,0 +1,16 @@
+model Customer {
+    id         String  @id @default(uuid())
+    bankId     String
+    fullName   String
+    nationalId String
+    phone      String
+    email      String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    bank               Bank                @relation(fields: [bankId], references: [id])
+    inspectionRequests InspectionRequest[]
+
+    @@map("customers")
+}

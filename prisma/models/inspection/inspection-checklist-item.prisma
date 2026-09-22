@@ -1,0 +1,18 @@
+model InspectionChecklistItem {
+    id String @id @default(uuid()) @db.Uuid
+
+    inspectionRequestId String @db.Uuid
+    checklistItemId     String @db.Uuid
+
+    value String?
+    notes String?
+
+    completed   Boolean   @default(false)
+    completedAt DateTime?
+
+    inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
+    checklistItem     ChecklistItem     @relation(fields: [checklistItemId], references: [id])
+
+    @@unique([inspectionRequestId, checklistItemId])
+    @@map("inspection_checklist_items")
+}
