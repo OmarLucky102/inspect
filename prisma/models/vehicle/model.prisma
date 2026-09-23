@@ -1,0 +1,11 @@
+model VehicleModel {
+    id      String @id @default(uuid()) @db.Uuid
+    brandId String @db.Uuid
+    name    String
+
+    brand    VehicleBrand @relation(fields: [brandId], references: [id])
+    vehicles Vehicle[]
+
+    @@index([brandId])
+    @@map("vehicle_models")
+}

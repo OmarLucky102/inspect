@@ -1,0 +1,8 @@
+model TransmissionType {
+    id   String @id @default(uuid()) @db.Uuid
+    name String @unique
+
+    vehicles Vehicle[]
+
+    @@map("transmission_types")
+}
