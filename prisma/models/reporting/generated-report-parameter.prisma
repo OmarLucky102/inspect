@@ -1,0 +1,13 @@
+model GeneratedReportParameter {
+    id String @id @default(uuid()) @db.Uuid
+
+    generatedReportId String @db.Uuid
+    key               String
+    value             String
+
+    generatedReport GeneratedReport @relation(fields: [generatedReportId], references: [id], onDelete: Cascade)
+
+    @@unique([generatedReportId, key])
+    @@index([generatedReportId])
+    @@map("generated_report_parameters")
+}

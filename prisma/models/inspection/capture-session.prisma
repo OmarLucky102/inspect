@@ -1,0 +1,18 @@
+model CaptureSession {
+    id String @id @default(uuid()) @db.Uuid
+
+    inspectionRequestId String @db.Uuid
+    representativeId    String @db.Uuid
+
+    startedAt  DateTime             @default(now())
+    finishedAt DateTime?
+    status     CaptureSessionStatus @default(IN_PROGRESS)
+
+    inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
+    representative    User              @relation("CaptureSessions", fields: [representativeId], references: [id])
+    media             Media[]
+
+    @@index([inspectionRequestId])
+    @@index([representativeId])
+    @@map("capture_sessions")
+}

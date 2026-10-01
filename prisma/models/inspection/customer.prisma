@@ -1,6 +1,6 @@
 model Customer {
-    id         String  @id @default(uuid())
-    bankId     String
+    id         String  @id @default(uuid()) @db.Uuid
+    bankId     String  @db.Uuid
     fullName   String
     nationalId String
     phone      String

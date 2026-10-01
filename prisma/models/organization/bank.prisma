@@ -12,5 +12,9 @@ model Bank {
   invitations BankInvitation[]
   settings    BankSettings?
 
+  //inspection
+  customers          Customer[]
+  inspectionRequests InspectionRequest[]
+
   @@map("banks")
 }

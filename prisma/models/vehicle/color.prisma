@@ -1,0 +1,9 @@
+model Color {
+    id   String  @id @default(uuid()) @db.Uuid
+    name String  @unique
+    hex  String?
+
+    vehicles Vehicle[]
+
+    @@map("colors")
+}

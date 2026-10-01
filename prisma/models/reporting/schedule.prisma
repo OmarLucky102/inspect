@@ -1,0 +1,25 @@
+model ReportSchedule {
+    id String @id @default(uuid()) @db.Uuid
+
+    reportId String @db.Uuid
+
+    frequency      ScheduleFrequency
+    cronExpression String?
+
+    isActive Boolean @default(true)
+
+    nextRunAt DateTime?
+    lastRunAt DateTime?
+
+    createdBy String @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    report  Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+    creator User   @relation("SchedulesCreated", fields: [createdBy], references: [id])
+
+    @@index([reportId])
+    @@index([createdBy])
+    @@map("report_schedules")
+}

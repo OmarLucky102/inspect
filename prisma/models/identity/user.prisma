@@ -19,7 +19,25 @@ model User {
     passwordResetTokens     PasswordResetToken[]
 
     //organizations
-    bankMemberships         BankMembership[]
+    bankMemberships BankMembership[]
+
+    //inspection
+    assignedInspectionRequests InspectionRequest[]       @relation("AssignedRepresentative")
+    reviewedInspectionRequests InspectionRequest[]       @relation("AssignedReviewer")
+    createdInspectionRequests  InspectionRequest[]       @relation("CreatedRequests")
+    repAssignments             InspectionAssignment[]    @relation("RepresentativeAssignments")
+    assignmentsMade            InspectionAssignment[]    @relation("AssignmentsMade")
+    statusChanges              InspectionStatusHistory[] @relation("StatusChanges")
+    captureSessions            CaptureSession[]          @relation("CaptureSessions")
+    marketingDecisions         MarketingValueDecision[]  @relation("MarketingDecisionsReviewed")
+
+    //media
+    mediaUploaded Media[] @relation("MediaUploaded")
+
+    //reporting
+    reportsCreated   Report[]          @relation("ReportsCreated")
+    reportsGenerated GeneratedReport[] @relation("ReportsGenerated")
+    schedulesCreated ReportSchedule[]  @relation("SchedulesCreated")
 
     @@map("users")
 }

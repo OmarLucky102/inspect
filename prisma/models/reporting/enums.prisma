@@ -1,0 +1,40 @@
+enum Module {
+    IDENTITY
+    INSPECTION
+    VEHICLE
+    MEDIA
+    BANK
+    REPORTING
+}
+
+enum ReportType {
+    STANDARD
+    CUSTOM
+}
+
+enum ReportStatus {
+    ACTIVE
+    INACTIVE
+    ARCHIVED
+}
+
+enum GeneratedReportStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+    EXPIRED
+}
+
+enum ReportFormat {
+    PDF
+    CSV
+    XLSX
+}
+
+enum ScheduleFrequency {
+    DAILY
+    WEEKLY
+    MONTHLY
+    CUSTOM
+}
