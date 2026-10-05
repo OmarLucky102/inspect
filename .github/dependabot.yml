@@ -1,70 +1,80 @@
 version: 2
 
 updates:
-  # Runtime + build dependencies. Grouped so a single PR carries a coherent
-  # set of upgrades instead of one PR per package.
-  - package-ecosystem: npm
-    directory: /
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: weekly
-      day: monday
-      time: '06:00'
-      timezone: Africa/Cairo
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Africa/Cairo"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    versioning-strategy: "widen"
     commit-message:
-      prefix: 'chore(deps)'
+      prefix: "chore(deps)"
     labels:
-      - dependencies
+      - "dependencies"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      # Keep major version upgrades explicit for compatibility-sensitive packages
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@nestjs/*"
+        update-types: ["version-update:semver-major"]
     groups:
-      # Prisma moves in lockstep across packages and engines; split bumps.
       prisma:
         patterns:
-          - '@prisma/*'
-          - 'prisma'
-      # NestJS + its satellite packages must be upgraded together.
+          - "@prisma/*"
+          - "prisma"
       nest:
         patterns:
-          - '@nestjs/*'
-          - 'reflect-metadata'
-          - 'rxjs'
-      # Test tooling: moving these independently causes noisy churn.
+          - "@nestjs/*"
+          - "reflect-metadata"
+          - "rxjs"
       testing:
         patterns:
-          - 'jest'
-          - 'ts-jest'
-          - '@types/jest'
-          - 'supertest'
-          - '@types/supertest'
-          - 'ts-node'
-          - '@types/node'
+          - "jest"
+          - "ts-jest"
+          - "@types/jest"
+          - "supertest"
+          - "@types/supertest"
+          - "ts-node"
+          - "@types/node"
       typescript:
         patterns:
-          - 'typescript'
-          - 'typescript-eslint'
-          - 'ts-loader'
+          - "typescript"
+          - "typescript-eslint"
+          - "ts-loader"
       linting:
         patterns:
-          - 'eslint*'
-          - '@eslint/*'
-          - 'prettier'
-          - 'globals'
+          - "eslint*"
+          - "@eslint/*"
+          - "prettier"
+          - "globals"
 
-  # Pinned action SHAs need periodic refresh: Dependabot opens the PR, the
-  # human confirms the upstream tag, and the SHA comment is updated with it.
-  - package-ecosystem: github-actions
-    directory: /
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
-      day: monday
-      time: '06:30'
-      timezone: Africa/Cairo
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Africa/Cairo"
     open-pull-requests-limit: 5
+    rebase-strategy: "auto"
     commit-message:
-      prefix: 'chore(ci)'
+      prefix: "chore(ci)"
     labels:
-      - ci
-      - dependencies
+      - "ci"
+      - "dependencies"
     groups:
       actions:
         patterns:
-          - '*'
+          - "*"
