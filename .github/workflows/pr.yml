@@ -1,0 +1,42 @@
+# ==============================================================================
+# Pull Request validation
+# ==============================================================================
+# Fast feedback only. Nothing here builds or pushes an image, and nothing here
+# can reach an environment.
+#
+#   quality  : prettier -> eslint -> tsc -> build -> unit tests -> e2e
+#   security : gitleaks -> CodeQL -> pnpm audit -> trivy config
+#
+# Required status checks are: quality, unit-tests, e2e-tests, secret-scan,
+# sast, dependency-scan, iac-scan.
+# ==============================================================================
+name: PR
+
+on:
+  pull_request:
+    branches:
+      - master
+      - development
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: read
+
+# Superseded commits do not need to finish validating.
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality
+    uses: ./.github/workflows/_quality.yml
+    with:
+      run-e2e: true
+
+  security:
+    name: security
+    uses: ./.github/workflows/_security.yml

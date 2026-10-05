@@ -1,0 +1,101 @@
+# ==============================================================================
+# master -> staging -> production
+# ==============================================================================
+#   quality + security gates
+#     -> build image ONCE (sha tag + untested tag)
+#     -> scan by digest -> sign by digest -> promote `staging` tag
+#     -> deploy staging (migrations + smoke + DAST baseline)
+#     -> [manual approval: `production` GitHub Environment]
+#     -> deploy production (migrations + smoke)
+#
+# Staging and production receive the same digest. Production never rebuilds.
+# A failure at any point after the stack is touched triggers the automatic
+# rollback in scripts/deploy.sh.
+# ==============================================================================
+name: master
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      skip-e2e:
+        description: 'Skip the e2e suite (incident recovery only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: master-pipeline
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    name: quality
+    uses: ./.github/workflows/_quality.yml
+    with:
+      run-e2e: ${{ !inputs.skip-e2e }}
+
+  security:
+    name: security
+    uses: ./.github/workflows/_security.yml
+
+  build:
+    name: build
+    needs: [quality, security]
+    uses: ./.github/workflows/_build-image.yml
+    with:
+      push: true
+      tag-latest: true
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-staging:
+    name: deploy staging
+    needs: build
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: staging
+      app-image: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+      migration-image: ${{ needs.build.outputs.migration-digest }}
+      base-url: ${{ vars.STAGING_BASE_URL }}
+      run-migrations: true
+      run-dast: true
+    secrets: inherit
+
+  # `environment: production` is configured in the repository with required
+  # reviewers, which is the approval gate. Until that is configured this job
+  # runs unattended - see docs/ci-cd.md "Enabling the production gate".
+  deploy-production:
+    name: deploy production
+    needs: [build, deploy-staging]
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: production
+      app-image: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+      migration-image: ${{ needs.build.outputs.migration-digest }}
+      base-url: ${{ vars.PRODUCTION_BASE_URL }}
+      run-migrations: true
+      run-dast: false
+    secrets: inherit
+
+  release-notes:
+    name: release notes
+    needs: [build, deploy-staging, deploy-production]
+    if: always() && needs.deploy-production.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Write deployment marker
+        run: |
+          {
+            echo "### ✅ master deployed"
+            echo ""
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Digest: \`${{ needs.build.outputs.digest }}\`"
+            echo "- Staging: ${{ vars.STAGING_BASE_URL }}"
+            echo "- Production: ${{ vars.PRODUCTION_BASE_URL }}"
+          } >> "$GITHUB_STEP_SUMMARY"

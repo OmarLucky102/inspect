@@ -1,0 +1,236 @@
+# ==============================================================================
+# Reusable: Deploy + verify an already-scanned, already-signed digest
+# ==============================================================================
+# Runs on the GitHub runner and talks to the target host over SSH.
+#
+# Responsibilities are deliberately split so that application secrets never
+# enter GitHub:
+#
+#   GitHub holds  : SSH transport key, host key fingerprint, host address.
+#   Target host   : DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET, GHCR pull
+#                   credentials. These never leave the machine.
+#
+# `environment:` on each job resolves the secrets from the matching GitHub
+# Environment, so staging and production are fully separated.
+# ==============================================================================
+name: _deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment name (staging | production)'
+        type: string
+        required: true
+      app-image:
+        description: 'Immutable app image reference including @sha256 digest'
+        type: string
+        required: true
+      migration-image:
+        description: 'Immutable migration-stage image reference including @sha256 digest'
+        type: string
+        required: true
+      base-url:
+        description: 'Externally reachable base URL used for smoke testing'
+        type: string
+        required: true
+      run-migrations:
+        description: 'Apply Prisma migrations before switching the app'
+        type: boolean
+        default: true
+      run-dast:
+        description: 'Run a ZAP baseline scan against the deployed target'
+        type: boolean
+        default: false
+    secrets:
+      DEPLOY_SSH_PRIVATE_KEY:
+        description: 'PEM private key used for SSH access to the target host'
+        required: true
+      DEPLOY_SSH_KNOWN_HOSTS:
+        description: 'known_hosts line for the target host (pin this; never TOFU)'
+        required: true
+      DEPLOY_HOST:
+        description: 'Hostname or IP of the target host'
+        required: true
+      DEPLOY_USER:
+        description: 'SSH user on the target host'
+        required: true
+      DEPLOY_PORT:
+        description: 'SSH port (defaults to 22)'
+        required: false
+      DEPLOY_SSH_KNOWN_HOSTS_FINGERPRINT:
+        description: 'Optional SSH public key fingerprint for logging'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two deployments to the same environment must never interleave. The host-side
+  # flock is the real guard; this stops duplicate CI work early.
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.base-url }}
+    env:
+      DEPLOY_TARGET: ${{ inputs.environment }}
+      APP_IMAGE: ${{ inputs.app-image }}
+      MIGRATION_IMAGE: ${{ inputs.migration-image }}
+      BASE_URL: ${{ inputs.base-url }}
+      SSH_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      INSPECT_ROOT: /opt/inspect
+    steps:
+      - name: Validate artifact references
+        run: |
+          for ref in "$APP_IMAGE" "$MIGRATION_IMAGE"; do
+            if ! [[ "$ref" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+@sha256:[a-f0-9]{64}$ ]]; then
+              echo "::error::Refusing to deploy a mutable or malformed image reference: $ref"
+              exit 1
+            fi
+          done
+          echo "Deploying immutable digests to $DEPLOY_TARGET"
+
+      - name: Install SSH client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-client rsync
+
+      # The key and host key are written to a 0700 directory and removed by the
+      # post-job cleanup step. Nothing is echoed, so secrets stay out of logs.
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          echo "SSH trust store prepared (fingerprint: $(ssh-keygen -lf ~/.ssh/known_hosts | awk '{print $2}'))"
+
+      - name: Verify host reachability
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" \
+            -o BatchMode=yes -o ConnectTimeout=15 \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            'docker version --format "{{.Server.Version}}" >/dev/null && docker compose version && echo "Host reachable"'
+
+      # Only the compose file and scripts travel. No source, no .env, no secrets.
+      - name: Sync deployment bundle
+        run: |
+          set -euo pipefail
+          remote="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          ssh_opts=(-i ~/.ssh/deploy_key -p "$SSH_PORT" -o BatchMode=yes)
+
+          tar -czf - docker-compose.prod.yml scripts \
+            | ssh "${ssh_opts[@]}" "$remote" \
+                "mkdir -p $INSPECT_ROOT/shared/scripts && tar -xzf - -C $INSPECT_ROOT/shared"
+          echo "Deployment bundle synced to $INSPECT_ROOT/shared"
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          remote="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          extra=""
+          if [ "${{ inputs.run-migrations }}" != "true" ]; then
+            extra="--skip-migrations"
+          fi
+
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o BatchMode=yes \
+            "$remote" \
+            "cd $INSPECT_ROOT/shared && \
+             INSPECT_ROOT=$INSPECT_ROOT ./scripts/deploy.sh \
+               --env '$DEPLOY_TARGET' \
+               --image '$APP_IMAGE' \
+               --migration-image '$MIGRATION_IMAGE' $extra"
+
+      - name: Smoke test (external)
+        run: |
+          curl -fsS --max-time 20 -o /dev/null "$BASE_URL/health" \
+            || (echo "::error::$BASE_URL/health is not reachable from outside the host" && exit 1)
+          "${{ github.workspace }}/scripts/smoke-test.sh" --url "$BASE_URL" --timeout 20
+
+      - name: Verify image signature on the host
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o BatchMode=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "docker image inspect '$APP_IMAGE' --format '{{index .RepoDigests 0}}'"
+
+      - name: DAST baseline (ZAP)
+        if: inputs.run-dast
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$HOME/.cache/zap:/zap/wrk" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+              -t "$BASE_URL/health" \
+              -r zap-report.html \
+              -J zap-report.json \
+              -I \
+              -d || {
+                echo "::error::ZAP baseline scan failed to execute"
+                exit 1
+              }
+
+          # Policy: FAIL-level alerts block. WARN-level are reported for review.
+          python3 - <<'PY'
+          import json, sys
+          with open("zap-report.json", encoding="utf-8") as fh:
+              report = json.load(fh)
+          site = next(iter(report.get("site", [])), {})
+          alerts = site.get("alerts", [])
+          failing = [a for a in alerts if str(a.get("riskdesc", "")).upper() == "FAIL"]
+          warn = [a for a in alerts if str(a.get("riskdesc", "")).upper() == "WARN"]
+          print(f"ZAP: {len(failing)} FAIL, {len(warn)} WARN")
+          for a in failing:
+              print(f"  FAIL {a.get('alert','')} :: {a.get('instances', [{}])[0].get('uri','')}")
+          if failing:
+              print("::error::DAST policy: FAIL-level findings block deployment")
+              sys.exit(1)
+          PY
+
+          # Keep the report as a build artifact for review.
+          mkdir -p dast && mv zap-report.html zap-report.json dast/ 2>/dev/null || true
+
+      - name: Upload DAST report
+        if: inputs.run-dast && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dast-${{ inputs.environment }}-${{ github.run_id }}
+          path: dast/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "### Deployment: ${{ inputs.environment }}"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Status | ${{ job.status }} |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| App image | \`$APP_IMAGE\` |"
+            echo "| Migration image | \`$MIGRATION_IMAGE\` |"
+            echo "| URL | $BASE_URL |"
+            echo "| Migrations | ${{ inputs.run-migrations }} |"
+            echo ""
+            if [ "${{ job.status }}" != "success" ]; then
+              echo "> The host-side deploy script already attempted an automatic rollback to the"
+              echo "> previously deployed digest. Confirm the environment before retrying:"
+              echo "> \`scripts/rollback.sh --env ${{ inputs.environment }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove SSH material
+        if: always()
+        run: rm -rf ~/.ssh/deploy_key

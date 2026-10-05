@@ -1,0 +1,70 @@
+version: 2
+
+updates:
+  # Runtime + build dependencies. Grouped so a single PR carries a coherent
+  # set of upgrades instead of one PR per package.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Africa/Cairo
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - dependencies
+    groups:
+      # Prisma moves in lockstep across packages and engines; split bumps.
+      prisma:
+        patterns:
+          - '@prisma/*'
+          - 'prisma'
+      # NestJS + its satellite packages must be upgraded together.
+      nest:
+        patterns:
+          - '@nestjs/*'
+          - 'reflect-metadata'
+          - 'rxjs'
+      # Test tooling: moving these independently causes noisy churn.
+      testing:
+        patterns:
+          - 'jest'
+          - 'ts-jest'
+          - '@types/jest'
+          - 'supertest'
+          - '@types/supertest'
+          - 'ts-node'
+          - '@types/node'
+      typescript:
+        patterns:
+          - 'typescript'
+          - 'typescript-eslint'
+          - 'ts-loader'
+      linting:
+        patterns:
+          - 'eslint*'
+          - '@eslint/*'
+          - 'prettier'
+          - 'globals'
+
+  # Pinned action SHAs need periodic refresh: Dependabot opens the PR, the
+  # human confirms the upstream tag, and the SHA comment is updated with it.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:30'
+      timezone: Africa/Cairo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(ci)'
+    labels:
+      - ci
+      - dependencies
+    groups:
+      actions:
+        patterns:
+          - '*'

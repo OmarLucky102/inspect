@@ -1,0 +1,127 @@
+# ==============================================================================
+# Release: v* tag -> staging -> production -> GitHub Release
+# ==============================================================================
+# A release always deploys the digest built from the tagged commit. Nothing is
+# rebuilt here; if the tag was never validated on master, staging is where that
+# is discovered, and the same digest carries through to production.
+#
+# Tag naming: vMAJOR.MINOR.PATCH  (e.g. v1.4.0, v1.4.0-rc.1)
+# The version is applied as an immutable version tag AND as `latest`.
+# ==============================================================================
+name: release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag to release (e.g. v1.4.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  validate-tag:
+    name: validate tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      ref: ${{ steps.parse.outputs.ref }}
+    steps:
+      - name: Parse version tag
+        id: parse
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$TAG' is not a valid semantic version tag (expected vMAJOR.MINOR.PATCH[-prerelease])"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "ref=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG (version $version)"
+
+  quality:
+    name: quality
+    uses: ./.github/workflows/_quality.yml
+    with:
+      run-e2e: true
+
+  security:
+    name: security
+    uses: ./.github/workflows/_security.yml
+
+  build:
+    name: build
+    needs: [validate-tag, quality, security]
+    uses: ./.github/workflows/_build-image.yml
+    with:
+      push: true
+      tag-latest: true
+      promote-tag: ${{ needs.validate-tag.outputs.version }}
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-staging:
+    name: deploy staging
+    needs: [build, validate-tag]
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: staging
+      app-image: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+      migration-image: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+      base-url: ${{ vars.STAGING_BASE_URL }}
+      run-migrations: true
+      run-dast: true
+    secrets: inherit
+
+  deploy-production:
+    name: deploy production
+    needs: [build, validate-tag, deploy-staging]
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: production
+      app-image: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+      migration-image: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+      base-url: ${{ vars.PRODUCTION_BASE_URL }}
+      run-migrations: true
+      run-dast: false
+    secrets: inherit
+
+  github-release:
+    name: publish GitHub release
+    needs: [validate-tag, deploy-production]
+    if: always() && needs.deploy-production.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download notes artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-notes
+          path: notes
+          continue-on-error: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          name: ${{ needs.validate-tag.outputs.ref }}
+          tag_name: ${{ needs.validate-tag.outputs.ref }}
+          body_path: notes/RELEASE_NOTES.md
+          fail_on_unmatched_files: false
+          draft: false
+          prerelease: ${{ contains(needs.validate-tag.outputs.version, '-') }}
+          generate_release_notes: true

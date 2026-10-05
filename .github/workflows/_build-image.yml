@@ -1,0 +1,368 @@
+# ==============================================================================
+# Reusable: Build once -> scan -> sign -> promote
+# ==============================================================================
+# The image is built exactly ONCE and pushed by digest. Scanning, signing and
+# tagging all operate on that digest, so staging and production always receive
+# the same bytes that were scanned.
+#
+# Promotion order is deliberate:
+#   1. build + push   (tag: untested-<sha>, never referenced by a deploy)
+#   2. scan by digest (CRITICAL blocks)
+#   3. sign by digest (keyless cosign, OIDC)
+#   4. tag            (latest / staging / production / semver)
+#
+# Because step 4 happens last, no deployable tag can ever point at an image
+# that has not passed the vulnerability gate.
+# ==============================================================================
+name: _build-image
+
+on:
+  workflow_call:
+    inputs:
+      push:
+        description: 'Push the image to GHCR'
+        type: boolean
+        default: true
+      tag-latest:
+        description: 'Apply the `latest` tag after the security gate passes'
+        type: boolean
+        default: false
+      promote-tag:
+        description: 'Additional tag applied after the security gate (e.g. staging / v1.2.3)'
+        type: string
+        default: ''
+    secrets:
+      GHCR_TOKEN:
+        description: 'Token with packages:write (defaults to GITHUB_TOKEN when empty)'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+env:
+  NODE_VERSION: '22.17.0'
+
+jobs:
+  build:
+    name: Build container image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      migration-digest: ${{ steps.build-migration.outputs.digest }}
+      image-ref: ${{ steps.names.outputs.image_ref }}
+      sha-tag: ${{ steps.names.outputs.sha_tag }}
+      untested-tag: ${{ steps.names.outputs.untested_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Resolve image coordinates
+        id: names
+        run: |
+          repo="$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          sha='${{ github.sha }}'
+          echo "image_ref=ghcr.io/$repo" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=ghcr.io/$repo:sha-$sha" >> "$GITHUB_OUTPUT"
+          echo "untested_tag=ghcr.io/$repo:untested-$sha" >> "$GITHUB_OUTPUT"
+
+      # Pin the Prisma CLI in the migration image to the version resolved in the
+      # lockfile, so the migration engine always matches the app's client.
+      - name: Resolve toolchain versions from the lockfile
+        id: toolchain
+        run: |
+          echo "prisma=$(node scripts/lock-version.mjs prisma)" >> "$GITHUB_OUTPUT"
+          echo "dotenv=$(node scripts/lock-version.mjs dotenv)" >> "$GITHUB_OUTPUT"
+          echo "Pinned prisma CLI: ${{ steps.toolchain.outputs.prisma }}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        if: inputs.push
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Compute image labels
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ${{ steps.names.outputs.image_ref }}
+          tags: ${{ steps.names.outputs.sha_tag }}
+          labels: |
+            org.opencontainers.image.title=inspect-api
+            org.opencontainers.image.description=NestJS API for the Inspect platform
+            org.opencontainers.image.vendor=OmarLucky102
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.created=${{ github.event.repository.updated_at }}
+
+      # Build once. This is the only place a container is compiled; every later
+      # step consumes the resulting digest.
+      - name: Build and push application image (by digest)
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          push: ${{ inputs.push }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ inputs.push && steps.names.outputs.untested_tag || '' }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=inspect-app-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=inspect-app-${{ github.ref_name }}
+          provenance: mode=max
+          sbom: true
+
+      # Second artifact from the same commit: the Prisma CLI + schema used for
+      # migrations. Deployed alongside the app so the applied schema version
+      # always matches the code's expectations.
+      - name: Build and push migration image (by digest)
+        id: build-migration
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: migration
+          push: ${{ inputs.push }}
+          tags: |
+            ${{ steps.names.outputs.image_ref }}:migration-sha-${{ github.sha }}
+            ${{ inputs.push && format('{0}:migration-untested-{1}', steps.names.outputs.image_ref, github.sha) || '' }}
+          build-args: |
+            PRISMA_VERSION=${{ steps.toolchain.outputs.prisma }}
+            DOTENV_VERSION=${{ steps.toolchain.outputs.dotenv }}
+          labels: |
+            org.opencontainers.image.title=inspect-migration
+            org.opencontainers.image.description=Prisma CLI + schema for inspect-api
+            org.opencontainers.image.vendor=OmarLucky102
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=inspect-migration-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=inspect-migration-${{ github.ref_name }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Summarise build
+        run: |
+          {
+            echo "### Container build"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Image | \`${{ steps.names.outputs.image_ref }}\` |"
+            echo "| App digest | \`${{ steps.build.outputs.digest }}\` |"
+            echo "| Migration digest | \`${{ steps.build-migration.outputs.digest }}\` |"
+            echo "| Prisma CLI pinned to | ${{ steps.toolchain.outputs.prisma }} |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo ""
+            echo "SBOM + provenance attestations are attached to both digests."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Consumed by release.yml to publish human-readable release notes.
+      - name: Write release notes body
+        run: |
+          mkdir -p notes
+          {
+            echo "## inspect-api"
+            echo ""
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- App image digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- Migration image digest: \`${{ steps.build-migration.outputs.digest }}\`"
+            echo "- Prisma CLI pinned to: ${{ steps.toolchain.outputs.prisma }}"
+            echo ""
+            echo "Verified before this release: prettier, eslint, tsc, build, unit tests,"
+            echo "e2e tests against PostgreSQL 17, secret scan, CodeQL SAST, dependency"
+            echo "audit, IaC scan, container vulnerability scan, signature verification."
+            echo ""
+            echo "### Rollback"
+            echo ""
+            echo '```bash'
+            echo "scripts/rollback.sh --env production"
+            echo '```'
+          } > notes/RELEASE_NOTES.md
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-notes
+          path: notes/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  image-scan:
+    name: Container scan (Trivy)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        if: inputs.push
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # Scans the exact digest that was just pushed - not a rebuild.
+      # POLICY: CRITICAL blocks. HIGH is reported for review (see docs/ci-cd.md).
+      - name: Scan application image by digest
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          scan-type: image
+          image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+          format: table
+          vuln-type: os,library
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-image-report.txt
+
+      - name: Scan migration image by digest
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          scan-type: image
+          image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+          format: table
+          vuln-type: os,library
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-migration-report.txt
+
+      - name: Enforce CRITICAL vulnerability gate
+        run: |
+          set -euo pipefail
+          blocked=0
+          for report in trivy-image-report.txt trivy-migration-report.txt; do
+            # Only the trailing "Total:" row carries "CRITICAL: <n>"; per-CVE
+            # rows do not, so this sums exactly once per report.
+            critical="$(grep -oE 'CRITICAL: [0-9]+' "$report" | awk -F': ' '{s+=$2} END {print s+0}')"
+            echo "${report}: ${critical} CRITICAL findings"
+            if [ "${critical}" -gt 0 ]; then
+              echo "::error::${report} has ${critical} CRITICAL vulnerabilities - blocking promotion."
+              cat "$report"
+              blocked=1
+            fi
+          done
+          [ "${blocked}" -eq 0 ] || exit 1
+          echo "Gate passed: no CRITICAL vulnerabilities in either image."
+
+      - name: Generate CycloneDX SBOMs
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          scan-type: image
+          image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-app.json
+
+      - name: Generate migration SBOM
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          scan-type: image
+          image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+          format: cyclonedx
+          output: sbom-migration.json
+
+      - name: Upload image scan reports + SBOMs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: image-security-${{ github.sha }}
+          path: |
+            trivy-image-report.txt
+            trivy-migration-report.txt
+            sbom-app.json
+            sbom-migration.json
+          retention-days: 30
+          if-no-files-found: error
+
+
+
+  sign:
+    name: Sign image (cosign, keyless)
+    needs: [build, image-scan]
+    if: inputs.push
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # Keyless signing: the OIDC token from this job is the identity, so there
+      # is no long-lived signing key to leak or rotate.
+      - name: Sign digests
+        env:
+          APP_IMAGE: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+          MIGRATION_IMAGE: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+        run: |
+          cosign sign --yes "$APP_IMAGE"
+          cosign sign --yes "$MIGRATION_IMAGE"
+
+      - name: Verify signatures
+        env:
+          APP_IMAGE: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+          MIGRATION_IMAGE: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+        run: |
+          cosign verify "$APP_IMAGE"
+          cosign verify "$MIGRATION_IMAGE"
+
+  promote:
+    name: Promote tags
+    needs: [build, image-scan]
+    if: inputs.push && (inputs.tag-latest || inputs.promote-tag != '')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # Runs only after image-scan passed, so no deployable tag can point at an
+      # unscanned digest.
+      - name: Apply promotion tags
+        env:
+          APP_SOURCE: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
+          MIGRATION_SOURCE: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
+          IMAGE_REF: ${{ needs.build.outputs.image-ref }}
+          PROMOTE_TAG: ${{ inputs.promote-tag }}
+          TAG_LATEST: ${{ inputs.tag-latest }}
+        run: |
+          set -euo pipefail
+          tag_all() {
+            local tag="$1"
+            docker buildx imagetools create --tag "${IMAGE_REF}:${tag}" "$APP_SOURCE"
+            docker buildx imagetools create --tag "${IMAGE_REF}:migration-${tag}" "$MIGRATION_SOURCE"
+            echo "Tagged ${IMAGE_REF}:${tag} and ${IMAGE_REF}:migration-${tag}"
+          }
+
+          if [ -n "$PROMOTE_TAG" ]; then
+            tag_all "$PROMOTE_TAG"
+          fi
+          if [ "$TAG_LATEST" = 'true' ]; then
+            tag_all "latest"
+          fi

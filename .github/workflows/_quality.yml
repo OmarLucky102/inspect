@@ -1,0 +1,208 @@
+# ==============================================================================
+# Reusable: Quality Gates
+# ==============================================================================
+# Lint -> format -> typecheck -> unit tests (+coverage) -> e2e (postgres)
+# Called by pr.yml and main.yml so validation logic lives in one place.
+# ==============================================================================
+name: _quality
+
+on:
+  workflow_call:
+    inputs:
+      run-e2e:
+        description: 'Run the e2e suite against a real PostgreSQL service container'
+        type: boolean
+        default: true
+    secrets: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22.17.0'
+  # Commands verified against this repository (see docs/ci-cd.md).
+  PNPM_VERSION: '10.34.6'
+
+jobs:
+  static-checks:
+    name: Lint / Format / Typecheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The Prisma client is generated from prisma/models; type resolution for
+      # @prisma/client depends on it, so this must precede typecheck.
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Prettier check
+        run: pnpm run format:check
+
+      - name: ESLint
+        run: pnpm run lint:check
+
+      - name: TypeScript type check
+        run: pnpm run typecheck
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Verify build output entrypoint
+        run: test -f dist/src/main.js
+
+  deploy-scripts:
+    name: Deploy script unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      # The deploy scripts ship image refs and edit the host .env file, so they
+      # are the one part of the pipeline that mutates production state directly.
+      # These tests need no Node toolchain and no database - only bash.
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Unit-test scripts/lib.sh
+        run: bash scripts/test-lib.sh
+
+  unit-tests:
+    name: Unit tests + coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: static-checks
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Run unit tests with coverage
+        run: pnpm run test:cov
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  e2e-tests:
+    name: E2E tests (postgres)
+    if: inputs.run-e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: static-checks
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: inspect_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d inspect_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: inspect_ci
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inspect_ci?schema=public
+      # The e2e boot path constructs PrismaService -> ConfigService.getOrThrow,
+      # so these must exist even though no auth request is exercised.
+      JWT_SECRET: ci-only-not-a-real-secret
+      JWT_REFRESH_SECRET: ci-only-not-a-real-secret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      JWT_COOKIE_EXPIRES_IN: 15d
+      SERVER_PORT: '3000'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run e2e tests
+        run: pnpm run test:e2e
+
+      - name: Upload server logs on failure
+        if: failure()
+        run: echo "e2e failed - inspect the job log above for the assertion output"
