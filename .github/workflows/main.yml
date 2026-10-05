@@ -47,8 +47,8 @@ jobs:
     uses: ./.github/workflows/_security.yml
     permissions:
       contents: read
+      actions: read
       security-events: write
-
   # packages/id-token/attestations are for GHCR push and cosign keyless signing.
   build:
     name: build
