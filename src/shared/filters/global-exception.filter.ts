@@ -9,6 +9,21 @@ import {
 import { Request, Response } from 'express';
 import { BaseException } from '@shared/exceptions/base.exception';
 
+/**
+ * Structural shape of the third-party errors this filter inspects. Typed
+ * explicitly so the filter does not need `any`, and so the unsafe-`*` lint
+ * rules have something concrete to narrow against.
+ */
+interface KnownErrorShape {
+  code?: string;
+  name?: string;
+  meta?: { target?: unknown };
+}
+
+function isKnownErrorShape(value: unknown): value is KnownErrorShape {
+  return typeof value === 'object' && value !== null;
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
@@ -53,12 +68,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     error: BaseException,
     original: unknown,
   ): BaseException {
-    const err = original as any;
+    const err: KnownErrorShape | undefined = isKnownErrorShape(original)
+      ? original
+      : undefined;
 
     // Prisma Unique Constraint Violation
     if (err?.code === 'P2002') {
-      const target = Array.isArray(err?.meta?.target)
-        ? err.meta.target.join(', ')
+      const rawTarget = err.meta?.target;
+      const target = Array.isArray(rawTarget)
+        ? rawTarget.map(String).join(', ')
         : 'field';
       return new BaseException(
         `Duplicate field value for ${target}. Please use another value.`,

@@ -34,7 +34,46 @@ RUN pnpm run build
 RUN pnpm prune --prod
 
 # ==============================================================================
-# Stage 2: Production runtime stage
+# Stage 2: Migration stage
+# ==============================================================================
+# The production stage is built with `pnpm prune --prod`, which removes the
+# `prisma` CLI (a devDependency), so migrations cannot run from the app image.
+# This stage ships only the pinned Prisma CLI + the schema, and CI pushes it as
+# a second digest built from the same commit - migrations therefore always match
+# the schema the app was compiled against.
+#
+# NOTE: prisma.config.ts derives the datasource URL from DB_* variables (NOT
+# DATABASE_URL), so every DB_* variable must be supplied to this container.
+FROM node:22-alpine AS migration
+
+# PRISMA_VERSION must equal the resolved version in pnpm-lock.yaml, otherwise
+# the migration CLI could be a different engine version than the client the app
+# was built against. CI resolves it via `node scripts/lock-version.mjs prisma`.
+ARG PRISMA_VERSION=7.8.0
+ARG DOTENV_VERSION=17.4.2
+
+WORKDIR /app
+
+# dumb-init forwards SIGTERM so `migrate deploy` is not killed mid-transaction.
+RUN apk add --no-cache libc6-compat openssl dumb-init
+
+# Prisma's config file imports 'dotenv/config', so dotenv must sit next to it.
+RUN npm install --prefix /app --no-save --no-audit --no-fund \
+      "prisma@${PRISMA_VERSION}" \
+      "dotenv@${DOTENV_VERSION}" \
+ && npm cache clean --force \
+ && rm -f /app/package-lock.json
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+ENV MIGRATION_CLI=/app/node_modules/.bin/prisma
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["sh", "-c", "$MIGRATION_CLI migrate deploy"]
+
+# ==============================================================================
+# Stage 3: Production runtime stage
 # ==============================================================================
 FROM node:22-alpine AS production
 

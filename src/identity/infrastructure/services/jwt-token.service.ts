@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import type { StringValue } from 'ms';
 
 export interface JwtPayload {
   sub: string; //User id
@@ -26,17 +27,23 @@ export class JwtTokenService {
   signAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
     return this.jwtService.sign(payload, {
       secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      expiresIn: this.configService.getOrThrow<string>('JWT_EXPIRES_IN') as any,
+      expiresIn: this.getExpiry('JWT_EXPIRES_IN'),
     });
   }
 
   signRefreshToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
     return this.jwtService.sign(payload, {
       secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.getOrThrow<string>(
-        'JWT_REFRESH_EXPIRES_IN',
-      ) as any,
+      expiresIn: this.getExpiry('JWT_REFRESH_EXPIRES_IN'),
     });
+  }
+
+  /**
+   * Reads an expiry such as "15m" or "7d" from config and narrows it to the
+   * `ms.StringValue` union that `jsonwebtoken` expects, without `as any`.
+   */
+  private getExpiry(key: string): StringValue {
+    return this.configService.getOrThrow<string>(key) as StringValue;
   }
 
   signTokenPair(payload: Omit<JwtPayload, 'iat' | 'exp'>): TokenPair {

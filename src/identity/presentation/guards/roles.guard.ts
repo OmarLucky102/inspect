@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { Role } from '../../domain/value-objects/role.enum';
+import { Role, isRole } from '../../domain/value-objects/role.enum';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -24,13 +25,16 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    if (!user) {
+    // The JWT `role` claim is untrusted input: narrow it to the Role enum before
+    // it drives an authorization decision.
+    const userRole = user?.role;
+    if (!isRole(userRole)) {
       throw new ForbiddenException('Access denied');
     }
 
-    const hasRole = requiredRoles.some((role) => user.role === role);
+    const hasRole = requiredRoles.some((role) => userRole === role);
 
     if (!hasRole) {
       throw new ForbiddenException(

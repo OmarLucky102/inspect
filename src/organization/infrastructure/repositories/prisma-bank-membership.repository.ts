@@ -23,7 +23,7 @@ export class PrismaBankMembershipRepository implements IBankMembershipRepository
       where: { bankId },
       orderBy: { joinedAt: 'desc' },
     });
-    return rows.map(BankMembershipMapper.toDomain);
+    return rows.map((row) => BankMembershipMapper.toDomain(row));
   }
 
   async save(membership: BankMembership): Promise<void> {

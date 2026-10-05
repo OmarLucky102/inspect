@@ -5,7 +5,7 @@ import { Logger } from 'nestjs-pino';
 import { setupProcessErrorHandlers } from './process/process-error-handlers';
 import { setupMiddlewares } from './bootstrap/app.bootstrap';
 import { ConfigService } from '@nestjs/config';
-import { Logger as NestLogger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   // Catch unexpected errors
@@ -49,4 +49,7 @@ async function bootstrap() {
     '\x1b[1m\x1b[36m====================================================\x1b[0m\n',
   );
 }
-bootstrap();
+// `void` marks the floating promise as intentionally not awaited: a rejection
+// here is already surfaced by setupProcessErrorHandlers() and must not become an
+// unhandled rejection.
+void bootstrap();

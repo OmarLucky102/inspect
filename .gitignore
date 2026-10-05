@@ -67,3 +67,7 @@ skills-lock.json
 .agents/
 .opencode/
 .vscode/
+
+## pnpm
+.pnpm-store/
+

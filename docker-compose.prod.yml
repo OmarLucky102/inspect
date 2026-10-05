@@ -1,0 +1,132 @@
+# ==============================================================================
+# Production / Staging stack (self-contained, no merge with docker-compose.yml)
+# ==============================================================================
+# Intended to be driven by scripts/deploy.sh, never by hand:
+#
+#   docker compose -p inspect_production \
+#     --env-file /opt/inspect/production/.env \
+#     -f docker-compose.prod.yml up -d --wait app
+#
+# This file is deliberately standalone rather than a `docker-compose.yml`
+# override. Overrides would need `build: !reset` (Compose >= 2.24) and would
+# silently inherit dev-only settings; keeping it explicit makes the production
+# surface reviewable in one place.
+#
+# --- Environment file (/opt/inspect/<env>/.env, mode 600, owned by deployer) ---
+# Required, written by scripts/deploy.sh or at provisioning time:
+#   INSPECT_IMAGE     ghcr.io/<owner>/<repo>@sha256:<digest>   (immutable only)
+#   MIGRATION_IMAGE   ghcr.io/<owner>/<repo>@sha256:<digest>   (migration stage)
+# Required, supplied by the operator and never stored in git:
+#   DB_USER, DB_PASSWORD, DB_NAME
+#   DATABASE_URL      literal postgresql:// URL using host `postgres`
+#   JWT_SECRET, JWT_REFRESH_SECRET   (>= 32 random bytes, mutually different)
+#   JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN, JWT_COOKIE_EXPIRES_IN
+# Optional:
+#   SERVER_PORT       host port to publish (default 3000)
+#   NGINX_UPSTREAM_PORT / TLS terminated upstream
+# ==============================================================================
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      # Deterministic collation so index behaviour matches CI and every host.
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - inspect_network
+
+  app:
+    # No `build:` - the image is pulled, never rebuilt on the host. Production
+    # must never compile its own artifact.
+    image: ${INSPECT_IMAGE:?INSPECT_IMAGE must be set to an immutable image reference}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SERVER_PORT: '3000'
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      JWT_COOKIE_EXPIRES_IN: ${JWT_COOKIE_EXPIRES_IN:-15d}
+    ports:
+      - '${SERVER_PORT:-3000}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # Nest must boot, connect to Postgres and answer /health before this
+      # counts as healthy. Too short a value causes false rollbacks.
+      start_period: 40s
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - inspect_network
+
+  migration:
+    # Built from the Dockerfile `migration` stage in the same CI run, so the
+    # schema applied here is byte-identical to the app's compiled schema.
+    image: ${MIGRATION_IMAGE:?MIGRATION_IMAGE must be set to an immutable image reference}
+    pull_policy: always
+    restart: 'no'
+    # prisma.config.ts builds the connection string from DB_* (not DATABASE_URL),
+    # so these must be present even though the app reads DATABASE_URL.
+    environment:
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+    command: sh -c '/app/node_modules/.bin/prisma migrate deploy'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+    networks:
+      - inspect_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  inspect_network:
+    name: ${COMPOSE_PROJECT_NAME}_inspect_network
+    driver: bridge
