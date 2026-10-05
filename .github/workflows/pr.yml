@@ -42,6 +42,7 @@ jobs:
   security:
     name: security
     uses: ./.github/workflows/_security.yml
+    secrets: inherit
     permissions:
       contents: read
       security-events: write
