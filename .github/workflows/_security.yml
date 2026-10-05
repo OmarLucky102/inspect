@@ -69,7 +69,7 @@ jobs:
           persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action@87ef0dc97def48aa960fbf026a2563ee9dbdb470 # v3
+        uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
           queries: security-and-quality
@@ -77,16 +77,11 @@ jobs:
       # Fork PRs get a read-only token and cannot publish SARIF.
       - name: Analyze
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: github/codeql-action@87ef0dc97def48aa960fbf026a2563ee9dbdb470 # v3
+        uses: github/codeql-action/analyze@v3
         with:
           category: /language:javascript-typescript
-
-      - name: Upload SARIF
-        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action@87ef0dc97def48aa960fbf026a2563ee9dbdb470 # v3
-        with:
-          category: /language:javascript-typescript
-          sarif_file: codeql-results.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.CODEQL_UPLOAD_TOKEN || secrets.GITHUB_TOKEN }}
 
   dependency-scan:
     name: SCA (pnpm audit)
@@ -128,7 +123,7 @@ jobs:
         with:
           persist-credentials: false
 
-# Pinned to a full commit SHA, never a tag or a branch. `@master` is a
+      # Pinned to a full commit SHA, never a tag or a branch. `@master` is a
       # mutable reference: it is the exact vector used in CVE-2026-33634, where
       # 76 of 77 trivy-action tags were force-pushed to an infostealer.
       - name: Scan Dockerfile and Compose manifests
