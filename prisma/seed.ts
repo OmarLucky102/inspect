@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { seedGovernorates } from './seeds/governorate.seed';
+import { seedCities } from './seeds/city.seed';
 
 /**
  * Super Admin Seed Script
@@ -107,6 +109,9 @@ async function main() {
     console.log(`   ID:    ${superAdmin.id}`);
     console.log(`   Email: ${superAdmin.email}`);
     console.log(`   Role:  ${superAdmin.role}`);
+
+    await seedGovernorates(prisma);
+    await seedCities(prisma);
   } finally {
     await prisma.$disconnect();
   }

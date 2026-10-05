@@ -1,0 +1,92 @@
+name: inspect
+
+services:
+  # ============================================================================
+  # 1. PostgreSQL Database Service
+  # ============================================================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: inspect_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-mydb}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-mydb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - inspect_network
+
+  # ============================================================================
+  # 2. NestJS Application Service
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: inspect_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - SERVER_PORT=${SERVER_PORT:-3000}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-mydb}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-mydb}?schema=public
+    ports:
+      - "${SERVER_PORT:-3000}:${SERVER_PORT:-3000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inspect_network
+
+  # ============================================================================
+  # 3. Prisma Migration & Seed Service (Profile: migration)
+  #    Run manually via: docker compose --profile migration up migration
+  # ============================================================================
+  migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: inspect_migration
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-mydb}?schema=public
+    command: sh -c "pnpm exec prisma migrate deploy && pnpm exec ts-node prisma/seed.ts"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inspect_network
+    profiles:
+      - migration
+
+# ==============================================================================
+# Volumes & Networks
+# ==============================================================================
+volumes:
+  postgres_data:
+    name: inspect_postgres_data
+    driver: local
+
+networks:
+  inspect_network:
+    name: inspect_network
+    driver: bridge
