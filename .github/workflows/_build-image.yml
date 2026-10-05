@@ -219,7 +219,7 @@ jobs:
       # Scans the exact digest that was just pushed - not a rebuild.
       # POLICY: CRITICAL blocks. HIGH is reported for review (see docs/ci-cd.md).
       - name: Scan application image by digest
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
@@ -231,7 +231,7 @@ jobs:
           output: trivy-image-report.txt
 
       - name: Scan migration image by digest
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}
@@ -261,7 +261,7 @@ jobs:
           echo "Gate passed: no CRITICAL vulnerabilities in either image."
 
       - name: Generate CycloneDX SBOMs
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.digest }}
@@ -269,7 +269,7 @@ jobs:
           output: sbom-app.json
 
       - name: Generate migration SBOM
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ needs.build.outputs.image-ref }}@${{ needs.build.outputs.migration-digest }}

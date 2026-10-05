@@ -117,7 +117,7 @@ jobs:
       # --prod keeps dev-only tooling advisories from blocking releases.
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level=high
-        
+
   iac-scan:
     name: IaC scan (Trivy config)
     runs-on: ubuntu-24.04
@@ -128,8 +128,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run Trivy vulnerability scanner for IaC
-        uses: aquasecurity/trivy-action@master
+# Pinned to a full commit SHA, never a tag or a branch. `@master` is a
+      # mutable reference: it is the exact vector used in CVE-2026-33634, where
+      # 76 of 77 trivy-action tags were force-pushed to an infostealer.
+      - name: Scan Dockerfile and Compose manifests
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
           scan-ref: .
