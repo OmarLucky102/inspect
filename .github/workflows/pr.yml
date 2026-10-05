@@ -37,6 +37,11 @@ jobs:
     with:
       run-e2e: true
 
+  # security-events: write must be granted by the CALLER: a reusable workflow can
+  # only narrow the permissions it inherits, never widen them.
   security:
     name: security
     uses: ./.github/workflows/_security.yml
+    permissions:
+      contents: read
+      security-events: write

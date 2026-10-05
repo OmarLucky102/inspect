@@ -58,14 +58,25 @@ jobs:
     with:
       run-e2e: true
 
+  # security-events: write must be granted by the CALLER: a reusable workflow can
+  # only narrow the permissions it inherits, never widen them.
   security:
     name: security
     uses: ./.github/workflows/_security.yml
+    permissions:
+      contents: read
+      security-events: write
 
+  # packages/id-token/attestations are for GHCR push and cosign keyless signing.
   build:
     name: build
     needs: [validate-tag, quality, security]
     uses: ./.github/workflows/_build-image.yml
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     with:
       push: true
       tag-latest: true
