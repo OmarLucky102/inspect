@@ -37,7 +37,7 @@ jobs:
     name: quality
     uses: ./.github/workflows/_quality.yml
     with:
-      run-e2e: ${{ !inputs.skip-e2e }}
+      run-e2e: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip-e2e }}
 
   # A called workflow cannot widen the token permissions its caller granted, so
   # the scopes `_security.yml` needs must be granted here. Omitting them makes
