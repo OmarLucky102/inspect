@@ -1,27 +1,25 @@
 # ==============================================================================
 # Reusable: Security Gates
 # ==============================================================================
-# Secrets -> SAST -> SCA -> IaC -> policy gate
+# Secrets -> SAST -> SCA -> IaC
 #
-# POLICY (see docs/ci-cd.md for the full table):
-#   secret detected            -> BLOCK
-#   SAST error severity        -> BLOCK
+# POLICY:
+#   secret detected             -> BLOCK
+#   SAST error severity         -> BLOCK
 #   dependency HIGH / CRITICAL -> BLOCK
-#   IaC HIGH / CRITICAL         -> BLOCK
+#   IaC HIGH / CRITICAL        -> BLOCK
 #
 # Exceptions must be documented in docs/ci-cd.md with a scope + expiry.
 # ==============================================================================
+
 name: _security
 
 on:
   workflow_call:
-    secrets:
-      CODEQL_UPLOAD_TOKEN:
-        description: 'Optional. Falls back to GITHUB_TOKEN when unset.'
-        required: false
     inputs:
       run-codeql:
         description: 'Run CodeQL SAST analysis'
+        required: false
         type: boolean
         default: true
 
@@ -36,11 +34,23 @@ env:
   NODE_VERSION: '22.17.0'
   PNPM_VERSION: '10.34.6'
 
+# ==============================================================================
+# JOBS
+# ==============================================================================
+
 jobs:
+
+  # ============================================================================
+  # Secret Scanning
+  # ============================================================================
   secret-scan:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout full history
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -48,20 +58,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: gitleaks
+      - name: Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
 
+  # ============================================================================
+  # SAST - CodeQL
+  # ============================================================================
   sast:
     name: SAST (CodeQL)
     if: inputs.run-codeql
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+
+    # CodeQL needs:
+    #   contents: read          -> checkout/source access
+    #   actions: read           -> workflow/run metadata
+    #   security-events: write  -> upload SARIF/code-scanning results
     permissions:
       contents: read
+      actions: read
       security-events: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -76,17 +96,26 @@ jobs:
 
       # Fork PRs get a read-only token and cannot publish SARIF.
       - name: Analyze
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: >
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/analyze@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3
         with:
           category: /language:javascript-typescript
         env:
-          GITHUB_TOKEN: ${{ secrets.CODEQL_UPLOAD_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ============================================================================
+  # SCA - Dependency Scanning
+  # ============================================================================
   dependency-scan:
     name: SCA (pnpm audit)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -108,24 +137,34 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # --audit-level=high makes the command exit non-zero on HIGH and CRITICAL.
-      # --prod keeps dev-only tooling advisories from blocking releases.
+      # HIGH and CRITICAL vulnerabilities block the pipeline.
+      # Production dependencies only.
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level=high
 
+  # ============================================================================
+  # IaC Security Scanning
+  # ============================================================================
   iac-scan:
     name: IaC scan (Trivy config)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
 
-      # Pinned to a full commit SHA, never a tag or a branch. `@master` is a
-      # mutable reference: it is the exact vector used in CVE-2026-33634, where
-      # 76 of 77 trivy-action tags were force-pushed to an infostealer.
+      # Pinned to a full commit SHA.
+      #
+      # Never use:
+      #   aquasecurity/trivy-action@master
+      #
+      # Mutable tags/branches can be changed after review.
       - name: Scan Dockerfile and Compose manifests
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
