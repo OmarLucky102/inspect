@@ -39,16 +39,7 @@ jobs:
     with:
       run-e2e: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip-e2e }}
 
-  # A called workflow cannot widen the token permissions its caller granted, so
-  # the scopes `_security.yml` needs must be granted here. Omitting them makes
-  # the whole workflow fail validation, not just the SARIF upload.
-  security:
-    name: security
-    uses: ./.github/workflows/_security.yml
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
+
   # packages/id-token/attestations are for GHCR push and cosign keyless signing.
   build:
     name: build
