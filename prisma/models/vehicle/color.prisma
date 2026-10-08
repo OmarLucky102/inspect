@@ -1,7 +1,9 @@
 model Color {
-    id   String  @id @default(uuid()) @db.Uuid
-    name String  @unique
-    hex  String?
+    id       String  @id @default(uuid()) @db.Uuid
+    name     String  @unique
+    nameAr   String?
+    hex      String?
+    isActive Boolean @default(true)
 
     vehicles Vehicle[]
 

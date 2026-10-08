@@ -4,6 +4,10 @@ import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { seedGovernorates } from './seeds/governorate.seed';
 import { seedCities } from './seeds/city.seed';
+import { seedVehicleTrims } from './seeds/vehicle-trim.seed';
+import { seedVehicleLookups } from './seeds/vehicle-lookup.seed';
+import { seedVehicleColors } from './seeds/vehicle-color.seed';
+import { seedVehicleCategories } from './seeds/vehicle-category.seed';
 
 /**
  * Super Admin Seed Script
@@ -112,6 +116,10 @@ async function main() {
 
     await seedGovernorates(prisma);
     await seedCities(prisma);
+    await seedVehicleTrims(prisma);
+    await seedVehicleLookups(prisma);
+    await seedVehicleColors(prisma);
+    await seedVehicleCategories(prisma);
   } finally {
     await prisma.$disconnect();
   }

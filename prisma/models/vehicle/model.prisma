@@ -6,6 +6,7 @@ model VehicleModel {
     brand    VehicleBrand @relation(fields: [brandId], references: [id])
     vehicles Vehicle[]
 
+    @@unique([brandId, name])
     @@index([brandId])
     @@map("vehicle_models")
 }
