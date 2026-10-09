@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from './components/layout/AdminLayout'
 import { useAuth } from './features/auth/auth-context'
+import { WorkspaceProvider } from './features/workspaces/workspace-context'
 import { BanksPage } from './routes/BanksPage'
 import { ChecklistsPage } from './routes/ChecklistsPage'
 import { DashboardPage } from './routes/DashboardPage'
@@ -22,7 +23,9 @@ export default function App() {
       <Route
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <WorkspaceProvider>
+              <AdminLayout />
+            </WorkspaceProvider>
           </ProtectedRoute>
         }
       >

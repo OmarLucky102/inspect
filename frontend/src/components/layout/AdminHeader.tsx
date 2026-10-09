@@ -1,6 +1,7 @@
-import { CircleNotch, List, SignOut } from '@phosphor-icons/react'
+import { CircleNotch, List, SignOut, Bank as BankIcon, CaretDown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/use-logout'
+import { useWorkspace } from '@/features/workspaces/workspace-context'
 
 interface AdminHeaderProps {
   onMenu: () => void
@@ -10,6 +11,13 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
   const logoutMutation = useLogout()
+  const { user, banks, activeBankId, setActiveBankId } = useWorkspace()
+  
+  const initials = user
+    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+    : '..'
+
+  const activeBank = banks.find((b) => b.id === activeBankId)
 
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-bone/85 backdrop-blur">
@@ -33,12 +41,40 @@ export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-4">
+          {/* Bank Selector */}
+          {banks.length > 0 && (
+            <div className="hidden items-center gap-2 rounded-lg border border-hairline bg-white px-3 py-1.5 sm:flex relative">
+              <BankIcon className="size-4 text-ink-mute" />
+              {banks.length === 1 ? (
+                <span className="text-sm font-medium text-ink">{activeBank?.name}</span>
+              ) : (
+                <select
+                  value={activeBankId || ''}
+                  onChange={(e) => setActiveBankId(e.target.value)}
+                  className="appearance-none bg-transparent text-sm font-medium text-ink outline-none cursor-pointer pr-5"
+                >
+                  {banks.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {banks.length > 1 && (
+                <CaretDown className="pointer-events-none absolute right-2 size-3.5 text-ink-mute" />
+              )}
+            </div>
+          )}
+
+          <div className="h-5 w-[1px] bg-hairline hidden sm:block" />
+
           <span
             aria-hidden
             className="hidden size-9 items-center justify-center rounded-full bg-ink font-mono text-[11px] text-white sm:flex"
+            title={user ? `${user.firstName} ${user.lastName} (${user.role})` : undefined}
           >
-            AD
+            {initials}
           </span>
           <Button
             variant="outline"

@@ -2,6 +2,7 @@ import { Compass, X } from '@phosphor-icons/react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/cn'
 import { NAV_SECTIONS } from './nav'
+import { useWorkspace } from '@/features/workspaces/workspace-context'
 
 interface SidebarProps {
   mobileOpen: boolean
@@ -9,6 +10,22 @@ interface SidebarProps {
 }
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+  const { user } = useWorkspace()
+  
+  // Filter sections based on role. SUPER_ADMIN sees everything.
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+  const filteredSections = NAV_SECTIONS.map((section) => {
+    if (section.title === 'System' && !isSuperAdmin) return null
+    
+    const filteredItems = section.items.filter((item) => {
+      if (item.label === 'Banks' && !isSuperAdmin) return false
+      return true
+    })
+    
+    if (filteredItems.length === 0) return null
+    return { ...section, items: filteredItems }
+  }).filter(Boolean) as typeof NAV_SECTIONS
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2.5 px-5 pt-6 pb-2">
@@ -24,7 +41,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav aria-label="Admin sections" className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_SECTIONS.map((section) => (
+        {filteredSections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             <p className="px-2.5 pb-2 font-mono text-[10px] tracking-[0.22em] text-ink-mute">
               {section.title.toUpperCase()}
