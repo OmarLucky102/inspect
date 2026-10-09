@@ -1,43 +1,43 @@
 model User {
-    id              String    @id @default(uuid()) @db.Uuid
-    email           String    @unique @db.VarChar(255)
-    passwordHash    String
-    firstName       String    @db.VarChar(255)
-    lastName        String    @db.VarChar(255)
-    phone           String    @db.VarChar(20)
-    role            Role      @default(USER)
-    isEmailVerified Boolean   @default(false)
-    emailVerifiedAt DateTime?
-    isActive        Boolean   @default(false)
-    lastLoginAt     DateTime?
-    createdAt       DateTime  @default(now()) @db.Timestamp(6)
-    updatedAt       DateTime  @updatedAt @db.Timestamp(6)
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String
+  firstName       String    @db.VarChar(255)
+  lastName        String    @db.VarChar(255)
+  phone           String    @db.VarChar(20)
+  role            Role      @default(USER)
+  isEmailVerified Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  isActive        Boolean   @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamp(6)
 
-    refreshTokens           RefreshToken[]
-    oauthAccounts           OAuthAccount[]
-    emailVerificationTokens EmailVerificationToken[]
-    passwordResetTokens     PasswordResetToken[]
+  refreshTokens           RefreshToken[]
+  oauthAccounts           OAuthAccount[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
 
-    //organizations
-    bankMemberships BankMembership[]
+  //organizations
+  bankMemberships BankMembership[]
 
-    //inspection
-    assignedInspectionRequests InspectionRequest[]       @relation("AssignedRepresentative")
-    reviewedInspectionRequests InspectionRequest[]       @relation("AssignedReviewer")
-    createdInspectionRequests  InspectionRequest[]       @relation("CreatedRequests")
-    repAssignments             InspectionAssignment[]    @relation("RepresentativeAssignments")
-    assignmentsMade            InspectionAssignment[]    @relation("AssignmentsMade")
-    statusChanges              InspectionStatusHistory[] @relation("StatusChanges")
-    captureSessions            CaptureSession[]          @relation("CaptureSessions")
-    marketingDecisions         MarketingValueDecision[]  @relation("MarketingDecisionsReviewed")
+  //inspection
+  assignedInspectionRequests InspectionRequest[]       @relation("AssignedRepresentative")
+  reviewedInspectionRequests InspectionRequest[]       @relation("AssignedReviewer")
+  createdInspectionRequests  InspectionRequest[]       @relation("CreatedRequests")
+  repAssignments             InspectionAssignment[]    @relation("RepresentativeAssignments")
+  assignmentsMade            InspectionAssignment[]    @relation("AssignmentsMade")
+  statusChanges              InspectionStatusHistory[] @relation("StatusChanges")
+  captureSessions            CaptureSession[]          @relation("CaptureSessions")
+  marketingDecisions         MarketingValueDecision[]  @relation("MarketingDecisionsReviewed")
 
-    //media
-    mediaUploaded Media[] @relation("MediaUploaded")
+  //media
+  mediaUploaded Media[] @relation("MediaUploaded")
 
-    //reporting
-    reportsCreated   Report[]          @relation("ReportsCreated")
-    reportsGenerated GeneratedReport[] @relation("ReportsGenerated")
-    schedulesCreated ReportSchedule[]  @relation("SchedulesCreated")
+  //reporting
+  reportsCreated   Report[]          @relation("ReportsCreated")
+  reportsGenerated GeneratedReport[] @relation("ReportsGenerated")
+  schedulesCreated ReportSchedule[]  @relation("SchedulesCreated")
 
-    @@map("users")
+  @@map("users")
 }

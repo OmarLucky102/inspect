@@ -1,16 +1,17 @@
 model City {
-    id            String  @id @default(uuid()) @db.Uuid
-    governorateId String  @db.Uuid
-    name          String
-    nameAr        String?
-    isActive      Boolean
+  id            String  @id @default(uuid()) @db.Uuid
+  governorateId String  @db.Uuid
+  name          String
+  nameAr        String?
+  isActive      Boolean
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    governorate Governorate @relation(fields: [governorateId], references: [id])
+  governorate        Governorate         @relation(fields: [governorateId], references: [id])
+  inspectionRequests InspectionRequest[]
 
-    @@unique([governorateId, name])
-    @@index([governorateId])
-    @@map("cities")
+  @@unique([governorateId, name])
+  @@index([governorateId])
+  @@map("cities")
 }

@@ -1,15 +1,15 @@
 model VehicleCategory {
-    id       String  @id @default(uuid()) @db.Uuid
-    name     String
-    nameAr   String?
-    code     String? @unique
-    isActive Boolean @default(true)
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String
+  nameAr   String?
+  code     String? @unique
+  isActive Boolean @default(true)
 
-    checklists Checklist[]
-    vehicles   Vehicle[]
+  checklists Checklist[]
+  vehicles   Vehicle[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@map("vehicle_categories")
+  @@map("vehicle_categories")
 }

@@ -1,16 +1,16 @@
 model RefreshToken {
-    id         String    @id @default(uuid()) @db.Uuid
-    userId     String    @db.Uuid
-    tokenHash  String    @unique
-    deviceName String
-    ipAddress  String
-    userAgent  String?
-    expiresAt  DateTime  @db.Timestamp(6)
-    revokedAt  DateTime?
-    createdAt  DateTime  @default(now()) @db.Timestamp(6)
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  tokenHash  String    @unique
+  deviceName String
+  ipAddress  String
+  userAgent  String?
+  expiresAt  DateTime  @db.Timestamp(6)
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now()) @db.Timestamp(6)
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
-    @@map("refreshTokens")
+  @@index([userId])
+  @@map("refreshTokens")
 }

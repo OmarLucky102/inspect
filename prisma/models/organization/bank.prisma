@@ -13,8 +13,9 @@ model Bank {
   settings    BankSettings?
 
   //inspection
-  customers          Customer[]
-  inspectionRequests InspectionRequest[]
+  customers             Customer[]
+  inspectionRequests    InspectionRequest[]
+  requestNumberCounters RequestNumberCounter[]
 
   @@map("banks")
 }

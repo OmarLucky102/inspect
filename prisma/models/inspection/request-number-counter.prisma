@@ -1,0 +1,10 @@
+model RequestNumberCounter {
+  bankId     String @db.Uuid
+  period     String
+  lastNumber Int    @default(0)
+
+  bank Bank @relation(fields: [bankId], references: [id])
+
+  @@id([bankId, period])
+  @@map("request_number_counters")
+}

@@ -1,13 +1,13 @@
 model VehicleBrand {
-    id   String  @id @default(uuid()) @db.Uuid
-    name String
-    code String? @unique
+  id   String  @id @default(uuid()) @db.Uuid
+  name String
+  code String? @unique
 
-    models   VehicleModel[]
-    vehicles Vehicle[]
+  models   VehicleModel[]
+  vehicles Vehicle[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@map("vehicle_brands")
+  @@map("vehicle_brands")
 }

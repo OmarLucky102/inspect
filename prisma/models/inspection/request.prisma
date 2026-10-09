@@ -1,52 +1,61 @@
 //The Core Business Model
 
 model InspectionRequest {
-    id            String @id @default(uuid()) @db.Uuid
-    requestNumber String @unique
+  id            String @id @default(uuid()) @db.Uuid
+  requestNumber String @unique
 
-    bankId     String @db.Uuid
-    vehicleId  String @db.Uuid
-    customerId String @db.Uuid
+  bankId     String  @db.Uuid
+  vehicleId  String? @db.Uuid
+  customerId String  @db.Uuid
 
-    assignedRepresentativeId String? @db.Uuid
-    assignedReviewerId       String? @db.Uuid
+  assignedRepresentativeId String? @db.Uuid
+  assignedReviewerId       String? @db.Uuid
 
-    currentStatus InspectionStatus   @default(PENDING)
-    priority      InspectionPriority @default(MEDIUM)
+  currentStatus InspectionStatus   @default(PENDING)
+  priority      InspectionPriority @default(MEDIUM)
 
-    latitude  Decimal? @db.Decimal(9, 6)
-    longitude Decimal? @db.Decimal(9, 6)
-    address   String?
+  governorateId String?  @db.Uuid
+  cityId        String?  @db.Uuid
+  latitude      Decimal? @db.Decimal(9, 6)
+  longitude     Decimal? @db.Decimal(9, 6)
+  address       String?
 
-    requestedAt DateTime  @default(now())
-    assignedAt  DateTime?
-    completedAt DateTime?
+  requestedCompletionDate DateTime?
 
-    notes     String?
-    createdBy String  @db.Uuid
+  requestedAt DateTime  @default(now())
+  assignedAt  DateTime?
+  completedAt DateTime?
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  notes     String?
+  createdBy String  @db.Uuid
 
-    bank                   Bank     @relation(fields: [bankId], references: [id])
-    vehicle                Vehicle  @relation(fields: [vehicleId], references: [id])
-    customer               Customer @relation(fields: [customerId], references: [id])
-    assignedRepresentative User?    @relation("AssignedRepresentative", fields: [assignedRepresentativeId], references: [id])
-    assignedReviewer       User?    @relation("AssignedReviewer", fields: [assignedReviewerId], references: [id])
-    creator                User     @relation("CreatedRequests", fields: [createdBy], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    assignments        InspectionAssignment[]
-    captureSessions    CaptureSession[]
-    checklistItems     InspectionChecklistItem[]
-    marketingDecisions MarketingValueDecision[]
-    statusHistory      InspectionStatusHistory[]
+  bank                   Bank         @relation(fields: [bankId], references: [id])
+  vehicle                Vehicle?     @relation(fields: [vehicleId], references: [id])
+  customer               Customer     @relation(fields: [customerId], references: [id])
+  governorate            Governorate? @relation(fields: [governorateId], references: [id])
+  city                   City?        @relation(fields: [cityId], references: [id])
+  assignedRepresentative User?        @relation("AssignedRepresentative", fields: [assignedRepresentativeId], references: [id])
+  assignedReviewer       User?        @relation("AssignedReviewer", fields: [assignedReviewerId], references: [id])
+  creator                User         @relation("CreatedRequests", fields: [createdBy], references: [id])
 
-    @@index([bankId])
-    @@index([vehicleId])
-    @@index([customerId])
-    @@index([assignedRepresentativeId])
-    @@index([assignedReviewerId])
-    @@index([createdBy])
-    @@index([currentStatus, priority])
-    @@map("inspection_requests")
+  assignments        InspectionAssignment[]
+  captureSessions    CaptureSession[]
+  checklistItems     InspectionChecklistItem[]
+  marketingDecisions MarketingValueDecision[]
+  statusHistory      InspectionStatusHistory[]
+
+  @@index([bankId])
+  @@index([vehicleId])
+  @@index([customerId])
+  @@index([assignedRepresentativeId])
+  @@index([assignedReviewerId])
+  @@index([createdBy])
+  @@index([currentStatus, priority])
+  @@index([bankId, currentStatus])
+  @@index([governorateId])
+  @@index([cityId])
+  @@map("inspection_requests")
 }

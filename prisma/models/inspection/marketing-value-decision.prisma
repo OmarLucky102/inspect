@@ -1,20 +1,20 @@
 model MarketingValueDecision {
-    id String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-    inspectionRequestId String  @db.Uuid
-    estimatedValue      Decimal @db.Decimal(12, 2)
-    approved            Boolean
+  inspectionRequestId String  @db.Uuid
+  estimatedValue      Decimal @db.Decimal(12, 2)
+  approved            Boolean
 
-    notes          String?
-    rejectedReason String?
+  notes          String?
+  rejectedReason String?
 
-    reviewerId String   @db.Uuid
-    decidedAt  DateTime @default(now())
+  reviewerId String   @db.Uuid
+  decidedAt  DateTime @default(now())
 
-    inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
-    reviewer          User              @relation("MarketingDecisionsReviewed", fields: [reviewerId], references: [id])
+  inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
+  reviewer          User              @relation("MarketingDecisionsReviewed", fields: [reviewerId], references: [id])
 
-    @@index([inspectionRequestId])
-    @@index([reviewerId])
-    @@map("marketing_value_decisions")
+  @@index([inspectionRequestId])
+  @@index([reviewerId])
+  @@map("marketing_value_decisions")
 }

@@ -1,12 +1,12 @@
 model VehicleModel {
-    id      String @id @default(uuid()) @db.Uuid
-    brandId String @db.Uuid
-    name    String
+  id      String @id @default(uuid()) @db.Uuid
+  brandId String @db.Uuid
+  name    String
 
-    brand    VehicleBrand @relation(fields: [brandId], references: [id])
-    vehicles Vehicle[]
+  brand    VehicleBrand @relation(fields: [brandId], references: [id])
+  vehicles Vehicle[]
 
-    @@unique([brandId, name])
-    @@index([brandId])
-    @@map("vehicle_models")
+  @@unique([brandId, name])
+  @@index([brandId])
+  @@map("vehicle_models")
 }

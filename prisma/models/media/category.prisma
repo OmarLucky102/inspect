@@ -1,9 +1,9 @@
 model MediaCategory {
-    id          String  @id @default(uuid()) @db.Uuid
-    name        String  @unique
-    description String?
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @unique
+  description String?
 
-    media Media[]
+  media Media[]
 
-    @@map("media_categories")
+  @@map("media_categories")
 }

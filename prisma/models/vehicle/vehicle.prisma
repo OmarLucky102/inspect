@@ -1,40 +1,47 @@
 model Vehicle {
-    id String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-    vin         String @unique
-    plateNumber String @unique
+  vin         String  @unique
+  plateNumber String?
 
-    manufactureYear Int
-    mileage         Int
-    engineNumber    String
+  manufactureYear  Int
+  mileage          Int?
+  engineNumber     String
+  engineCc         Int?
+  power            Int?
+  insuranceValue   Decimal?  @db.Decimal(10, 2)
+  registrationDate DateTime?
 
-    status VehicleStatus @default(ACTIVE)
+  status VehicleStatus @default(ACTIVE)
 
-    brandId            String @db.Uuid
-    modelId            String @db.Uuid
-    categoryId         String @db.Uuid
-    fuelTypeId         String @db.Uuid
-    transmissionTypeId String @db.Uuid
-    colorId            String @db.Uuid
+  brandId            String  @db.Uuid
+  modelId            String  @db.Uuid
+  categoryId         String  @db.Uuid
+  fuelTypeId         String? @db.Uuid
+  transmissionTypeId String? @db.Uuid
+  colorId            String  @db.Uuid
+  trimId             String? @db.Uuid
 
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-    brand            VehicleBrand     @relation(fields: [brandId], references: [id])
-    model            VehicleModel     @relation(fields: [modelId], references: [id])
-    category         VehicleCategory  @relation(fields: [categoryId], references: [id])
-    fuelType         FuelType         @relation(fields: [fuelTypeId], references: [id])
-    transmissionType TransmissionType @relation(fields: [transmissionTypeId], references: [id])
-    color            Color            @relation(fields: [colorId], references: [id])
+  brand            VehicleBrand      @relation(fields: [brandId], references: [id])
+  model            VehicleModel      @relation(fields: [modelId], references: [id])
+  category         VehicleCategory   @relation(fields: [categoryId], references: [id])
+  fuelType         FuelType?         @relation(fields: [fuelTypeId], references: [id])
+  transmissionType TransmissionType? @relation(fields: [transmissionTypeId], references: [id])
+  color            Color             @relation(fields: [colorId], references: [id])
+  trim             VehicleTrim?      @relation(fields: [trimId], references: [id])
 
-    inspectionRequests InspectionRequest[]
+  inspectionRequests InspectionRequest[]
 
-    @@index([brandId])
-    @@index([modelId])
-    @@index([categoryId])
-    @@index([fuelTypeId])
-    @@index([transmissionTypeId])
-    @@index([colorId])
-    @@map("vehicles")
+  @@index([brandId])
+  @@index([modelId])
+  @@index([categoryId])
+  @@index([fuelTypeId])
+  @@index([transmissionTypeId])
+  @@index([colorId])
+  @@index([trimId])
+  @@map("vehicles")
 }

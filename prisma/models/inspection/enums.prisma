@@ -1,31 +1,32 @@
 enum InspectionStatus {
-    PENDING
-    ASSIGNED
-    IN_PROGRESS
-    UNDER_REVIEW
-    COMPLETED
-    APPROVED
-    REJECTED
-    CANCELLED
+  DRAFT
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  UNDER_REVIEW
+  COMPLETED
+  APPROVED
+  REJECTED
+  CANCELLED
 }
 
 enum InspectionPriority {
-    LOW
-    MEDIUM
-    HIGH
-    URGENT
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 enum AssignmentStatus {
-    PENDING
-    ACCEPTED
-    REJECTED
-    COMPLETED
-    CANCELLED
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
 }
 
 enum CaptureSessionStatus {
-    IN_PROGRESS
-    COMPLETED
-    ABANDONED
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
 }

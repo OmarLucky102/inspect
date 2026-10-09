@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { ConfigModule } from './config/config.module';
 import { OrganizationModule } from './organization/organization.module';
+import { InspectionModule } from './inspection/inspection.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { OrganizationModule } from './organization/organization.module';
     IdentityModule,
     HealthModule,
     OrganizationModule,
+    InspectionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,6 +13,9 @@ import { BankController } from './presentation/controllers/bank.controller';
 // Identity Module (for guards, UserService)
 import { IdentityModule } from '../identity/identity.module';
 
+// Presentation — Guards
+import { BankMembershipGuard } from './presentation/guards/bank-membership.guard';
+
 @Module({
   imports: [IdentityModule], // Provides: JwtAuthGuard, RolesGuard, UserService
   controllers: [BankController],
@@ -26,6 +29,8 @@ import { IdentityModule } from '../identity/identity.module';
       useClass: PrismaBankMembershipRepository,
     },
     BankService,
+    BankMembershipGuard,
   ],
+  exports: [BankService, BankMembershipGuard],
 })
 export class OrganizationModule {}

@@ -1,6 +1,6 @@
 enum MediaStatus {
-    PENDING
-    UPLOADED
-    FAILED
-    DELETED
+  PENDING
+  UPLOADED
+  FAILED
+  DELETED
 }

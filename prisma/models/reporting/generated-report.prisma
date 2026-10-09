@@ -1,34 +1,34 @@
 model GeneratedReport {
-    id String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-    reportId   String? @db.Uuid
-    templateId String? @db.Uuid
+  reportId   String? @db.Uuid
+  templateId String? @db.Uuid
 
-    generatedById String @db.Uuid
+  generatedById String @db.Uuid
 
-    fileName String?
-    fileUrl  String?
+  fileName String?
+  fileUrl  String?
 
-    format ReportFormat          @default(PDF)
-    status GeneratedReportStatus @default(PENDING)
+  format ReportFormat          @default(PDF)
+  status GeneratedReportStatus @default(PENDING)
 
-    data Json?
+  data Json?
 
-    errorMessage String?
-    startedAt    DateTime  @default(now())
-    completedAt  DateTime?
-    expiresAt    DateTime?
+  errorMessage String?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  expiresAt    DateTime?
 
-    createdAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
-    report     Report?                      @relation(fields: [reportId], references: [id], onDelete: Cascade)
-    template   ReportTemplate?              @relation(fields: [templateId], references: [id])
-    generatedBy User                        @relation("ReportsGenerated", fields: [generatedById], references: [id])
-    parameters GeneratedReportParameter[]
+  report      Report?                    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  template    ReportTemplate?            @relation(fields: [templateId], references: [id])
+  generatedBy User                       @relation("ReportsGenerated", fields: [generatedById], references: [id])
+  parameters  GeneratedReportParameter[]
 
-    @@index([reportId])
-    @@index([templateId])
-    @@index([generatedById])
-    @@index([status])
-    @@map("generated_reports")
+  @@index([reportId])
+  @@index([templateId])
+  @@index([generatedById])
+  @@index([status])
+  @@map("generated_reports")
 }

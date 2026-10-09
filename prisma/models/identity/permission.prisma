@@ -1,11 +1,11 @@
 model Permission {
-    id          String  @id @default(uuid()) @db.Uuid
-    code        String  @unique
-    module      String
-    name        String
-    description String?
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique
+  module      String
+  name        String
+  description String?
 
-    roles RolePermission[]
+  roles RolePermission[]
 
-    @@map("permissions")
+  @@map("permissions")
 }

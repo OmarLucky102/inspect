@@ -1,11 +1,11 @@
 model BankInvitation {
-  id          String    @id @default(uuid()) @db.Uuid
-  bankId      String    @db.Uuid
-  email       String
-  tokenHash   String    @unique
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid()) @db.Uuid
+  bankId     String    @db.Uuid
+  email      String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   bank Bank @relation(fields: [bankId], references: [id], onDelete: Cascade)
 

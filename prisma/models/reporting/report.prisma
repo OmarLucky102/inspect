@@ -1,26 +1,26 @@
 model Report {
-    id String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-    name        String
-    code        String  @unique
-    description String?
+  name        String
+  code        String  @unique
+  description String?
 
-    type   ReportType   @default(STANDARD)
-    status ReportStatus @default(ACTIVE)
-    format ReportFormat @default(PDF)
+  type   ReportType   @default(STANDARD)
+  status ReportStatus @default(ACTIVE)
+  format ReportFormat @default(PDF)
 
-    createdBy String @db.Uuid
+  createdBy String @db.Uuid
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-    creator          User              @relation("ReportsCreated", fields: [createdBy], references: [id])
-    parameters       ReportParameter[]
-    schedules        ReportSchedule[]
-    generatedReports GeneratedReport[]
+  creator          User              @relation("ReportsCreated", fields: [createdBy], references: [id])
+  parameters       ReportParameter[]
+  schedules        ReportSchedule[]
+  generatedReports GeneratedReport[]
 
-    @@index([createdBy])
-    @@index([status])
-    @@map("reports")
+  @@index([createdBy])
+  @@index([status])
+  @@map("reports")
 }

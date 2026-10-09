@@ -1,7 +1,27 @@
-confirmModulesPurge: false
+# confirmModulesPurge: false
 verifyDepsBeforeRun: false
 allowBuilds:
   '@prisma/engines': true
   bcrypt: true
   prisma: true
   unrs-resolver: false
+overrides:
+  '@hono/node-server@<1.19.15': ^1.19.15
+  baseline-browser-mapping@>=2.0.0 <2.11.0: ^2.11.0
+  brace-expansion@<1.1.21: ^1.1.21
+  brace-expansion@>=2.0.0 <2.1.7: ^2.1.7
+  brace-expansion@>=4.0.0 <5.0.12: ^5.0.12
+  browserslist@<=4.28.6: ^4.28.7
+  deepmerge-ts@<8.0.0: ^8.0.0
+  fast-copy@>=4.0.0 <4.1.0: ^4.1.0
+  fast-uri@>=3.0.0 <3.1.8: ^3.1.8
+  handlebars@>=4.0.0 <=4.7.9: ^4.7.10
+  hono@<4.13.7: ^4.13.7
+  js-yaml@>=3.0.0 <3.15.2: ^3.15.2
+  js-yaml@>=4.0.0 <4.3.2: ^4.3.2
+  multer@<2.3.0: ^2.3.0
+  multer@>=2.2.0 <2.4.0: ^2.4.0
+  mysql2@<=3.23.0: ^3.23.1
+  proxy-addr@>=1.1.0 <2.0.8: ^2.0.8
+  qs@>=2.2.5 <6.16.0: ^6.16.0
+  valibot@<=1.4.1: ^1.4.2

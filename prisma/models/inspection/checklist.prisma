@@ -1,15 +1,15 @@
 model Checklist {
-    id                String @id @default(uuid()) @db.Uuid
-    vehicleCategoryId String @db.Uuid
+  id                String @id @default(uuid()) @db.Uuid
+  vehicleCategoryId String @db.Uuid
 
-    name    String
-    version Int    @default(1)
+  name    String
+  version Int    @default(1)
 
-    createdAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
-    vehicleCategory VehicleCategory @relation(fields: [vehicleCategoryId], references: [id])
-    items           ChecklistItem[]
+  vehicleCategory VehicleCategory @relation(fields: [vehicleCategoryId], references: [id])
+  items           ChecklistItem[]
 
-    @@index([vehicleCategoryId])
-    @@map("checklists")
+  @@index([vehicleCategoryId])
+  @@map("checklists")
 }

@@ -1,11 +1,11 @@
 model Color {
-    id       String  @id @default(uuid()) @db.Uuid
-    name     String  @unique
-    nameAr   String?
-    hex      String?
-    isActive Boolean @default(true)
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String  @unique
+  nameAr   String?
+  hex      String?
+  isActive Boolean @default(true)
 
-    vehicles Vehicle[]
+  vehicles Vehicle[]
 
-    @@map("colors")
+  @@map("colors")
 }

@@ -1,7 +1,7 @@
 enum VehicleStatus {
-    ACTIVE
-    INSPECTION
-    SOLD
-    EXPIRED
-    DELETED
+  ACTIVE
+  INSPECTION
+  SOLD
+  EXPIRED
+  DELETED
 }

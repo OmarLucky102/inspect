@@ -53,6 +53,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     error: BaseException,
     original: unknown,
   ): BaseException {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = original as any;
 
     // Prisma Unique Constraint Violation
@@ -62,6 +63,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         : 'field';
       return new BaseException(
         `Duplicate field value for ${target}. Please use another value.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Prisma FK Violation
+    if (err?.code === 'P2003') {
+      const field = err?.meta?.field_name ?? 'field';
+      return new BaseException(
+        `Related record not found for ${field}. Please provide a valid reference.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Prisma Relation Violation
+    if (err?.code === 'P2014') {
+      return new BaseException(
+        `The change you are trying to make would violate the required relation.`,
         HttpStatus.BAD_REQUEST,
       );
     }

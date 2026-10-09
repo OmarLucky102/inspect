@@ -1,23 +1,23 @@
 model InspectionAssignment {
-    id String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-    inspectionRequestId String @db.Uuid
-    representativeId    String @db.Uuid
-    assignedBy          String @db.Uuid
+  inspectionRequestId String @db.Uuid
+  representativeId    String @db.Uuid
+  assignedBy          String @db.Uuid
 
-    status         AssignmentStatus @default(PENDING)
-    rejectedReason String?
+  status         AssignmentStatus @default(PENDING)
+  rejectedReason String?
 
-    assignedAt DateTime  @default(now())
-    acceptedAt DateTime?
-    rejectedAt DateTime?
+  assignedAt DateTime  @default(now())
+  acceptedAt DateTime?
+  rejectedAt DateTime?
 
-    inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
-    representative    User              @relation("RepresentativeAssignments", fields: [representativeId], references: [id])
-    assigner          User              @relation("AssignmentsMade", fields: [assignedBy], references: [id])
+  inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
+  representative    User              @relation("RepresentativeAssignments", fields: [representativeId], references: [id])
+  assigner          User              @relation("AssignmentsMade", fields: [assignedBy], references: [id])
 
-    @@index([inspectionRequestId])
-    @@index([representativeId])
-    @@index([assignedBy])
-    @@map("inspection_assignments")
+  @@index([inspectionRequestId])
+  @@index([representativeId])
+  @@index([assignedBy])
+  @@map("inspection_assignments")
 }

@@ -1,13 +1,13 @@
 model ReportParameter {
-    id String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-    reportId String @db.Uuid
-    key      String
-    value    String
+  reportId String @db.Uuid
+  key      String
+  value    String
 
-    report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-    @@unique([reportId, key])
-    @@index([reportId])
-    @@map("report_parameters")
+  @@unique([reportId, key])
+  @@index([reportId])
+  @@map("report_parameters")
 }
