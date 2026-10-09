@@ -1,0 +1,62 @@
+@import '@fontsource-variable/outfit';
+@import '@fontsource-variable/jetbrains-mono';
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --color-bone: #faf9f7;
+  --color-paper: #f3f1ec;
+  --color-ink: #14171a;
+  --color-ink-soft: #3f444b;
+  --color-ink-mute: #6e7480;
+  --color-hairline: #e4e1da;
+  --color-accent: #0e6b4e;
+  --color-accent-deep: #0a4f3a;
+  --color-accent-soft: #e2efe8;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bone);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Technical grid for the editorial panel — pure CSS, no image asset. */
+.tech-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 80% at 30% 20%, black 55%, transparent 100%);
+}
+
+.tech-grid-light {
+  background-image:
+    linear-gradient(to right, rgb(20 23 26 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(20 23 26 / 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Soft vignette + tactile grain for premium depth (fixed, non-scrolling). */
+.vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 20% 0%, transparent 40%, rgb(0 0 0 / 0.42) 100%);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
