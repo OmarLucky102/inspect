@@ -7,12 +7,17 @@ import { PrismaCustomerRepository } from './infrastructure/repositories/prisma-c
 import { PrismaRequestNumberCounterRepository } from './infrastructure/repositories/prisma-request-number-counter.repository';
 import { PrismaLocationRepository } from './infrastructure/repositories/prisma-location.repository';
 import { PrismaVehicleReferenceRepository } from './infrastructure/repositories/prisma-vehicle-reference.repository';
+import { PrismaChecklistRepository } from './infrastructure/repositories/prisma-checklist.repository';
+import { PrismaChecklistItemRepository } from './infrastructure/repositories/prisma-checklist-item.repository';
+import { PrismaInspectionChecklistItemRepository } from './infrastructure/repositories/prisma-inspection-checklist-item.repository';
 import { InspectionRequestService } from './application/services/inspection-request.service';
+import { ChecklistService } from './application/services/checklist.service';
 import { InspectionRequestController } from './presentation/controllers/inspection-request.controller';
+import { ChecklistController } from './presentation/controllers/checklist.controller';
 
 @Module({
   imports: [IdentityModule, OrganizationModule, VehicleModule],
-  controllers: [InspectionRequestController],
+  controllers: [InspectionRequestController, ChecklistController],
   providers: [
     {
       provide: 'IInspectionRequestRepository',
@@ -34,7 +39,20 @@ import { InspectionRequestController } from './presentation/controllers/inspecti
       provide: 'IVehicleReferenceRepository',
       useClass: PrismaVehicleReferenceRepository,
     },
+    {
+      provide: 'IChecklistRepository',
+      useClass: PrismaChecklistRepository,
+    },
+    {
+      provide: 'IChecklistItemRepository',
+      useClass: PrismaChecklistItemRepository,
+    },
+    {
+      provide: 'IInspectionChecklistItemRepository',
+      useClass: PrismaInspectionChecklistItemRepository,
+    },
     InspectionRequestService,
+    ChecklistService,
   ],
 })
 export class InspectionModule {}

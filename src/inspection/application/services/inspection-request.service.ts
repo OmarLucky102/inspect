@@ -7,6 +7,10 @@ import type { IRequestNumberCounterRepository } from '../../domain/repositories/
 import type { ILocationRepository } from '../../domain/repositories/location.repository.interface';
 import type { IVehicleReferenceRepository } from '../../domain/repositories/vehicle-reference.repository.interface';
 import type { IVehicleRepository } from '../../../vehicle/domain/repositories/vehicle.repository.interface';
+import type { IChecklistItemRepository } from '../../domain/repositories/checklist-item.repository.interface';
+import type { IChecklistRepository } from '../../domain/repositories/checklist.repository.interface';
+import type { IInspectionChecklistItemRepository } from '../../domain/repositories/inspection-checklist-item.repository.interface';
+import { InspectionChecklistItem } from '../../domain/entities/inspection-checklist-item.entity';
 import { BankService } from '../../../organization/application/services/bank.service';
 import { InspectionRequest } from '../../domain/entities/inspection-request.entity';
 import { Customer } from '../../domain/entities/customer.entity';
@@ -96,6 +100,12 @@ export class InspectionRequestService {
     private readonly vehicleReferenceRepository: IVehicleReferenceRepository,
     @Inject('IVehicleRepository')
     private readonly vehicleRepository: IVehicleRepository,
+    @Inject('IChecklistRepository')
+    private readonly checklistRepository: IChecklistRepository,
+    @Inject('IChecklistItemRepository')
+    private readonly checklistItemRepository: IChecklistItemRepository,
+    @Inject('IInspectionChecklistItemRepository')
+    private readonly inspectionChecklistItemRepository: IInspectionChecklistItemRepository,
     private readonly bankService: BankService,
     private readonly prisma: PrismaService, // For transactions
   ) {}
@@ -246,6 +256,43 @@ export class InspectionRequestService {
       });
 
       await this.requestRepository.save(request, tx);
+
+      // Attach checklist items
+      const mandatoryItems = await this.checklistItemRepository.findMandatoryItems();
+      const mergedItems = new Map<string, any>(); // code -> item
+      
+      // Add mandatory items first
+      for (const item of mandatoryItems) {
+        mergedItems.set(item.code, item);
+      }
+
+      // If we have a vehicle, we can get category-specific items
+      if (input.vehicle?.categoryId) {
+        const checklists = await this.checklistRepository.findByCategoryId(input.vehicle.categoryId);
+        for (const cl of checklists) {
+          const items = await this.checklistItemRepository.findByChecklistId(cl.id);
+          for (const item of items) {
+            // Include if global or matches bank, and not overriding a mandatory item
+            if ((!item.bankId || item.bankId === bank.id) && !mergedItems.has(item.code)) {
+              mergedItems.set(item.code, item);
+            }
+          }
+        }
+      }
+
+      const inspectionChecklistItems = Array.from(mergedItems.values()).map((item: any) => {
+        return new InspectionChecklistItem({
+          id: randomUUID(),
+          inspectionRequestId: request.id,
+          checklistItemId: item.id,
+          value: null,
+          notes: null,
+          completed: false,
+          completedAt: null,
+        });
+      });
+
+      await this.inspectionChecklistItemRepository.bulkCreate(inspectionChecklistItems, tx);
     });
 
     return request;

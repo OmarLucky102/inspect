@@ -1,26 +1,31 @@
 model ChecklistItem {
   id          String @id @default(uuid()) @db.Uuid
   checklistId String @db.Uuid
+  bankId      String? @db.Uuid
 
   code        String
   label       String
   description String?
 
-  isRequired Boolean @default(true)
-  weight     Int     @default(1)
-  inputType  String  @default("TEXT")
-  options    String?
-  sortOrder  Int     @default(0)
+  isRequired  Boolean @default(true)
+  isMandatory Boolean @default(false)
+  weight      Int     @default(1)
+  inputType   String  @default("TEXT")
+  options     String?
+  sortOrder   Int     @default(0)
 
-  isActive Boolean @default(true)
+  isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
+  bank              Bank?                     @relation(fields: [bankId], references: [id])
   checklist         Checklist                 @relation(fields: [checklistId], references: [id], onDelete: Cascade)
   inspectionResults InspectionChecklistItem[]
 
   @@unique([checklistId, code])
   @@index([checklistId])
+  @@index([bankId])
   @@map("checklist_items")
 }

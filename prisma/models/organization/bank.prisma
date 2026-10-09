@@ -16,6 +16,8 @@ model Bank {
   customers             Customer[]
   inspectionRequests    InspectionRequest[]
   requestNumberCounters RequestNumberCounter[]
+  checklists            Checklist[]
+  checklistItems        ChecklistItem[]
 
   @@map("banks")
 }
