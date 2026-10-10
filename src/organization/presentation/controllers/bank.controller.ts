@@ -17,14 +17,44 @@ import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.gua
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Roles } from '../../../identity/presentation/decorators/roles.decorator';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
+import { CurrentUser } from '../../../identity/presentation/decorators/current-user.decorator';
+
+import { PrismaService } from '../../../database/prisma.service';
 
 @Controller('banks')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
 export class BankController {
-  constructor(private readonly bankService: BankService) {}
+  constructor(
+    private readonly bankService: BankService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  @Get('my-banks')
+  @Roles(
+    Role.MANAGER,
+    Role.REVIEWER,
+    Role.USER,
+    Role.VIEWER,
+    Role.REPRESENTATIVE,
+    Role.SUPER_ADMIN,
+  )
+  async getMyBanks(@CurrentUser() user: any) {
+    if (user.role === Role.SUPER_ADMIN) {
+      const banks = await this.bankService.listBanks();
+      return { status: 'success', data: banks };
+    }
+    const memberships = await this.prisma.bankMembership.findMany({
+      where: { userId: user.sub || user.id },
+      include: { bank: true },
+    });
+    return {
+      status: 'success',
+      data: memberships.map((m) => m.bank),
+    };
+  }
 
   @Post()
+  @Roles(Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createBank(@Body() dto: CreateBankDto) {
     const bank = await this.bankService.createBank({
@@ -66,6 +96,7 @@ export class BankController {
   }
 
   @Get(':bankId')
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER)
   async getBank(@Param('bankId', ParseUUIDPipe) bankId: string) {
     const bank = await this.bankService.getBankById(bankId);
     return {
@@ -83,6 +114,7 @@ export class BankController {
   }
 
   @Post(':bankId/users')
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER)
   @HttpCode(HttpStatus.CREATED)
   async createBankUser(
     @Param('bankId', ParseUUIDPipe) bankId: string,
@@ -124,6 +156,7 @@ export class BankController {
   }
 
   @Post(':bankId/members')
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER)
   @HttpCode(HttpStatus.CREATED)
   async addBankMember(
     @Param('bankId', ParseUUIDPipe) bankId: string,

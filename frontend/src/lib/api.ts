@@ -21,8 +21,7 @@ export function setAccessToken(token: string | null): void {
   accessToken = token
 }
 
-const baseURL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'
+const baseURL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 export const api: AxiosInstance = axios.create({
   baseURL,

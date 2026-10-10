@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
 
 export function BanksPage() {
-  const { user } = useWorkspace()
+  const { user, activeBankId } = useWorkspace()
   const queryClient = useQueryClient()
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -37,10 +37,18 @@ export function BanksPage() {
   })
 
   if (user?.role !== 'SUPER_ADMIN') {
+    if (!activeBankId) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
+          <WarningCircle className="size-12 mb-4 text-red-500" />
+          <p>You do not belong to any bank workspace.</p>
+        </div>
+      )
+    }
+
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-        <WarningCircle className="size-12 mb-4 text-red-500" />
-        <p>You do not have permission to view this page.</p>
+      <div className="max-w-4xl mx-auto">
+        <BankDetails bankId={activeBankId} onClose={() => {}} />
       </div>
     )
   }
