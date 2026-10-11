@@ -11,7 +11,7 @@ export interface UserProfile {
   updatedAt: string;
 }
 
-function parseJwt(token: string) {
+export function parseJwt(token: string) {
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -41,8 +41,14 @@ export interface WorkspaceBank {
 }
 
 export async function fetchMyBanks(): Promise<WorkspaceBank[]> {
-  const res = await api.get<{ status: string; data: WorkspaceBank[] }>(
+  const res = await api.get<{ status: string; data: unknown[] }>(
     '/banks/my-banks',
   );
-  return (res.data as any).data || res.data;
+  const raw: unknown[] = (res.data as any).data ?? res.data ?? [];
+  // Backend domain entities are serialized as { props: { id, name, code, ... } }.
+  // Direct Prisma results (from membership join) come back flat.
+  return raw.map((item: any) => {
+    const b = item?.props ?? item;
+    return { id: b.id, name: b.name, code: b.code } as WorkspaceBank;
+  });
 }

@@ -68,34 +68,36 @@ export function LoginForm() {
       {serverError && (
         <div
           role="alert"
-          className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-600/25 bg-red-50 px-3.5 py-3 text-sm leading-snug text-red-800"
+          className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-500/30 bg-red-950/60 p-3.5 text-sm leading-snug text-red-200 backdrop-blur-md shadow-lg"
         >
-          <WarningCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <WarningCircle className="mt-0.5 size-4 shrink-0 text-red-400" aria-hidden />
           <p>{serverError}</p>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <Label htmlFor="email">Work email</Label>
+          <Label htmlFor="email" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/80">
+            Work email
+          </Label>
           <div className="relative">
             <Envelope
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-mute"
+              className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-white/45"
               aria-hidden
             />
             <Input
               id="email"
               type="email"
               autoComplete="username"
-              placeholder="admin@company.com"
+              placeholder="admin@euroassist.com"
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'email-error' : undefined}
-              className="pl-10"
+              className="h-11.5 rounded-xl border-white/15 bg-white/[0.06] pl-10.5 text-[15px] text-white placeholder:text-white/35 transition-all hover:border-white/25 hover:bg-white/[0.08] focus:border-emerald-400 focus:bg-white/[0.1] focus:ring-2 focus:ring-emerald-400/25"
               {...register('email')}
             />
           </div>
           {errors.email && (
-            <p id="email-error" role="alert" className="mt-1.5 text-[13px] text-red-700">
+            <p id="email-error" role="alert" className="mt-1.5 text-[13px] font-medium text-rose-400">
               {errors.email.message}
             </p>
           )}
@@ -103,13 +105,13 @@ export function LoginForm() {
 
         <div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="mb-1.5">
+            <Label htmlFor="password" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/80">
               Password
             </Label>
           </div>
           <div className="relative">
             <LockKey
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-mute"
+              className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-white/45"
               aria-hidden
             />
             <Input
@@ -119,7 +121,7 @@ export function LoginForm() {
               placeholder="Minimum 8 characters"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
-              className="pr-11 pl-10"
+              className="h-11.5 rounded-xl border-white/15 bg-white/[0.06] pr-11 pl-10.5 text-[15px] text-white placeholder:text-white/35 transition-all hover:border-white/25 hover:bg-white/[0.08] focus:border-emerald-400 focus:bg-white/[0.1] focus:ring-2 focus:ring-emerald-400/25"
               {...register('password')}
             />
             <button
@@ -127,7 +129,7 @@ export function LoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded-lg p-1.5 text-ink-mute transition-colors hover:bg-paper hover:text-ink"
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded-lg p-1.5 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
             >
               {showPassword ? (
                 <EyeSlash className="size-4" aria-hidden />
@@ -137,7 +139,7 @@ export function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p id="password-error" role="alert" className="mt-1.5 text-[13px] text-red-700">
+            <p id="password-error" role="alert" className="mt-1.5 text-[13px] font-medium text-rose-400">
               {errors.password.message}
             </p>
           )}
@@ -148,7 +150,10 @@ export function LoginForm() {
         type="submit"
         size="lg"
         disabled={mutation.isPending}
-        className={cn('mt-6 w-full', mutation.isPending && 'opacity-80')}
+        className={cn(
+          'mt-6 h-12 w-full cursor-pointer rounded-xl border border-emerald-400/30 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-[15px] font-medium text-white shadow-[0_12px_28px_-6px_rgba(16,185,129,0.45)] transition-all hover:from-emerald-500 hover:to-teal-400 hover:shadow-[0_14px_32px_-6px_rgba(16,185,129,0.6)] active:scale-[0.99]',
+          mutation.isPending && 'opacity-80'
+        )}
       >
         {mutation.isPending ? (
           <>
@@ -157,15 +162,16 @@ export function LoginForm() {
           </>
         ) : (
           <>
-            Sign in to admin
-            <ArrowRight aria-hidden />
+            Sign in to Console
+            <ArrowRight className="size-4.5" aria-hidden />
           </>
         )}
       </Button>
 
-      <p className="mt-5 text-center font-mono text-[11px] tracking-wide text-ink-mute">
-        SECURE SESSION · HTTPONLY REFRESH ROTATION
-      </p>
+      <div className="mt-5 flex items-center justify-center gap-2 font-mono text-[11px] tracking-wide text-white/45">
+        <span className="size-1.5 rounded-full bg-emerald-400/80 animate-pulse" />
+        <span>SECURE SESSION · HTTPONLY REFRESH ROTATION</span>
+      </div>
     </form>
   )
 }

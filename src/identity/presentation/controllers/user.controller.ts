@@ -1,18 +1,28 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, ForbiddenException, UseGuards } from '@nestjs/common';
 import { UserService } from '../../application/services/user.service';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Roles } from '../../../identity/presentation/decorators/roles.decorator';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
-import { UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../decorators/current-user.decorator';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
   @Get(':id')
-  async getUser(@Param('id') id: string) {
+  async getUser(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: any,
+  ) {
+    if (
+      currentUser.role !== Role.SUPER_ADMIN &&
+      (currentUser.sub || currentUser.id) !== id
+    ) {
+      throw new ForbiddenException('Cannot access other user profiles');
+    }
+
     const user = await this.userService.getUserById(id);
 
     // Convert to a plain object and remove password before sending to the client
@@ -33,6 +43,7 @@ export class UserController {
   }
 
   @Get()
+  @Roles(Role.SUPER_ADMIN)
   async getUsers() {
     const users = await this.userService.getAllUsers();
 

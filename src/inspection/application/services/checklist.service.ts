@@ -14,6 +14,8 @@ import {
   ChecklistItemNotInBankException,
 } from '../../../shared/exceptions/inspection.exceptions';
 
+import { PrismaService } from '../../../database/prisma.service';
+
 export interface AddChecklistItemInput {
   bankId: string;
   checklistId: string;
@@ -35,15 +37,32 @@ export class ChecklistService {
     private readonly checklistItemRepository: IChecklistItemRepository,
     @Inject('IInspectionChecklistItemRepository')
     private readonly inspectionChecklistItemRepository: IInspectionChecklistItemRepository,
+    private readonly prisma: PrismaService,
   ) {}
+
+  async getVehicleCategories(): Promise<{ id: string; name: string; nameAr: string | null; code: string | null }[]> {
+    return this.prisma.vehicleCategory.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, nameAr: true, code: true },
+      orderBy: { name: 'asc' },
+    });
+  }
 
   async getChecklistForCategory(bankId: string, categoryId: string): Promise<ChecklistItem[]> {
     const mandatoryItems = await this.checklistItemRepository.findMandatoryItems();
     
+    // Also include bank-specific custom items added to the base template
+    const baseChecklist = await this.checklistRepository.findByCode('SYSTEM_MANDATORY');
+    const baseCustomItems = baseChecklist
+      ? (await this.checklistItemRepository.findByChecklistId(baseChecklist.id)).filter(
+          item => item.bankId === bankId && !item.isMandatory
+        )
+      : [];
+
     const checklists = await this.checklistRepository.findByCategoryId(categoryId);
     // There should typically be one active template per category for a given context
     // We will get items from all applicable templates (though usually there is just one)
-    const categoryItems: ChecklistItem[] = [];
+    const categoryItems: ChecklistItem[] = [...baseCustomItems];
     for (const checklist of checklists) {
       const items = await this.checklistItemRepository.findByChecklistId(checklist.id);
       categoryItems.push(...items);

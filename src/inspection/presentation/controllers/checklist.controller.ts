@@ -23,6 +23,16 @@ import { Role } from '../../../identity/domain/value-objects/role.enum';
 export class ChecklistController {
   constructor(private readonly checklistService: ChecklistService) {}
 
+  @Get('categories')
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN)
+  async getCategories() {
+    const categories = await this.checklistService.getVehicleCategories();
+    return {
+      status: 'success',
+      data: categories,
+    };
+  }
+
   @Get('category/:categoryId')
   @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN)
   async getCategoryChecklist(
