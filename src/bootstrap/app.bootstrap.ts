@@ -21,7 +21,12 @@ export function setupMiddlewares(app: INestApplication): void {
     origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ],
   });
   // Logger is handled globally by nestjs-pino (SharedModule → AppLoggerModule)
   // we will add rate limiting, and other middlewares here later

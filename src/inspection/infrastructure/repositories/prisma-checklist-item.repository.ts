@@ -17,24 +17,24 @@ export class PrismaChecklistItemRepository implements IChecklistItemRepository {
 
   async findByChecklistId(checklistId: string): Promise<ChecklistItem[]> {
     const rows = await this.prisma.checklistItem.findMany({
-      where: { 
+      where: {
         checklistId,
         deletedAt: null,
       },
       orderBy: { sortOrder: 'asc' },
     });
-    return rows.map(ChecklistItemMapper.toDomain);
+    return rows.map((r) => ChecklistItemMapper.toDomain(r));
   }
 
   async findMandatoryItems(): Promise<ChecklistItem[]> {
     const rows = await this.prisma.checklistItem.findMany({
-      where: { 
+      where: {
         isMandatory: true,
         deletedAt: null,
       },
       orderBy: { sortOrder: 'asc' },
     });
-    return rows.map(ChecklistItemMapper.toDomain);
+    return rows.map((r) => ChecklistItemMapper.toDomain(r));
   }
 
   async save(item: ChecklistItem): Promise<void> {

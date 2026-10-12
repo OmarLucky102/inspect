@@ -19,7 +19,7 @@ export class PrismaChecklistRepository implements IChecklistRepository {
     const rows = await this.prisma.checklist.findMany({
       where: { vehicleCategoryId: categoryId },
     });
-    return rows.map(ChecklistMapper.toDomain);
+    return rows.map((r) => ChecklistMapper.toDomain(r));
   }
 
   async findById(id: string): Promise<Checklist | null> {

@@ -38,7 +38,12 @@ export class PrismaRequestNumberCounterRepository implements IRequestNumberCount
         });
         return result.lastNumber;
       } catch (error: unknown) {
-        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+        if (
+          error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          error.code === 'P2002'
+        ) {
           retries--;
           if (retries === 0) throw error;
         } else {

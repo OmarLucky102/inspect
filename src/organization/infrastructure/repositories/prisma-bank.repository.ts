@@ -22,7 +22,7 @@ export class PrismaBankRepository implements IBankRepository {
     const rows = await this.prisma.bank.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map(row => BankMapper.toDomain(row));
+    return rows.map((row) => BankMapper.toDomain(row));
   }
 
   async save(bank: Bank): Promise<void> {

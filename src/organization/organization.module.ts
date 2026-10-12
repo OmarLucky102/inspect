@@ -31,6 +31,11 @@ import { BankMembershipGuard } from './presentation/guards/bank-membership.guard
     BankService,
     BankMembershipGuard,
   ],
-  exports: [BankService, BankMembershipGuard, 'IBankRepository', 'IBankMembershipRepository'],
+  exports: [
+    BankService,
+    BankMembershipGuard,
+    'IBankRepository',
+    'IBankMembershipRepository',
+  ],
 })
 export class OrganizationModule {}

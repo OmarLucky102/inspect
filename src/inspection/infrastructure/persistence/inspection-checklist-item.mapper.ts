@@ -1,8 +1,13 @@
-import { InspectionChecklistItem as PrismaInspectionChecklistItem, Prisma } from '@prisma/client';
+import {
+  InspectionChecklistItem as PrismaInspectionChecklistItem,
+  Prisma,
+} from '@prisma/client';
 import { InspectionChecklistItem } from '../../domain/entities/inspection-checklist-item.entity';
 
 export class InspectionChecklistItemMapper {
-  static toDomain(prismaItem: PrismaInspectionChecklistItem): InspectionChecklistItem {
+  static toDomain(
+    prismaItem: PrismaInspectionChecklistItem,
+  ): InspectionChecklistItem {
     return new InspectionChecklistItem({
       id: prismaItem.id,
       inspectionRequestId: prismaItem.inspectionRequestId,
@@ -14,7 +19,9 @@ export class InspectionChecklistItemMapper {
     });
   }
 
-  static toCreateData(item: InspectionChecklistItem): Prisma.InspectionChecklistItemCreateInput {
+  static toCreateData(
+    item: InspectionChecklistItem,
+  ): Prisma.InspectionChecklistItemCreateInput {
     return {
       id: item.id,
       value: item.value,

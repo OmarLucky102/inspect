@@ -180,4 +180,36 @@ export class BankController {
       },
     };
   }
+
+  @Get(':bankId/members')
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER, Role.REVIEWER)
+  async getBankMembers(@Param('bankId', ParseUUIDPipe) bankId: string) {
+    const memberships = await this.prisma.bankMembership.findMany({
+      where: { bankId, status: 'ACTIVE' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            role: true,
+            isActive: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+
+    return {
+      status: 'success',
+      data: memberships.map((m) => ({
+        ...m.user,
+        membershipId: m.id,
+        isPrimary: m.isPrimary,
+        status: m.status,
+      })),
+    };
+  }
 }

@@ -40,7 +40,9 @@ export class ChecklistService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async getVehicleCategories(): Promise<{ id: string; name: string; nameAr: string | null; code: string | null }[]> {
+  async getVehicleCategories(): Promise<
+    { id: string; name: string; nameAr: string | null; code: string | null }[]
+  > {
     return this.prisma.vehicleCategory.findMany({
       where: { isActive: true },
       select: { id: true, name: true, nameAr: true, code: true },
@@ -48,52 +50,68 @@ export class ChecklistService {
     });
   }
 
-  async getChecklistForCategory(bankId: string, categoryId: string): Promise<ChecklistItem[]> {
-    const mandatoryItems = await this.checklistItemRepository.findMandatoryItems();
-    
+  async getChecklistForCategory(
+    bankId: string,
+    categoryId: string,
+  ): Promise<ChecklistItem[]> {
+    const mandatoryItems =
+      await this.checklistItemRepository.findMandatoryItems();
+
     // Also include bank-specific custom items added to the base template
-    const baseChecklist = await this.checklistRepository.findByCode('SYSTEM_MANDATORY');
+    const baseChecklist =
+      await this.checklistRepository.findByCode('SYSTEM_MANDATORY');
     const baseCustomItems = baseChecklist
-      ? (await this.checklistItemRepository.findByChecklistId(baseChecklist.id)).filter(
-          item => item.bankId === bankId && !item.isMandatory
-        )
+      ? (
+          await this.checklistItemRepository.findByChecklistId(baseChecklist.id)
+        ).filter((item) => item.bankId === bankId && !item.isMandatory)
       : [];
 
-    const checklists = await this.checklistRepository.findByCategoryId(categoryId);
+    const checklists =
+      await this.checklistRepository.findByCategoryId(categoryId);
     // There should typically be one active template per category for a given context
     // We will get items from all applicable templates (though usually there is just one)
     const categoryItems: ChecklistItem[] = [...baseCustomItems];
     for (const checklist of checklists) {
-      const items = await this.checklistItemRepository.findByChecklistId(checklist.id);
+      const items = await this.checklistItemRepository.findByChecklistId(
+        checklist.id,
+      );
       categoryItems.push(...items);
     }
 
     // Combine them, deduplicating by code in case a custom item tries to override a mandatory one
     const merged = new Map<string, ChecklistItem>();
-    
+
     // Custom/category items first
     for (const item of categoryItems) {
       if (!item.bankId || item.bankId === bankId) {
         merged.set(item.code, item);
       }
     }
-    
+
     // Mandatory items override/always present
     for (const item of mandatoryItems) {
       merged.set(item.code, item);
     }
 
-    return Array.from(merged.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+    return Array.from(merged.values()).sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
   }
 
-  async addCustomItemToChecklist(input: AddChecklistItemInput): Promise<ChecklistItem> {
-    const checklist = await this.checklistRepository.findById(input.checklistId);
+  async addCustomItemToChecklist(
+    input: AddChecklistItemInput,
+  ): Promise<ChecklistItem> {
+    const checklist = await this.checklistRepository.findById(
+      input.checklistId,
+    );
     if (!checklist) {
       throw new ChecklistNotFoundException(input.checklistId);
     }
 
-    const items = await this.checklistItemRepository.findByChecklistId(checklist.id);
-    if (items.some(i => i.code === input.code)) {
+    const items = await this.checklistItemRepository.findByChecklistId(
+      checklist.id,
+    );
+    if (items.some((i) => i.code === input.code)) {
       throw new DuplicateChecklistItemException(input.code);
     }
 
@@ -109,7 +127,9 @@ export class ChecklistService {
       weight: input.weight || 1,
       inputType: input.inputType || ChecklistInputType.TEXT,
       options: input.options || null,
-      sortOrder: input.sortOrder || (items.length > 0 ? items[items.length - 1].sortOrder + 1 : 1),
+      sortOrder:
+        input.sortOrder ||
+        (items.length > 0 ? items[items.length - 1].sortOrder + 1 : 1),
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -138,7 +158,11 @@ export class ChecklistService {
     await this.checklistItemRepository.update(item);
   }
 
-  async updateCustomItem(bankId: string, itemId: string, input: Partial<AddChecklistItemInput>): Promise<ChecklistItem> {
+  async updateCustomItem(
+    bankId: string,
+    itemId: string,
+    input: Partial<AddChecklistItemInput>,
+  ): Promise<ChecklistItem> {
     const item = await this.checklistItemRepository.findById(itemId);
     if (!item || item.isDeleted) {
       throw new ChecklistItemNotFoundException(itemId);
@@ -156,19 +180,23 @@ export class ChecklistService {
     const updatedItem = new ChecklistItem({
       ...item['props'], // quick way to copy
       label: input.label ?? item.label,
-      description: input.description !== undefined ? input.description : item.description,
+      description:
+        input.description !== undefined ? input.description : item.description,
       weight: input.weight ?? item.weight,
       inputType: input.inputType ?? item.inputType,
       options: input.options !== undefined ? input.options : item.options,
       sortOrder: input.sortOrder ?? item.sortOrder,
       updatedAt: new Date(),
-    } as any);
+    });
 
     await this.checklistItemRepository.update(updatedItem);
     return updatedItem;
   }
 
-  async getChecklistItemsForRequest(bankId: string, requestId: string): Promise<InspectionChecklistItem[]> {
+  async getChecklistItemsForRequest(
+    bankId: string,
+    requestId: string,
+  ): Promise<InspectionChecklistItem[]> {
     // Basic check that we are returning for a request, assuming auth guard checked bank membership
     return this.inspectionChecklistItemRepository.findByRequestId(requestId);
   }

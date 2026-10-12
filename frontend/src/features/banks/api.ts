@@ -56,3 +56,21 @@ export async function addBankMember(bankId: string, data: AddBankMemberDto) {
   const res = await api.post<{ status: string; data: any }>(`/banks/${bankId}/members`, data)
   return res.data.data
 }
+
+export interface BankMemberUser {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string | null
+  role: string
+  isActive: boolean
+  membershipId: string
+  isPrimary: boolean
+  status: string
+}
+
+export async function fetchBankMembers(bankId: string): Promise<BankMemberUser[]> {
+  const res = await api.get<{ status: string; data: BankMemberUser[] }>(`/banks/${bankId}/members`)
+  return res.data.data
+}

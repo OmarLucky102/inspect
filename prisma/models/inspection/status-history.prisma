@@ -7,6 +7,7 @@ model InspectionStatusHistory {
 
   changedBy String   @db.Uuid
   changedAt DateTime @default(now())
+  note      String?
 
   inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
   changer           User              @relation("StatusChanges", fields: [changedBy], references: [id])

@@ -10,8 +10,17 @@ import type { IVehicleRepository } from '../../../vehicle/domain/repositories/ve
 import type { IChecklistItemRepository } from '../../domain/repositories/checklist-item.repository.interface';
 import type { IChecklistRepository } from '../../domain/repositories/checklist.repository.interface';
 import type { IInspectionChecklistItemRepository } from '../../domain/repositories/inspection-checklist-item.repository.interface';
+import type { IInspectionStatusHistoryRepository } from '../../domain/repositories/inspection-status-history.repository.interface';
+import type { IInspectionAssignmentRepository } from '../../domain/repositories/inspection-assignment.repository.interface';
+import type { IBankMembershipRepository } from '../../../organization/domain/repositories/bank-membership.repository.interface';
 import { InspectionChecklistItem } from '../../domain/entities/inspection-checklist-item.entity';
+import { InspectionStatusHistory } from '../../domain/entities/inspection-status-history.entity';
+import { InspectionAssignment } from '../../domain/entities/inspection-assignment.entity';
+import { AssignmentStatus } from '../../domain/value-objects/assignment-status.enum';
+import { MembershipStatus } from '../../../organization/domain/value-objects/membership-status.enum';
 import { BankService } from '../../../organization/application/services/bank.service';
+import { UserService } from '../../../identity/application/services/user.service';
+import { Role } from '../../../identity/domain/value-objects/role.enum';
 import { InspectionRequest } from '../../domain/entities/inspection-request.entity';
 import { Customer } from '../../domain/entities/customer.entity';
 import { Vehicle } from '../../../vehicle/domain/entities/vehicle.entity';
@@ -21,7 +30,13 @@ import {
   InvalidReferenceDataException,
   InspectionRequestAlreadyExistsException,
   InspectionRequestNotFoundException,
+  InvalidStatusTransitionException,
+  InvalidAssignmentException,
+  RepresentativeNotEligibleException,
+  InspectionRequestAccessDeniedException,
 } from '../../../shared/exceptions/inspection.exceptions';
+import { InspectionRequestDetailResponseDto } from '../../presentation/dto/inspection-request-detail.response.dto';
+import { InspectionStatusHistoryResponseDto } from '../../presentation/dto/inspection-status-history.response.dto';
 
 export interface CreateInspectionRequestInput {
   bankId: string;
@@ -85,6 +100,11 @@ export interface SubmitInspectionRequestInput {
   };
 }
 
+export interface ActorUser {
+  id: string;
+  role: Role;
+}
+
 @Injectable()
 export class InspectionRequestService {
   constructor(
@@ -106,6 +126,13 @@ export class InspectionRequestService {
     private readonly checklistItemRepository: IChecklistItemRepository,
     @Inject('IInspectionChecklistItemRepository')
     private readonly inspectionChecklistItemRepository: IInspectionChecklistItemRepository,
+    @Inject('IInspectionStatusHistoryRepository')
+    private readonly statusHistoryRepository: IInspectionStatusHistoryRepository,
+    @Inject('IInspectionAssignmentRepository')
+    private readonly assignmentRepository: IInspectionAssignmentRepository,
+    @Inject('IBankMembershipRepository')
+    private readonly bankMembershipRepository: IBankMembershipRepository,
+    private readonly userService: UserService,
     private readonly bankService: BankService,
     private readonly prisma: PrismaService, // For transactions
   ) {}
@@ -156,7 +183,6 @@ export class InspectionRequestService {
       });
       await this.customerRepository.save(customer);
     } else {
-      // Update customer details if they changed
       let updated = false;
       if (input.customer.fullName !== customer.fullName) {
         customer = new Customer({
@@ -165,7 +191,6 @@ export class InspectionRequestService {
         } as any);
         updated = true;
       }
-      // other fields can be updated similarly...
       if (updated) await this.customerRepository.update(customer);
     }
 
@@ -257,42 +282,64 @@ export class InspectionRequestService {
 
       await this.requestRepository.save(request, tx);
 
+      // Record initial status history
+      const history = new InspectionStatusHistory({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        fromStatus: null,
+        toStatus: initialStatus,
+        changedBy: input.userId,
+        changedAt: now,
+        note: 'Inspection request created',
+      });
+      await this.statusHistoryRepository.save(history, tx);
+
       // Attach checklist items
-      const mandatoryItems = await this.checklistItemRepository.findMandatoryItems();
-      const mergedItems = new Map<string, any>(); // code -> item
-      
-      // Add mandatory items first
+      const mandatoryItems =
+        await this.checklistItemRepository.findMandatoryItems();
+      const mergedItems = new Map<string, any>();
+
       for (const item of mandatoryItems) {
         mergedItems.set(item.code, item);
       }
 
-      // If we have a vehicle, we can get category-specific items
       if (input.vehicle?.categoryId) {
-        const checklists = await this.checklistRepository.findByCategoryId(input.vehicle.categoryId);
+        const checklists = await this.checklistRepository.findByCategoryId(
+          input.vehicle.categoryId,
+        );
         for (const cl of checklists) {
-          const items = await this.checklistItemRepository.findByChecklistId(cl.id);
+          const items = await this.checklistItemRepository.findByChecklistId(
+            cl.id,
+          );
           for (const item of items) {
-            // Include if global or matches bank, and not overriding a mandatory item
-            if ((!item.bankId || item.bankId === bank.id) && !mergedItems.has(item.code)) {
+            if (
+              (!item.bankId || item.bankId === bank.id) &&
+              !mergedItems.has(item.code)
+            ) {
               mergedItems.set(item.code, item);
             }
           }
         }
       }
 
-      const inspectionChecklistItems = Array.from(mergedItems.values()).map((item: any) => {
-        return new InspectionChecklistItem({
-          id: randomUUID(),
-          inspectionRequestId: request.id,
-          checklistItemId: item.id,
-          value: null,
-          notes: null,
-          completed: false,
-          completedAt: null,
-        });
-      });
+      const inspectionChecklistItems = Array.from(mergedItems.values()).map(
+        (item: any) => {
+          return new InspectionChecklistItem({
+            id: randomUUID(),
+            inspectionRequestId: request.id,
+            checklistItemId: item.id,
+            value: null,
+            notes: null,
+            completed: false,
+            completedAt: null,
+          });
+        },
+      );
 
-      await this.inspectionChecklistItemRepository.bulkCreate(inspectionChecklistItems, tx);
+      await this.inspectionChecklistItemRepository.bulkCreate(
+        inspectionChecklistItems,
+        tx,
+      );
     });
 
     return request;
@@ -351,9 +398,20 @@ export class InspectionRequestService {
     request.setVehicle(vehicle.id);
     request.submit(); // Changes status to PENDING and validates
 
-    await this.requestRepository.update(request);
+    await this.prisma.$transaction(async (tx) => {
+      await this.requestRepository.update(request, tx);
 
-    // Status history append would go here if implemented in the plan
+      const history = new InspectionStatusHistory({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        fromStatus: InspectionStatus.DRAFT,
+        toStatus: InspectionStatus.PENDING,
+        changedBy: input.userId,
+        changedAt: new Date(),
+        note: 'Draft request submitted',
+      });
+      await this.statusHistoryRepository.save(history, tx);
+    });
 
     return request;
   }
@@ -364,11 +422,265 @@ export class InspectionRequestService {
     return request;
   }
 
+  async getRequestDetails(
+    requestId: string,
+    bankId: string,
+    actor: ActorUser,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+
+    const data = await this.requestRepository.findByIdWithDetails(
+      requestId,
+      isGlobalAdmin ? undefined : bankId,
+    );
+
+    if (!data) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    if (
+      actor.role === Role.REPRESENTATIVE &&
+      (data.assignedRepresentativeId ?? data.assignedRepresentative?.id) !==
+        actor.id
+    ) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    return InspectionRequestDetailResponseDto.fromPrisma(data);
+  }
+
+  async updateStatus(
+    requestId: string,
+    bankId: string,
+    newStatus: InspectionStatus,
+    note: string | undefined,
+    actor: ActorUser,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(requestId)
+      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    // Role-specific transition permissions
+    if (!isGlobalAdmin) {
+      if (actor.role === Role.REPRESENTATIVE) {
+        if (request.assignedRepresentativeId !== actor.id) {
+          throw new InspectionRequestAccessDeniedException();
+        }
+        const repAllowed = [
+          InspectionStatus.IN_PROGRESS,
+          InspectionStatus.UNDER_REVIEW,
+        ];
+        if (!repAllowed.includes(newStatus)) {
+          throw new InvalidStatusTransitionException(
+            'Representatives may only transition assigned requests to IN_PROGRESS or UNDER_REVIEW',
+          );
+        }
+      } else if (actor.role === Role.REVIEWER) {
+        const reviewerAllowed = [
+          InspectionStatus.COMPLETED,
+          InspectionStatus.IN_PROGRESS,
+          InspectionStatus.APPROVED,
+          InspectionStatus.REJECTED,
+        ];
+        if (!reviewerAllowed.includes(newStatus)) {
+          throw new InvalidStatusTransitionException(
+            'Reviewers may only transition requests to COMPLETED, IN_PROGRESS, APPROVED, or REJECTED',
+          );
+        }
+      } else if (actor.role !== Role.MANAGER) {
+        throw new InvalidStatusTransitionException(
+          `Users with role '${actor.role}' are not permitted to change inspection request status`,
+        );
+      }
+    }
+
+    const oldStatus = request.currentStatus;
+    request.transition(newStatus);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.requestRepository.update(request, tx);
+
+      // Handle active assignment lifecycle transitions
+      if (newStatus === InspectionStatus.IN_PROGRESS) {
+        const activeAssignment =
+          await this.assignmentRepository.findActiveByRequestId(request.id, tx);
+        if (
+          activeAssignment &&
+          activeAssignment.status === AssignmentStatus.PENDING
+        ) {
+          activeAssignment.accept(new Date());
+          await this.assignmentRepository.update(activeAssignment, tx);
+        }
+      } else if (newStatus === InspectionStatus.COMPLETED) {
+        const activeAssignment =
+          await this.assignmentRepository.findActiveByRequestId(request.id, tx);
+        if (activeAssignment) {
+          activeAssignment.complete();
+          await this.assignmentRepository.update(activeAssignment, tx);
+        }
+      } else if (newStatus === InspectionStatus.CANCELLED) {
+        await this.assignmentRepository.cancelActiveByRequestId(request.id, tx);
+      }
+
+      // Record status history
+      const history = new InspectionStatusHistory({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        fromStatus: oldStatus,
+        toStatus: newStatus,
+        changedBy: actor.id,
+        changedAt: new Date(),
+        note: note || null,
+      });
+      await this.statusHistoryRepository.save(history, tx);
+    });
+
+    return this.getRequestDetails(requestId, bankId, actor);
+  }
+
+  async assignRepresentative(
+    requestId: string,
+    bankId: string,
+    representativeId: string,
+    actor: ActorUser,
+    notes?: string,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(requestId)
+      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    if (
+      request.currentStatus !== InspectionStatus.PENDING &&
+      request.currentStatus !== InspectionStatus.ASSIGNED
+    ) {
+      throw new InvalidAssignmentException(
+        `Cannot assign representative to an inspection request with status '${request.currentStatus}'. Only PENDING or ASSIGNED requests can be assigned.`,
+      );
+    }
+
+    // Validate representative role
+    const repUser = await this.userService.getUserById(representativeId);
+    if (repUser.role !== Role.REPRESENTATIVE) {
+      throw new RepresentativeNotEligibleException(
+        `User '${representativeId}' does not have the REPRESENTATIVE role`,
+      );
+    }
+
+    // Validate active bank membership
+    const membership =
+      await this.bankMembershipRepository.findByBankIdAndUserId(
+        request.bankId,
+        representativeId,
+      );
+    if (!membership || membership.status !== MembershipStatus.ACTIVE) {
+      throw new RepresentativeNotEligibleException(
+        `Representative '${representativeId}' is not an active member of bank '${request.bankId}'`,
+      );
+    }
+
+    const oldStatus = request.currentStatus;
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // Cancel previous active assignment
+      await this.assignmentRepository.cancelActiveByRequestId(request.id, tx);
+
+      // Create new assignment
+      const assignment = new InspectionAssignment({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        representativeId: representativeId,
+        assignedBy: actor.id,
+        status: AssignmentStatus.PENDING,
+        rejectedReason: null,
+        assignedAt: now,
+        acceptedAt: null,
+        rejectedAt: null,
+      });
+      await this.assignmentRepository.save(assignment, tx);
+
+      // Update request domain entity
+      request.assign(representativeId, now);
+      await this.requestRepository.update(request, tx);
+
+      // Record status history
+      const defaultNote =
+        oldStatus === InspectionStatus.PENDING
+          ? `Assigned representative ${repUser.firstName} ${repUser.lastName}`
+          : `Reassigned representative to ${repUser.firstName} ${repUser.lastName}`;
+      const history = new InspectionStatusHistory({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        fromStatus: oldStatus,
+        toStatus: InspectionStatus.ASSIGNED,
+        changedBy: actor.id,
+        changedAt: now,
+        note: notes || defaultNote,
+      });
+      await this.statusHistoryRepository.save(history, tx);
+    });
+
+    return this.getRequestDetails(requestId, bankId, actor);
+  }
+
+  async getStatusHistory(
+    requestId: string,
+    bankId: string,
+    actor: ActorUser,
+  ): Promise<InspectionStatusHistoryResponseDto[]> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(requestId)
+      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    if (
+      actor.role === Role.REPRESENTATIVE &&
+      request.assignedRepresentativeId !== actor.id
+    ) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    const historyRows =
+      await this.statusHistoryRepository.findByRequestIdWithDetails(requestId);
+    return historyRows.map((r) =>
+      InspectionStatusHistoryResponseDto.fromPrisma(r),
+    );
+  }
+
   async listRequestsByBank(bankId: string): Promise<InspectionRequest[]> {
     return this.requestRepository.findByBankId(bankId);
   }
 
-  private async validateVehicleRefs(v: { brandId: string; modelId: string; categoryId: string; colorId: string; fuelTypeId?: string; transmissionTypeId?: string; trimId?: string; }): Promise<void> {
+  private async validateVehicleRefs(v: {
+    brandId: string;
+    modelId: string;
+    categoryId: string;
+    colorId: string;
+    fuelTypeId?: string;
+    transmissionTypeId?: string;
+    trimId?: string;
+  }): Promise<void> {
     const [brand, model, cat, color, fuel, trans, trim] = await Promise.all([
       this.vehicleReferenceRepository.existsBrand(v.brandId),
       this.vehicleReferenceRepository.existsModel(v.modelId),

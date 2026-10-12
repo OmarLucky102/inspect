@@ -16,12 +16,28 @@ export class Checklist {
     this.props = props;
   }
 
-  get id(): string { return this.props.id; }
-  get code(): string | null { return this.props.code; }
-  get bankId(): string | null { return this.props.bankId; }
-  get vehicleCategoryId(): string | null { return this.props.vehicleCategoryId; }
-  get name(): string { return this.props.name; }
-  get version(): number { return this.props.version; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get code(): string | null {
+    return this.props.code;
+  }
+  get bankId(): string | null {
+    return this.props.bankId;
+  }
+  get vehicleCategoryId(): string | null {
+    return this.props.vehicleCategoryId;
+  }
+  get name(): string {
+    return this.props.name;
+  }
+  get version(): number {
+    return this.props.version;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
 }

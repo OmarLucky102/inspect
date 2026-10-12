@@ -51,18 +51,54 @@ export class ChecklistItemNotFoundException extends BaseException {
 
 export class MandatoryItemCannotBeModifiedException extends BaseException {
   constructor() {
-    super('Mandatory checklist items cannot be deleted or modified in this way', HttpStatus.FORBIDDEN);
+    super(
+      'Mandatory checklist items cannot be deleted or modified in this way',
+      HttpStatus.FORBIDDEN,
+    );
   }
 }
 
 export class DuplicateChecklistItemException extends BaseException {
   constructor(code: string) {
-    super(`Checklist item with code '${code}' already exists`, HttpStatus.CONFLICT);
+    super(
+      `Checklist item with code '${code}' already exists`,
+      HttpStatus.CONFLICT,
+    );
   }
 }
 
 export class ChecklistItemNotInBankException extends BaseException {
   constructor() {
-    super('This checklist item does not belong to your bank', HttpStatus.FORBIDDEN);
+    super(
+      'This checklist item does not belong to your bank',
+      HttpStatus.FORBIDDEN,
+    );
+  }
+}
+
+export class InvalidStatusTransitionException extends BaseException {
+  constructor(message: string) {
+    super(message, HttpStatus.CONFLICT);
+  }
+}
+
+export class InvalidAssignmentException extends BaseException {
+  constructor(message: string) {
+    super(message, HttpStatus.CONFLICT);
+  }
+}
+
+export class RepresentativeNotEligibleException extends BaseException {
+  constructor(message: string) {
+    super(message, HttpStatus.FORBIDDEN);
+  }
+}
+
+export class InspectionRequestAccessDeniedException extends BaseException {
+  constructor() {
+    super(
+      'You are not authorized to access this inspection request',
+      HttpStatus.FORBIDDEN,
+    );
   }
 }

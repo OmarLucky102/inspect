@@ -19,10 +19,13 @@ export class PrismaInspectionChecklistItemRepository implements IInspectionCheck
         checklistItem: { sortOrder: 'asc' },
       },
     });
-    return rows.map(InspectionChecklistItemMapper.toDomain);
+    return rows.map((r) => InspectionChecklistItemMapper.toDomain(r));
   }
 
-  async findByRequestAndItem(requestId: string, checklistItemId: string): Promise<InspectionChecklistItem | null> {
+  async findByRequestAndItem(
+    requestId: string,
+    checklistItemId: string,
+  ): Promise<InspectionChecklistItem | null> {
     const row = await this.prisma.inspectionChecklistItem.findUnique({
       where: {
         inspectionRequestId_checklistItemId: {
@@ -34,12 +37,15 @@ export class PrismaInspectionChecklistItemRepository implements IInspectionCheck
     return row ? InspectionChecklistItemMapper.toDomain(row) : null;
   }
 
-  async bulkCreate(items: InspectionChecklistItem[], tx?: Prisma.TransactionClient): Promise<void> {
+  async bulkCreate(
+    items: InspectionChecklistItem[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     const db = tx || this.prisma;
     if (items.length === 0) return;
 
     await db.inspectionChecklistItem.createMany({
-      data: items.map(item => ({
+      data: items.map((item) => ({
         id: item.id,
         inspectionRequestId: item.inspectionRequestId,
         checklistItemId: item.checklistItemId,

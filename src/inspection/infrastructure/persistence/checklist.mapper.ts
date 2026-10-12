@@ -23,8 +23,12 @@ export class ChecklistMapper {
       version: checklist.version,
       createdAt: checklist.createdAt,
       updatedAt: checklist.updatedAt,
-      ...(checklist.bankId ? { bank: { connect: { id: checklist.bankId } } } : {}),
-      ...(checklist.vehicleCategoryId ? { vehicleCategory: { connect: { id: checklist.vehicleCategoryId } } } : {}),
+      ...(checklist.bankId
+        ? { bank: { connect: { id: checklist.bankId } } }
+        : {}),
+      ...(checklist.vehicleCategoryId
+        ? { vehicleCategory: { connect: { id: checklist.vehicleCategoryId } } }
+        : {}),
     };
   }
 }

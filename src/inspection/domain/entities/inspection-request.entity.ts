@@ -3,6 +3,8 @@ import { InspectionPriority } from '../value-objects/inspection-priority.enum';
 import {
   InvalidInspectionRequestStateException,
   VehicleDataRequiredException,
+  InvalidStatusTransitionException,
+  InvalidAssignmentException,
 } from '../../../shared/exceptions/inspection.exceptions';
 
 export interface InspectionRequestProps {
@@ -122,5 +124,80 @@ export class InspectionRequest {
       throw new VehicleDataRequiredException();
     }
     this.props.currentStatus = InspectionStatus.PENDING;
+  }
+
+  public assign(representativeId: string, assignedAt: Date = new Date()): void {
+    if (
+      this.props.currentStatus !== InspectionStatus.PENDING &&
+      this.props.currentStatus !== InspectionStatus.ASSIGNED
+    ) {
+      throw new InvalidAssignmentException(
+        `Cannot assign representative to an inspection request with status '${this.props.currentStatus}'. Only PENDING or ASSIGNED requests can be assigned.`,
+      );
+    }
+    this.props.assignedRepresentativeId = representativeId;
+    this.props.assignedAt = assignedAt;
+    if (this.props.currentStatus === InspectionStatus.PENDING) {
+      this.props.currentStatus = InspectionStatus.ASSIGNED;
+    }
+  }
+
+  public unassign(): void {
+    this.props.assignedRepresentativeId = null;
+    this.props.assignedAt = null;
+    if (this.props.currentStatus === InspectionStatus.ASSIGNED) {
+      this.props.currentStatus = InspectionStatus.PENDING;
+    }
+  }
+
+  public transition(newStatus: InspectionStatus): void {
+    if (this.props.currentStatus === newStatus) {
+      return;
+    }
+
+    const ALLOWED_TRANSITIONS: Record<InspectionStatus, InspectionStatus[]> = {
+      [InspectionStatus.DRAFT]: [InspectionStatus.PENDING],
+      [InspectionStatus.PENDING]: [
+        InspectionStatus.ASSIGNED,
+        InspectionStatus.CANCELLED,
+      ],
+      [InspectionStatus.ASSIGNED]: [
+        InspectionStatus.IN_PROGRESS,
+        InspectionStatus.PENDING,
+        InspectionStatus.CANCELLED,
+      ],
+      [InspectionStatus.IN_PROGRESS]: [
+        InspectionStatus.UNDER_REVIEW,
+        InspectionStatus.CANCELLED,
+      ],
+      [InspectionStatus.UNDER_REVIEW]: [
+        InspectionStatus.COMPLETED,
+        InspectionStatus.IN_PROGRESS,
+        InspectionStatus.CANCELLED,
+      ],
+      [InspectionStatus.COMPLETED]: [
+        InspectionStatus.APPROVED,
+        InspectionStatus.REJECTED,
+      ],
+      [InspectionStatus.APPROVED]: [],
+      [InspectionStatus.REJECTED]: [],
+      [InspectionStatus.CANCELLED]: [],
+    };
+
+    const allowed = ALLOWED_TRANSITIONS[this.props.currentStatus] || [];
+    if (!allowed.includes(newStatus)) {
+      throw new InvalidStatusTransitionException(
+        `Cannot transition inspection request from status '${this.props.currentStatus}' to '${newStatus}'`,
+      );
+    }
+
+    if (newStatus === InspectionStatus.PENDING && !this.props.vehicleId) {
+      throw new VehicleDataRequiredException();
+    }
+
+    this.props.currentStatus = newStatus;
+    if (newStatus === InspectionStatus.COMPLETED) {
+      this.props.completedAt = new Date();
+    }
   }
 }

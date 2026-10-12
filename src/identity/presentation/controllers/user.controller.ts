@@ -1,4 +1,10 @@
-import { Controller, Get, Param, ForbiddenException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ForbiddenException,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from '../../application/services/user.service';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Roles } from '../../../identity/presentation/decorators/roles.decorator';
@@ -12,10 +18,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get(':id')
-  async getUser(
-    @Param('id') id: string,
-    @CurrentUser() currentUser: any,
-  ) {
+  async getUser(@Param('id') id: string, @CurrentUser() currentUser: any) {
     if (
       currentUser.role !== Role.SUPER_ADMIN &&
       (currentUser.sub || currentUser.id) !== id

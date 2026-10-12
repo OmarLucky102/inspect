@@ -17,7 +17,12 @@ export class BankMembershipGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ user?: { role: string; sub?: string; id?: string }, params: any, body: any, query: any }>();
+    const request = context.switchToHttp().getRequest<{
+      user?: { role: string; sub?: string; id?: string };
+      params: any;
+      body: any;
+      query: any;
+    }>();
     const user = request.user;
     const bankId =
       request.params.bankId || request.body.bankId || request.query.bankId;
@@ -26,8 +31,8 @@ export class BankMembershipGuard implements CanActivate {
       throw new ForbiddenException('Access denied');
     }
 
-    // Super Admins can access everything
-    if (user.role === Role.SUPER_ADMIN) {
+    // Super Admins and System Admins can access everything
+    if (user.role === Role.SUPER_ADMIN || user.role === Role.SYSTEM_ADMIN) {
       return true;
     }
 

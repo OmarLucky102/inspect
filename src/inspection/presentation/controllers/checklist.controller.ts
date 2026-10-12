@@ -39,7 +39,10 @@ export class ChecklistController {
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('categoryId', ParseUUIDPipe) categoryId: string,
   ) {
-    const items = await this.checklistService.getChecklistForCategory(bankId, categoryId);
+    const items = await this.checklistService.getChecklistForCategory(
+      bankId,
+      categoryId,
+    );
     return {
       status: 'success',
       data: items,
@@ -81,7 +84,10 @@ export class ChecklistController {
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('requestId', ParseUUIDPipe) requestId: string,
   ) {
-    const items = await this.checklistService.getChecklistItemsForRequest(bankId, requestId);
+    const items = await this.checklistService.getChecklistItemsForRequest(
+      bankId,
+      requestId,
+    );
     return {
       status: 'success',
       data: items,

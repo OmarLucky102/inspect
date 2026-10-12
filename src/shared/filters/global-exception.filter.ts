@@ -53,7 +53,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     error: BaseException,
     original: unknown,
   ): BaseException {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = original as any;
 
     // Prisma Unique Constraint Violation

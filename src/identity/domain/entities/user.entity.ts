@@ -1,9 +1,9 @@
-import { Role } from '../value-objects/role.enum.js';
+import { Role } from '../value-objects/role.enum';
 import {
   UserAlreadyActiveException,
   UserAlreadyDeactivatedException,
   SamePasswordException,
-} from '../../../shared/exceptions/user.exceptions.js';
+} from '../../../shared/exceptions/user.exceptions';
 
 export interface UserProps {
   id: string;

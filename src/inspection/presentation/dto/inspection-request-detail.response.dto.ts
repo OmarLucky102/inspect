@@ -1,0 +1,312 @@
+import { InspectionStatus } from '../../domain/value-objects/inspection-status.enum';
+import { InspectionPriority } from '../../domain/value-objects/inspection-priority.enum';
+
+export interface InspectionRequestWithRelations {
+  id: string;
+  requestNumber: string;
+  bankId: string;
+  customerId?: string;
+  vehicleId?: string | null;
+  assignedRepresentativeId?: string | null;
+  assignedReviewerId?: string | null;
+  createdBy?: string;
+  currentStatus: InspectionStatus;
+  priority: InspectionPriority;
+  requestedAt: Date;
+  requestedCompletionDate: Date | null;
+  assignedAt: Date | null;
+  completedAt: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  governorateId: string | null;
+  cityId: string | null;
+  address: string | null;
+  latitude: { toNumber?: () => number } | number | null;
+  longitude: { toNumber?: () => number } | number | null;
+  customer?: {
+    id: string;
+    fullName: string;
+    nationalId: string | null;
+    phone: string;
+    email: string | null;
+  } | null;
+  governorate?: { name: string } | null;
+  city?: { name: string } | null;
+  vehicle?: {
+    id: string;
+    vin: string;
+    plateNumber: string | null;
+    manufactureYear: number;
+    mileage: number | null;
+    engineNumber: string;
+    engineCc: number | null;
+    power: number | null;
+    insuranceValue: { toNumber?: () => number } | number | null;
+    registrationDate: Date | null;
+    brand?: { id: string; name: string } | null;
+    model?: { id: string; name: string } | null;
+    category?: { id: string; name: string } | null;
+    color?: { id: string; name: string } | null;
+    fuelType?: { id: string; name: string } | null;
+    transmissionType?: { id: string; name: string } | null;
+    trim?: { id: string; name: string } | null;
+  } | null;
+  assignedRepresentative?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string;
+  } | null;
+  assignments?: Array<{
+    id: string;
+    status: string;
+    assignedAt: Date;
+    acceptedAt: Date | null;
+    rejectedAt: Date | null;
+    rejectedReason: string | null;
+  }>;
+  checklistItems?: Array<{
+    id: string;
+    checklistItemId: string;
+    value: string | null;
+    notes: string | null;
+    completed: boolean;
+    completedAt: Date | null;
+    checklistItem?: {
+      code: string;
+      label: string;
+      inputType: string;
+      isMandatory: boolean;
+    } | null;
+  }>;
+}
+
+export class InspectionRequestDetailResponseDto {
+  id!: string;
+  requestNumber!: string;
+  bankId!: string;
+  currentStatus!: InspectionStatus;
+  priority!: InspectionPriority;
+  requestedAt!: Date;
+  requestedCompletionDate!: Date | null;
+  assignedAt!: Date | null;
+  completedAt!: Date | null;
+  notes!: string | null;
+  assignedRepresentativeId!: string | null;
+  assignedReviewerId!: string | null;
+  createdAt!: Date;
+  updatedAt!: Date;
+
+  customer!: {
+    id: string;
+    fullName: string;
+    nationalId: string | null;
+    phone: string;
+    email: string | null;
+  } | null;
+
+  location!: {
+    governorateId: string | null;
+    governorateName: string | null;
+    cityId: string | null;
+    cityName: string | null;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  };
+
+  vehicle!: {
+    id: string;
+    vin: string;
+    plateNumber: string | null;
+    manufactureYear: number;
+    mileage: number | null;
+    engineNumber: string;
+    engineCc: number | null;
+    power: number | null;
+    insuranceValue: number | null;
+    registrationDate: Date | null;
+    brand: { id: string; name: string } | null;
+    model: { id: string; name: string } | null;
+    category: { id: string; name: string } | null;
+    color: { id: string; name: string } | null;
+    fuelType: { id: string; name: string } | null;
+    transmissionType: { id: string; name: string } | null;
+    trim: { id: string; name: string } | null;
+  } | null;
+
+  assignedRepresentative!: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string;
+  } | null;
+
+  activeAssignment!: {
+    id: string;
+    status: string;
+    assignedAt: Date;
+    acceptedAt: Date | null;
+    rejectedAt: Date | null;
+    rejectedReason: string | null;
+  } | null;
+
+  checklistItems!: Array<{
+    id: string;
+    checklistItemId: string;
+    code: string;
+    label: string;
+    inputType: string;
+    isMandatory: boolean;
+    value: string | null;
+    notes: string | null;
+    completed: boolean;
+    completedAt: Date | null;
+  }>;
+
+  static fromPrisma(
+    record: InspectionRequestWithRelations,
+  ): InspectionRequestDetailResponseDto {
+    const activeAssignment =
+      record.assignments?.find(
+        (a) => a.status === 'PENDING' || a.status === 'ACCEPTED',
+      ) ??
+      record.assignments?.[0] ??
+      null;
+
+    const lat =
+      record.latitude != null
+        ? typeof record.latitude === 'object' && 'toNumber' in record.latitude
+          ? record.latitude.toNumber!()
+          : Number(record.latitude)
+        : null;
+
+    const lng =
+      record.longitude != null
+        ? typeof record.longitude === 'object' && 'toNumber' in record.longitude
+          ? record.longitude.toNumber!()
+          : Number(record.longitude)
+        : null;
+
+    const insVal =
+      record.vehicle?.insuranceValue != null
+        ? typeof record.vehicle.insuranceValue === 'object' &&
+          'toNumber' in record.vehicle.insuranceValue
+          ? record.vehicle.insuranceValue.toNumber!()
+          : Number(record.vehicle.insuranceValue)
+        : null;
+
+    return {
+      id: record.id,
+      requestNumber: record.requestNumber,
+      bankId: record.bankId,
+      currentStatus: record.currentStatus,
+      priority: record.priority,
+      requestedAt: record.requestedAt,
+      requestedCompletionDate: record.requestedCompletionDate,
+      assignedAt: record.assignedAt,
+      completedAt: record.completedAt,
+      notes: record.notes,
+      assignedRepresentativeId: record.assignedRepresentativeId ?? null,
+      assignedReviewerId: record.assignedReviewerId ?? null,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      customer: record.customer
+        ? {
+            id: record.customer.id,
+            fullName: record.customer.fullName,
+            nationalId: record.customer.nationalId,
+            phone: record.customer.phone,
+            email: record.customer.email,
+          }
+        : null,
+      location: {
+        governorateId: record.governorateId,
+        governorateName: record.governorate?.name ?? null,
+        cityId: record.cityId,
+        cityName: record.city?.name ?? null,
+        address: record.address,
+        latitude: lat,
+        longitude: lng,
+      },
+      vehicle: record.vehicle
+        ? {
+            id: record.vehicle.id,
+            vin: record.vehicle.vin,
+            plateNumber: record.vehicle.plateNumber,
+            manufactureYear: record.vehicle.manufactureYear,
+            mileage: record.vehicle.mileage,
+            engineNumber: record.vehicle.engineNumber,
+            engineCc: record.vehicle.engineCc,
+            power: record.vehicle.power,
+            insuranceValue: insVal,
+            registrationDate: record.vehicle.registrationDate,
+            brand: record.vehicle.brand
+              ? { id: record.vehicle.brand.id, name: record.vehicle.brand.name }
+              : null,
+            model: record.vehicle.model
+              ? { id: record.vehicle.model.id, name: record.vehicle.model.name }
+              : null,
+            category: record.vehicle.category
+              ? {
+                  id: record.vehicle.category.id,
+                  name: record.vehicle.category.name,
+                }
+              : null,
+            color: record.vehicle.color
+              ? { id: record.vehicle.color.id, name: record.vehicle.color.name }
+              : null,
+            fuelType: record.vehicle.fuelType
+              ? {
+                  id: record.vehicle.fuelType.id,
+                  name: record.vehicle.fuelType.name,
+                }
+              : null,
+            transmissionType: record.vehicle.transmissionType
+              ? {
+                  id: record.vehicle.transmissionType.id,
+                  name: record.vehicle.transmissionType.name,
+                }
+              : null,
+            trim: record.vehicle.trim
+              ? { id: record.vehicle.trim.id, name: record.vehicle.trim.name }
+              : null,
+          }
+        : null,
+      assignedRepresentative: record.assignedRepresentative
+        ? {
+            id: record.assignedRepresentative.id,
+            firstName: record.assignedRepresentative.firstName,
+            lastName: record.assignedRepresentative.lastName,
+            phone: record.assignedRepresentative.phone,
+            email: record.assignedRepresentative.email,
+          }
+        : null,
+      activeAssignment: activeAssignment
+        ? {
+            id: activeAssignment.id,
+            status: activeAssignment.status,
+            assignedAt: activeAssignment.assignedAt,
+            acceptedAt: activeAssignment.acceptedAt,
+            rejectedAt: activeAssignment.rejectedAt,
+            rejectedReason: activeAssignment.rejectedReason,
+          }
+        : null,
+      checklistItems: (record.checklistItems || []).map((ci) => ({
+        id: ci.id,
+        checklistItemId: ci.checklistItemId,
+        code: ci.checklistItem?.code ?? '',
+        label: ci.checklistItem?.label ?? '',
+        inputType: ci.checklistItem?.inputType ?? 'TEXT',
+        isMandatory: ci.checklistItem?.isMandatory ?? false,
+        value: ci.value,
+        notes: ci.notes,
+        completed: ci.completed,
+        completedAt: ci.completedAt,
+      })),
+    };
+  }
+}
