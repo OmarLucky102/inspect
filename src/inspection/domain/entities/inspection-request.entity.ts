@@ -1,5 +1,6 @@
 import { InspectionStatus } from '../value-objects/inspection-status.enum';
 import { InspectionPriority } from '../value-objects/inspection-priority.enum';
+import { CaptureMode } from '../value-objects/capture-mode.enum';
 import {
   InvalidInspectionRequestStateException,
   VehicleDataRequiredException,
@@ -17,6 +18,8 @@ export interface InspectionRequestProps {
   assignedReviewerId: string | null;
   currentStatus: InspectionStatus;
   priority: InspectionPriority;
+  captureMode?: CaptureMode;
+  includeInterior?: boolean;
   governorateId: string | null;
   cityId: string | null;
   latitude: number | null;
@@ -33,10 +36,17 @@ export interface InspectionRequestProps {
 }
 
 export class InspectionRequest {
-  private props: InspectionRequestProps;
+  private props: Required<
+    Pick<InspectionRequestProps, 'captureMode' | 'includeInterior'>
+  > &
+    InspectionRequestProps;
 
   constructor(props: InspectionRequestProps) {
-    this.props = props;
+    this.props = {
+      ...props,
+      captureMode: props.captureMode ?? CaptureMode.STANDARD,
+      includeInterior: props.includeInterior ?? true,
+    };
   }
 
   get id(): string {
@@ -108,6 +118,26 @@ export class InspectionRequest {
 
   get isDraft(): boolean {
     return this.props.currentStatus === InspectionStatus.DRAFT;
+  }
+
+  get captureMode(): CaptureMode {
+    return this.props.captureMode;
+  }
+
+  get includeInterior(): boolean {
+    return this.props.includeInterior;
+  }
+
+  public setCaptureSettings(
+    captureMode?: CaptureMode,
+    includeInterior?: boolean,
+  ): void {
+    if (captureMode !== undefined) {
+      this.props.captureMode = captureMode;
+    }
+    if (includeInterior !== undefined) {
+      this.props.includeInterior = includeInterior;
+    }
   }
 
   public setVehicle(vehicleId: string): void {

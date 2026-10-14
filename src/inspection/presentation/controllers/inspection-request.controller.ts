@@ -12,10 +12,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { InspectionRequestService } from '../../application/services/inspection-request.service';
+import { ChecklistService } from '../../application/services/checklist.service';
+import { UpdateInspectionRequestVehicleDto } from '../dto/update-inspection-request-vehicle.dto';
+import { VehicleDto } from '../dto/vehicle.dto';
 import { CreateInspectionRequestDto } from '../dto/create-inspection-request.dto';
 import { SubmitInspectionRequestDto } from '../dto/submit-inspection-request.dto';
 import { UpdateInspectionStatusDto } from '../dto/update-inspection-status.dto';
 import { AssignRepresentativeDto } from '../dto/assign-representative.dto';
+import { UpdatePhotoChecklistDto } from '../dto/update-photo-checklist.dto';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { BankMembershipGuard } from '../../../organization/presentation/guards/bank-membership.guard';
@@ -28,6 +32,7 @@ import { CurrentUser } from '../../../identity/presentation/decorators/current-u
 export class InspectionRequestController {
   constructor(
     private readonly inspectionRequestService: InspectionRequestService,
+    private readonly checklistService: ChecklistService,
   ) {}
 
   @Post()
@@ -45,12 +50,38 @@ export class InspectionRequestController {
       location: dto.location,
       requestedCompletionDate: dto.requestedCompletionDate,
       notes: dto.notes,
-      vehicle: dto.vehicle,
+      vehicle: dto.vehicle ? this.mapVehicleDtoToInput(dto.vehicle) : undefined,
     });
 
     return {
       status: 'success',
       data: request,
+    };
+  }
+
+  @Put(':id/vehicle')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.MANAGER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async setVehicle(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateInspectionRequestVehicleDto,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const v = dto.getVehiclePayload();
+    const result = await this.inspectionRequestService.setVehicleInfo({
+      bankId,
+      requestId: id,
+      actor: {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+      vehicle: this.mapVehicleDtoToInput(v),
+    });
+
+    return {
+      status: 'success',
+      data: result,
     };
   }
 
@@ -67,12 +98,74 @@ export class InspectionRequestController {
       bankId,
       requestId: id,
       userId: (user.sub || user.id)!,
-      vehicle: dto.vehicle,
+      vehicle: this.mapVehicleDtoToInput(dto.vehicle),
     });
 
     return {
       status: 'success',
       data: request,
+    };
+  }
+
+  private mapVehicleDtoToInput(v: VehicleDto) {
+    return {
+      vin: v.vin,
+      brandId:
+        typeof v.getResolvedBrandId === 'function'
+          ? v.getResolvedBrandId()
+          : v.brandId || v.make || '',
+      modelId:
+        typeof v.getResolvedModelId === 'function'
+          ? v.getResolvedModelId()
+          : v.modelId || v.model || '',
+      manufactureYear:
+        typeof v.getResolvedManufactureYear === 'function'
+          ? v.getResolvedManufactureYear()
+          : Number(v.manufactureYear ?? v.year),
+      categoryId:
+        typeof v.getResolvedCategoryId === 'function'
+          ? v.getResolvedCategoryId()
+          : v.categoryId || v.category || '',
+      engineNumber:
+        typeof v.getResolvedEngineNumber === 'function'
+          ? v.getResolvedEngineNumber()
+          : v.engineNumber || v.motorNumber || '',
+      engineCc:
+        typeof v.getResolvedEngineCc === 'function'
+          ? v.getResolvedEngineCc()
+          : Number(v.engineCc ?? v.ccPower),
+      plateNumber:
+        typeof v.getResolvedPlateNumber === 'function'
+          ? v.getResolvedPlateNumber()
+          : (v.plateNumber ?? v.licensePlate),
+      power:
+        typeof v.getResolvedPower === 'function'
+          ? v.getResolvedPower()
+          : (v.power ?? v.motorHorsepower),
+      mileage: v.mileage,
+      colorId:
+        typeof v.getResolvedColorId === 'function'
+          ? v.getResolvedColorId()
+          : (v.colorId ?? v.color),
+      trimId:
+        typeof v.getResolvedTrimId === 'function'
+          ? v.getResolvedTrimId()
+          : (v.trimId ?? v.trim),
+      transmissionTypeId:
+        typeof v.getResolvedTransmissionTypeId === 'function'
+          ? v.getResolvedTransmissionTypeId()
+          : (v.transmissionTypeId ?? v.transmissionType),
+      fuelTypeId: v.fuelTypeId,
+      insuranceValue: v.insuranceValue,
+      sunroofSpecification: v.sunroofSpecification,
+      sideMirrors: v.sideMirrors,
+      carInterior: v.carInterior,
+      calendarNumber: v.calendarNumber,
+      specialInstructions: v.specialInstructions,
+      registrationDate: v.registrationDate,
+      captureMode: v.captureMode,
+      includeInterior: v.includeInterior,
+      submit: v.submit,
     };
   }
 
@@ -194,6 +287,57 @@ export class InspectionRequestController {
     return {
       status: 'success',
       data: history,
+    };
+  }
+
+  @Get([':id/photo-checklist', ':id/checklist'])
+  @Roles(
+    Role.MANAGER,
+    Role.REVIEWER,
+    Role.REPRESENTATIVE,
+    Role.SUPER_ADMIN,
+    Role.SYSTEM_ADMIN,
+  )
+  async getPhotoChecklist(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const checklist = await this.checklistService.getPhotoChecklist(
+      bankId,
+      id,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+    );
+    return {
+      status: 'success',
+      data: checklist,
+    };
+  }
+
+  @Put([':id/photo-checklist', ':id/checklist'])
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async updatePhotoChecklist(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdatePhotoChecklistDto,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const updated = await this.checklistService.updatePhotoChecklist(
+      bankId,
+      id,
+      dto,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+    );
+    return {
+      status: 'success',
+      data: updated,
     };
   }
 }

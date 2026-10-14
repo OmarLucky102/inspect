@@ -18,6 +18,9 @@ export class InspectionRequestMapper {
       assignedReviewerId: prismaRequest.assignedReviewerId,
       currentStatus: prismaRequest.currentStatus as InspectionStatus,
       priority: prismaRequest.priority as InspectionPriority,
+      captureMode:
+        prismaRequest.captureMode as import('../../domain/value-objects/capture-mode.enum').CaptureMode,
+      includeInterior: prismaRequest.includeInterior,
       governorateId: prismaRequest.governorateId,
       cityId: prismaRequest.cityId,
       latitude: prismaRequest.latitude
@@ -46,6 +49,8 @@ export class InspectionRequestMapper {
       requestNumber: request.requestNumber,
       currentStatus: request.currentStatus,
       priority: request.priority,
+      captureMode: request.captureMode,
+      includeInterior: request.includeInterior,
       latitude: request.latitude,
       longitude: request.longitude,
       address: request.address,
@@ -85,6 +90,8 @@ export class InspectionRequestMapper {
     return {
       currentStatus: request.currentStatus,
       priority: request.priority,
+      captureMode: request.captureMode,
+      includeInterior: request.includeInterior,
       latitude: request.latitude,
       longitude: request.longitude,
       address: request.address,

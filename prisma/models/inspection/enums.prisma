@@ -30,3 +30,8 @@ enum CaptureSessionStatus {
   COMPLETED
   ABANDONED
 }
+
+enum CaptureMode {
+  STANDARD
+  ADVANCED
+}

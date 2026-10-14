@@ -1,4 +1,4 @@
-import { api, setAccessToken } from '@/lib/api'
+import { api, refreshAccessToken, setAccessToken } from '@/lib/api'
 
 export interface LoginResponse {
   status: string
@@ -14,10 +14,9 @@ export async function loginRequest(
   return res.data.data.accessToken
 }
 
-/** POST /auth/refresh — rotates via httpOnly cookie, no body. */
+/** POST /auth/refresh — rotates via httpOnly cookie, deduplicated in flight. */
 export async function refreshRequest(): Promise<string> {
-  const res = await api.post<LoginResponse>('/auth/refresh')
-  return res.data.data.accessToken
+  return refreshAccessToken()
 }
 
 /** POST /auth/logout — revokes + clears the cookie (best effort). */

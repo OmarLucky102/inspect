@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Param,
   Body,
@@ -12,11 +13,13 @@ import {
 } from '@nestjs/common';
 import { ChecklistService } from '../../application/services/checklist.service';
 import { AddChecklistItemDto } from '../dto/add-checklist-item.dto';
+import { UpdatePhotoChecklistDto } from '../dto/update-photo-checklist.dto';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { BankMembershipGuard } from '../../../organization/presentation/guards/bank-membership.guard';
 import { Roles } from '../../../identity/presentation/decorators/roles.decorator';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
+import { CurrentUser } from '../../../identity/presentation/decorators/current-user.decorator';
 
 @Controller('banks/:bankId/checklists')
 @UseGuards(JwtAuthGuard, RolesGuard, BankMembershipGuard)
@@ -91,6 +94,51 @@ export class ChecklistController {
     return {
       status: 'success',
       data: items,
+    };
+  }
+
+  @Get('requests/:requestId/photo-checklist')
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async getPhotoChecklist(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('requestId', ParseUUIDPipe) requestId: string,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const checklist = await this.checklistService.getPhotoChecklist(
+      bankId,
+      requestId,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+    );
+    return {
+      status: 'success',
+      data: checklist,
+    };
+  }
+
+  @Put('requests/:requestId/photo-checklist')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async updatePhotoChecklist(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('requestId', ParseUUIDPipe) requestId: string,
+    @Body() dto: UpdatePhotoChecklistDto,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const updated = await this.checklistService.updatePhotoChecklist(
+      bankId,
+      requestId,
+      dto,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+    );
+    return {
+      status: 'success',
+      data: updated,
     };
   }
 }

@@ -104,6 +104,7 @@ export class PrismaInspectionRequestRepository implements IInspectionRequestRepo
             checklistItem: true,
           },
         },
+        photoChecklist: true,
       },
     });
 

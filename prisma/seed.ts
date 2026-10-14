@@ -9,6 +9,7 @@ import { seedVehicleLookups } from './seeds/vehicle-lookup.seed';
 import { seedVehicleColors } from './seeds/vehicle-color.seed';
 import { seedVehicleCategories } from './seeds/vehicle-category.seed';
 import { seedMandatoryChecklistItems } from './seeds/checklist-mandatory-items.seed';
+import { seedVehicleBrandsAndModels } from './seeds/vehicle-brand-model.seed';
 
 /**
  * Super Admin Seed Script
@@ -121,6 +122,7 @@ async function main() {
     await seedVehicleLookups(prisma);
     await seedVehicleColors(prisma);
     await seedVehicleCategories(prisma);
+    await seedVehicleBrandsAndModels(prisma);
     await seedMandatoryChecklistItems(prisma);
   } finally {
     await prisma.$disconnect();

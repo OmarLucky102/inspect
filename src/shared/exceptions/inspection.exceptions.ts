@@ -102,3 +102,18 @@ export class InspectionRequestAccessDeniedException extends BaseException {
     );
   }
 }
+
+export class InvalidDynamicChecklistFieldException extends BaseException {
+  constructor(message: string) {
+    super(message, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+}
+
+export class InspectionRequestLockedException extends BaseException {
+  constructor(
+    message = 'This inspection request is locked or finalized and cannot be modified',
+  ) {
+    super(message, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+}
+

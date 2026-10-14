@@ -2,7 +2,6 @@ import type { Icon } from '@phosphor-icons/react'
 import {
   Bank,
   ClipboardText,
-  ListChecks,
   SquaresFour,
   UsersThree,
 } from '@phosphor-icons/react'
@@ -32,7 +31,6 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Configure',
     items: [
-      { label: 'Checklists', to: '/checklists', icon: ListChecks },
       { label: 'Banks', to: '/banks', icon: Bank },
     ],
   },

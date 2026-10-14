@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar'
 const TITLES: Record<string, { title: string; meta: string }> = {
   '/': { title: 'Dashboard', meta: 'INSPECT · OVERVIEW' },
   '/requests': { title: 'Requests', meta: 'INSPECTION · PIPELINE' },
+  '/requests/new': { title: 'New Request', meta: 'INSPECTION · INTAKE' },
   '/checklists': { title: 'Checklists', meta: 'INSPECTION · EVIDENCE' },
   '/banks': { title: 'Banks', meta: 'ORGANIZATION · WORKSPACES' },
   '/users': { title: 'Users', meta: 'IDENTITY · ACCESS' },

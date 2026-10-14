@@ -9,7 +9,6 @@ import {
   ListChecks,
   UserPlus,
   ShieldCheck,
-  CheckCircle,
   XCircle,
   ArrowRight,
   MapPin,
@@ -28,6 +27,7 @@ import {
 } from '../api'
 import { fetchBankMembers, type BankMemberUser } from '@/features/banks/api'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
+import { InspectionPhotoChecklistTab } from './InspectionPhotoChecklistTab'
 
 interface RequestDetailModalProps {
   requestId: string
@@ -41,7 +41,7 @@ export function RequestDetailModal({
   const { activeBankId, user } = useWorkspace()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'vehicle' | 'assignment' | 'history'
+    'overview' | 'vehicle' | 'inspection-checklist' | 'assignment' | 'history'
   >('overview')
 
   // Modals for actions
@@ -365,7 +365,12 @@ export function RequestDetailModal({
             <div className="flex border-b border-hairline bg-bone px-6">
               {[
                 { key: 'overview', label: 'Overview & Customer', icon: User },
-                { key: 'vehicle', label: 'Vehicle & Checklist', icon: Car },
+                { key: 'vehicle', label: 'Vehicle Details', icon: Car },
+                {
+                  key: 'inspection-checklist',
+                  label: 'Inspection Checklist',
+                  icon: ListChecks,
+                },
                 {
                   key: 'assignment',
                   label: 'Assignment',
@@ -519,17 +524,29 @@ export function RequestDetailModal({
                       Vehicle Specifications
                     </h4>
                     {details.vehicle ? (
-                      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                         <div>
-                          <p className="text-[11px] text-ink-mute">VIN</p>
+                          <p className="text-[11px] text-ink-mute">VIN Number</p>
                           <p className="mt-0.5 font-mono text-sm font-bold text-ink">
                             {details.vehicle.vin}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] text-ink-mute">Plate Number</p>
+                          <p className="text-[11px] text-ink-mute">License Plate</p>
                           <p className="mt-0.5 font-mono text-sm text-ink">
                             {details.vehicle.plateNumber || '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-ink-mute">Motor Number</p>
+                          <p className="mt-0.5 font-mono text-sm text-ink">
+                            {details.vehicle.engineNumber || '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-ink-mute">Calendar Number</p>
+                          <p className="mt-0.5 font-mono text-sm text-ink">
+                            {details.vehicle.calendarNumber || '—'}
                           </p>
                         </div>
                         <div>
@@ -545,23 +562,9 @@ export function RequestDetailModal({
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] text-ink-mute">Manufacture Year</p>
+                          <p className="text-[11px] text-ink-mute">Year</p>
                           <p className="mt-0.5 font-mono text-sm text-ink">
                             {details.vehicle.manufactureYear}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-ink-mute">Mileage</p>
-                          <p className="mt-0.5 font-mono text-sm text-ink">
-                            {details.vehicle.mileage != null
-                              ? `${details.vehicle.mileage.toLocaleString()} km`
-                              : '—'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-ink-mute">Category</p>
-                          <p className="mt-0.5 text-sm text-ink">
-                            {details.vehicle.category?.name || '—'}
                           </p>
                         </div>
                         <div>
@@ -571,29 +574,35 @@ export function RequestDetailModal({
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] text-ink-mute">Fuel Type</p>
+                          <p className="text-[11px] text-ink-mute">Category</p>
                           <p className="mt-0.5 text-sm text-ink">
-                            {details.vehicle.fuelType?.name || '—'}
+                            {details.vehicle.category?.name || '—'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] text-ink-mute">Transmission</p>
+                          <p className="text-[11px] text-ink-mute">Trim</p>
                           <p className="mt-0.5 text-sm text-ink">
-                            {details.vehicle.transmissionType?.name || '—'}
+                            {details.vehicle.trim?.name || '—'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] text-ink-mute">Engine Number</p>
+                          <p className="text-[11px] text-ink-mute">CC Power</p>
                           <p className="mt-0.5 font-mono text-sm text-ink">
-                            {details.vehicle.engineNumber || '—'}
+                            {details.vehicle.engineCc ? `${details.vehicle.engineCc} CC` : '—'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] text-ink-mute">Insurance Value</p>
+                          <p className="text-[11px] text-ink-mute">Insurance Value (EGP)</p>
                           <p className="mt-0.5 font-mono text-sm text-ink">
                             {details.vehicle.insuranceValue != null
-                              ? `$${details.vehicle.insuranceValue.toLocaleString()}`
+                              ? `${details.vehicle.insuranceValue.toLocaleString()} EGP`
                               : '—'}
+                          </p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-3 border-t border-hairline pt-3">
+                          <p className="text-[11px] text-ink-mute">Vehicle Notes</p>
+                          <p className="mt-1 text-xs text-ink whitespace-pre-line">
+                            {details.vehicle.specialInstructions || '—'}
                           </p>
                         </div>
                       </div>
@@ -603,70 +612,20 @@ export function RequestDetailModal({
                       </p>
                     )}
                   </div>
-
-                  {/* Checklist Items */}
-                  <div className="rounded-xl border border-hairline bg-white shadow-2xs overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-hairline bg-bone px-5 py-3">
-                      <h4 className="flex items-center gap-2 text-sm font-semibold text-ink">
-                        <ListChecks className="size-4 text-accent" />
-                        Inspection Checklist Items ({details.checklistItems.length})
-                      </h4>
-                    </div>
-
-                    {details.checklistItems.length === 0 ? (
-                      <p className="p-5 text-xs text-ink-mute">
-                        No checklist items configured for this inspection request.
-                      </p>
-                    ) : (
-                      <div className="divide-y divide-hairline">
-                        {details.checklistItems.map((ci) => (
-                          <div
-                            key={ci.id}
-                            className="flex items-center justify-between px-5 py-3 text-xs hover:bg-paper/30 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              {ci.completed ? (
-                                <CheckCircle className="size-4 text-emerald-600" />
-                              ) : (
-                                <span className="size-2 rounded-full bg-amber-400" />
-                              )}
-                              <div>
-                                <span className="font-medium text-ink">
-                                  {ci.label || ci.code}
-                                </span>
-                                <span className="ml-2 font-mono text-[10px] text-ink-mute">
-                                  [{ci.code}]
-                                </span>
-                                {ci.isMandatory && (
-                                  <span className="ml-2 rounded-md bg-rose-500/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-rose-700">
-                                    MANDATORY
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="font-mono text-[11px] text-ink-soft">
-                                {ci.value ? `Value: ${ci.value}` : 'No value'}
-                              </span>
-                              <span
-                                className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-medium ${
-                                  ci.completed
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : 'bg-zinc-100 text-zinc-600'
-                                }`}
-                              >
-                                {ci.completed ? 'Completed' : 'Pending'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
 
-              {/* TAB 3: ASSIGNMENT */}
+              {/* TAB 3: INSPECTION CHECKLIST */}
+              {activeTab === 'inspection-checklist' && (
+                <InspectionPhotoChecklistTab
+                  requestId={details.id}
+                  bankId={details.bankId}
+                  status={details.currentStatus}
+                  initialChecklist={details.photoChecklist}
+                />
+              )}
+
+              {/* TAB 4: ASSIGNMENT */}
               {activeTab === 'assignment' && (
                 <div className="space-y-6">
                   {/* Current Active Assignment */}

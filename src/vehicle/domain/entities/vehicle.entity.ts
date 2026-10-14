@@ -15,8 +15,13 @@ export interface VehicleProps {
   categoryId: string;
   fuelTypeId: string | null;
   transmissionTypeId: string | null;
-  colorId: string;
+  colorId: string | null;
   trimId: string | null;
+  sunroofSpecification?: string | null;
+  sideMirrors?: string | null;
+  carInterior?: string | null;
+  calendarNumber?: string | null;
+  specialInstructions?: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -26,7 +31,14 @@ export class Vehicle {
   private props: VehicleProps;
 
   constructor(props: VehicleProps) {
-    this.props = props;
+    this.props = {
+      ...props,
+      sunroofSpecification: props.sunroofSpecification ?? null,
+      sideMirrors: props.sideMirrors ?? null,
+      carInterior: props.carInterior ?? null,
+      calendarNumber: props.calendarNumber ?? null,
+      specialInstructions: props.specialInstructions ?? null,
+    };
   }
 
   get id(): string {
@@ -77,11 +89,26 @@ export class Vehicle {
   get transmissionTypeId(): string | null {
     return this.props.transmissionTypeId;
   }
-  get colorId(): string {
+  get colorId(): string | null {
     return this.props.colorId;
   }
   get trimId(): string | null {
     return this.props.trimId;
+  }
+  get sunroofSpecification(): string | null {
+    return this.props.sunroofSpecification ?? null;
+  }
+  get sideMirrors(): string | null {
+    return this.props.sideMirrors ?? null;
+  }
+  get carInterior(): string | null {
+    return this.props.carInterior ?? null;
+  }
+  get calendarNumber(): string | null {
+    return this.props.calendarNumber ?? null;
+  }
+  get specialInstructions(): string | null {
+    return this.props.specialInstructions ?? null;
   }
   get createdAt(): Date {
     return this.props.createdAt;
@@ -91,5 +118,13 @@ export class Vehicle {
   }
   get deletedAt(): Date | null {
     return this.props.deletedAt;
+  }
+
+  public updateDetails(fields: Partial<VehicleProps>): void {
+    this.props = {
+      ...this.props,
+      ...fields,
+      updatedAt: new Date(),
+    };
   }
 }

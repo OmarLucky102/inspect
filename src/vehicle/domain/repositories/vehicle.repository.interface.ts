@@ -1,6 +1,7 @@
 import { Vehicle } from '../entities/vehicle.entity';
 
 export interface IVehicleRepository {
+  findById(id: string): Promise<Vehicle | null>;
   findByVin(vin: string): Promise<Vehicle | null>;
   save(vehicle: Vehicle): Promise<void>;
   update(vehicle: Vehicle): Promise<void>;

@@ -164,6 +164,8 @@ export interface InspectionRequestDetail {
     fuelType: { id: string; name: string } | null
     transmissionType: { id: string; name: string } | null
     trim: { id: string; name: string } | null
+    calendarNumber?: string | null
+    specialInstructions?: string | null
   } | null
   assignedRepresentative: {
     id: string
@@ -192,6 +194,7 @@ export interface InspectionRequestDetail {
     completed: boolean
     completedAt: string | null
   }>
+  photoChecklist?: InspectionPhotoChecklistDto | null
 }
 
 export interface StatusHistoryChanger {
@@ -254,3 +257,135 @@ export async function fetchInspectionStatusHistory(
   )
   return (res.data as any).data ?? res.data ?? []
 }
+
+export interface VehicleModelLookup {
+  id: string
+  brandId: string
+  name: string
+}
+
+export interface VehicleBrandLookup {
+  id: string
+  name: string
+  code: string | null
+  models?: VehicleModelLookup[]
+}
+
+export interface VehicleReferenceItem {
+  id: string
+  name: string
+  nameAr?: string | null
+  code?: string | null
+  hex?: string | null
+}
+
+export interface VehicleReferenceLookups {
+  brands: VehicleBrandLookup[]
+  categories: VehicleReferenceItem[]
+  colors: VehicleReferenceItem[]
+  fuelTypes: VehicleReferenceItem[]
+  transmissionTypes: VehicleReferenceItem[]
+  trims: VehicleReferenceItem[]
+}
+
+export async function fetchVehicleLookups(): Promise<VehicleReferenceLookups> {
+  const res = await api.get<{ status: string; data: VehicleReferenceLookups }>('/vehicles/lookups')
+  return (res.data as any).data ?? res.data
+}
+
+export interface VehicleInfoPayload {
+  brandId: string
+  modelId: string
+  manufactureYear: number
+  categoryId: string
+  vin: string
+  engineNumber: string
+  engineCc: number
+
+  plateNumber?: string
+  power?: number
+  mileage?: number
+  colorId?: string
+  trimId?: string
+  transmissionTypeId?: string
+  fuelTypeId?: string
+  insuranceValue?: number
+  sunroofSpecification?: string
+  sideMirrors?: string
+  carInterior?: string
+  calendarNumber?: string
+  specialInstructions?: string
+
+  captureMode?: 'STANDARD' | 'ADVANCED'
+  includeInterior?: boolean
+
+  paymentReceiptImage?: string | null
+  licenseFrontImage?: string | null
+  licenseBackImage?: string | null
+
+  submit?: boolean
+}
+
+export async function updateInspectionRequestVehicle(
+  bankId: string,
+  requestId: string,
+  data: VehicleInfoPayload,
+): Promise<InspectionRequestDetail> {
+  const res = await api.put<{ status: string; data: InspectionRequestDetail }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/vehicle`,
+    data,
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export interface CustomPhotoCategory {
+  id: string
+  name: string
+  required: boolean
+}
+
+export interface InspectionPhotoChecklistDto {
+  id: string
+  inspectionRequestId: string
+  licensePhoto: boolean
+  airbagPhoto: boolean
+  roofPhoto: boolean
+  odometerPhoto: boolean
+  chassisPhoto: boolean
+  customFields: CustomPhotoCategory[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpdatePhotoChecklistPayload {
+  licensePhoto?: boolean
+  airbagPhoto?: boolean
+  roofPhoto?: boolean
+  odometerPhoto?: boolean
+  chassisPhoto?: boolean
+  customFields?: Array<{ id?: string; name: string; required: boolean }>
+}
+
+export async function fetchInspectionPhotoChecklist(
+  bankId: string,
+  requestId: string,
+): Promise<InspectionPhotoChecklistDto> {
+  const res = await api.get<{ status: string; data: InspectionPhotoChecklistDto }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/photo-checklist`,
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export async function updateInspectionPhotoChecklist(
+  bankId: string,
+  requestId: string,
+  payload: UpdatePhotoChecklistPayload,
+): Promise<InspectionPhotoChecklistDto> {
+  const res = await api.put<{ status: string; data: InspectionPhotoChecklistDto }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/photo-checklist`,
+    payload,
+  )
+  return (res.data as any).data ?? res.data
+}
+
+

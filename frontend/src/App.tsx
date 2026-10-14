@@ -8,6 +8,7 @@ import { DashboardPage } from './routes/DashboardPage'
 import { LoginPage } from './routes/LoginPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { RequestsPage } from './routes/RequestsPage'
+import { CreateRequestPage } from './routes/CreateRequestPage'
 import { UsersPage } from './routes/UsersPage'
 
 function LoginRoute() {
@@ -31,6 +32,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="requests" element={<RequestsPage />} />
+        <Route path="requests/new" element={<CreateRequestPage />} />
         <Route path="checklists" element={<ChecklistsPage />} />
         <Route path="banks" element={<BanksPage />} />
         <Route path="users" element={<UsersPage />} />

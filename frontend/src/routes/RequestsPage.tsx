@@ -1,20 +1,15 @@
-import { ClipboardText, CircleNotch, X, Plus } from '@phosphor-icons/react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { ClipboardText, CircleNotch, Plus } from '@phosphor-icons/react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
 import {
   fetchInspectionRequests,
-  createInspectionRequest,
-  fetchGovernorates,
-  type CreateInspectionRequestDto,
   type InspectionRequest,
 } from '@/features/inspection-requests/api'
 import { RequestDetailModal } from '@/features/inspection-requests/components/RequestDetailModal'
-import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { getApiErrorMessage } from '@/lib/api'
 
 function getStatusBadge(status: string) {
   const styles: Record<string, string> = {
@@ -41,19 +36,8 @@ function getStatusBadge(status: string) {
 
 export function RequestsPage() {
   const { activeBankId } = useWorkspace()
-  const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [selectedRequest, setSelectedRequest] = useState<InspectionRequest | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
-
-  const [form, setForm] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    governorateId: '',
-    cityId: '',
-    address: '',
-    notes: '',
-  })
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['inspection-requests', activeBankId],
@@ -61,104 +45,10 @@ export function RequestsPage() {
     enabled: !!activeBankId,
   })
 
-  const { data: governorates = [], isLoading: isLoadingLocations } = useQuery({
-    queryKey: ['locations', 'governorates'],
-    queryFn: fetchGovernorates,
-  })
-
-  const selectedGovernorate = useMemo(
-    () => governorates.find((g) => g.id === form.governorateId),
-    [governorates, form.governorateId]
-  )
-
-  const governorateOptions = useMemo(
-    () =>
-      governorates.map((g) => ({
-        value: g.id,
-        label: g.name,
-        secondaryLabel: g.nameAr ?? undefined,
-        badge: g.cities && g.cities.length > 0 ? `${g.cities.length} cities` : undefined,
-      })),
-    [governorates]
-  )
-
-  const cityOptions = useMemo(() => {
-    if (!selectedGovernorate || !selectedGovernorate.cities) return []
-    return selectedGovernorate.cities.map((c) => ({
-      value: c.id,
-      label: c.name,
-      secondaryLabel: c.nameAr ?? undefined,
-    }))
-  }, [selectedGovernorate])
-
-  const handleGovernorateChange = (govId: string) => {
-    setForm((prev) => ({
-      ...prev,
-      governorateId: govId,
-      cityId: '', // Reset dependent city when governorate changes
-    }))
-  }
-
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateInspectionRequestDto) =>
-      createInspectionRequest(activeBankId!, payload),
-    onSuccess: () => {
-      toast.success('Inspection Request created successfully')
-      void queryClient.invalidateQueries({
-        queryKey: ['inspection-requests', activeBankId],
-      })
-      setIsCreating(false)
-      setForm({
-        fullName: '',
-        phone: '',
-        email: '',
-        governorateId: '',
-        cityId: '',
-        address: '',
-        notes: '',
-      })
-    },
-    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to create request')),
-  })
-
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.fullName.trim() || !form.phone.trim()) {
-      toast.error('Customer name and phone are required')
-      return
-    }
-
-    if (!form.governorateId) {
-      toast.error('Governorate is required')
-      return
-    }
-
-    if (!form.cityId) {
-      toast.error('City is required')
-      return
-    }
-
-    const payload: CreateInspectionRequestDto = {
-      customer: {
-        fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
-        ...(form.email.trim() ? { email: form.email.trim() } : {}),
-      },
-      location: {
-        governorateId: form.governorateId,
-        cityId: form.cityId,
-        ...(form.address.trim() ? { address: form.address.trim() } : {}),
-      },
-      ...(form.notes.trim() ? { notes: form.notes.trim() } : {}),
-    }
-
-    createMutation.mutate(payload)
-  }
-
   if (!activeBankId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-        <p>Please select or join a bank workspace first.</p>
+        <p>Please select a bank workspace first.</p>
       </div>
     )
   }
@@ -187,150 +77,14 @@ export function RequestsPage() {
 
   if (!data || data.length === 0) {
     return (
-      <>
-        <ModuleEmptyState
-          kicker="CORE WORKFLOW"
-          title="Inspection Requests."
-          body="Create and manage vehicle inspection requests for your bank."
-          icon={ClipboardText}
-          actionLabel="New Request"
-          onAction={() => setIsCreating(true)}
-        />
-
-        {isCreating && renderCreateModal()}
-      </>
-    )
-  }
-
-  function renderCreateModal() {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-        <div className="relative w-full max-w-lg rounded-2xl border border-hairline bg-white p-6 shadow-xl">
-          <button
-            type="button"
-            className="absolute top-4 right-4 cursor-pointer text-ink-mute hover:text-ink"
-            onClick={() => setIsCreating(false)}
-          >
-            <X className="size-5" />
-          </button>
-          <h3 className="mb-1 text-lg font-semibold text-ink">New Inspection Request</h3>
-          <p className="mb-5 text-xs text-ink-mute">Create a draft inspection request under the current bank workspace.</p>
-
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ink-soft">Customer Full Name *</label>
-              <input
-                required
-                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                placeholder="e.g. John Doe"
-                value={form.fullName}
-                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">Phone Number *</label>
-                <input
-                  required
-                  className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder="e.g. +962791234567"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">Email (Optional)</label>
-                <input
-                  type="email"
-                  className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder="client@example.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  Governorate *
-                </label>
-                <SearchableSelect
-                  required
-                  options={governorateOptions}
-                  value={form.governorateId}
-                  onChange={handleGovernorateChange}
-                  placeholder={
-                    isLoadingLocations
-                      ? 'Loading governorates...'
-                      : 'Select governorate...'
-                  }
-                  searchPlaceholder="Type governorate name..."
-                  emptyText="No matching governorates"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  City *
-                </label>
-                <SearchableSelect
-                  required
-                  options={cityOptions}
-                  value={form.cityId}
-                  onChange={(cityId) => setForm((prev) => ({ ...prev, cityId }))}
-                  disabled={!form.governorateId}
-                  disabledMessage="Select governorate first"
-                  placeholder={
-                    !form.governorateId
-                      ? 'Select governorate first'
-                      : 'Select city...'
-                  }
-                  searchPlaceholder="Type city name..."
-                  emptyText={
-                    form.governorateId
-                      ? 'No matching cities'
-                      : 'Select governorate first'
-                  }
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ink-soft">
-                Detailed Address (Optional)
-              </label>
-              <input
-                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                placeholder="e.g. Building 14, St 10, Apartment 3"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ink-soft">Notes</label>
-              <textarea
-                rows={2}
-                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                placeholder="Any special inspection instructions or context..."
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2.5 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? 'Creating…' : 'Create Request'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <ModuleEmptyState
+        kicker="CORE WORKFLOW"
+        title="Inspection Requests."
+        body="Create and manage vehicle inspection requests for your bank."
+        icon={ClipboardText}
+        actionLabel="New Request"
+        onAction={() => navigate('/requests/new')}
+      />
     )
   }
 
@@ -342,7 +96,7 @@ export function RequestsPage() {
             <h2 className="font-semibold text-ink">Inspection Requests</h2>
             <p className="text-xs text-ink-mute">Intake and status of vehicle inspections</p>
           </div>
-          <Button size="sm" onClick={() => setIsCreating(true)}>
+          <Button size="sm" onClick={() => navigate('/requests/new')}>
             <Plus className="mr-1 size-4" /> New Request
           </Button>
         </div>
@@ -378,13 +132,25 @@ export function RequestsPage() {
                     {new Date(r.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-3.5 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedRequest(r)}
-                    >
-                      Details
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      {r.currentStatus === 'DRAFT' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/requests/new?requestId=${r.id}`)}
+                          className="text-xs text-accent hover:border-accent hover:text-accent-deep"
+                        >
+                          Continue Intake
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedRequest(r)}
+                      >
+                        Details
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -392,8 +158,6 @@ export function RequestsPage() {
           </table>
         </div>
       </div>
-
-      {isCreating && renderCreateModal()}
 
       {selectedRequest && (
         <RequestDetailModal

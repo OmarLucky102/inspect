@@ -38,7 +38,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
-async function refreshAccessToken(): Promise<string> {
+export async function refreshAccessToken(): Promise<string> {
   if (!refreshInFlight) {
     refreshInFlight = api
       .post<{ status: string; data: { accessToken: string } }>(

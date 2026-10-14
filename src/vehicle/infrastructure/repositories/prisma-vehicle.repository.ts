@@ -8,6 +8,13 @@ import { VehicleMapper } from '../persistence/vehicle.mapper';
 export class PrismaVehicleRepository implements IVehicleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findById(id: string): Promise<Vehicle | null> {
+    const row = await this.prisma.vehicle.findUnique({
+      where: { id },
+    });
+    return row ? VehicleMapper.toDomain(row) : null;
+  }
+
   async findByVin(vin: string): Promise<Vehicle | null> {
     const row = await this.prisma.vehicle.findUnique({
       where: { vin },

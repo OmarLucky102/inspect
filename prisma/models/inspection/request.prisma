@@ -13,6 +13,8 @@ model InspectionRequest {
 
   currentStatus InspectionStatus   @default(PENDING)
   priority      InspectionPriority @default(MEDIUM)
+  captureMode   CaptureMode        @default(STANDARD)
+  includeInterior Boolean          @default(true)
 
   governorateId String?  @db.Uuid
   cityId        String?  @db.Uuid
@@ -46,6 +48,7 @@ model InspectionRequest {
   checklistItems     InspectionChecklistItem[]
   marketingDecisions MarketingValueDecision[]
   statusHistory      InspectionStatusHistory[]
+  photoChecklist     InspectionPhotoChecklist?
 
   @@index([bankId])
   @@index([vehicleId])

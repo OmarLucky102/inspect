@@ -15,6 +15,7 @@ import {
   RefreshTokenExpiredException,
   RefreshTokenReuseDetectedException,
 } from '../../../shared/exceptions/auth.exceptions';
+import ms, { type StringValue } from 'ms';
 import { PrismaService } from '../../../database/prisma.service';
 
 @Injectable()
@@ -92,12 +93,20 @@ export class AuthService {
       throw new RefreshTokenNotFoundException();
     }
 
-    // 3. REUSE DETECTION: if the token is revoked, it means someone
-    //    tried to use a token that was already rotated. This is a
-    //    potential breach — revoke all tokens for this user.
+    // 3. REUSE DETECTION & GRACE PERIOD
+    // If the token is revoked, check if it falls within the grace period (e.g. concurrent network requests).
+    // Outside the grace period, treat it as a breach and revoke all sessions for this user.
     if (existingToken.isRevoked) {
-      await this.refreshTokenRepository.revokeAllForUser(existingToken.userId);
-      throw new RefreshTokenReuseDetectedException();
+      const gracePeriodMs = this.getGracePeriodMs();
+      const revokedAtMs = existingToken.revokedAt
+        ? new Date(existingToken.revokedAt).getTime()
+        : 0;
+      const isWithinGrace = Date.now() - revokedAtMs <= gracePeriodMs;
+
+      if (!isWithinGrace) {
+        await this.refreshTokenRepository.revokeAllForUser(existingToken.userId);
+        throw new RefreshTokenReuseDetectedException();
+      }
     }
 
     // 4. If the token is expired, revoke it and reject
@@ -131,7 +140,7 @@ export class AuthService {
     await this.prisma.$transaction(async (tx) => {
       await tx.refreshToken.update({
         where: { id: existingToken.id },
-        data: { revokedAt: new Date() },
+        data: { revokedAt: existingToken.revokedAt ?? new Date() },
       });
 
       const data = {
@@ -220,5 +229,21 @@ export class AuthService {
     } catch {
       return 'Unknown Device';
     }
+  }
+
+  private getGracePeriodMs(): number {
+    const raw = (
+      process.env.REFRESH_TOKEN_GRACE_PERIOD_SECONDS ?? '20s'
+    ).trim();
+    try {
+      const parsed = ms(raw as StringValue);
+      if (typeof parsed === 'number' && !isNaN(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    const num = parseInt(raw, 10);
+    return !isNaN(num) ? num * 1000 : 20_000;
   }
 }

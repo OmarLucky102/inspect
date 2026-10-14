@@ -24,6 +24,11 @@ export class VehicleMapper {
       transmissionTypeId: prismaVehicle.transmissionTypeId,
       colorId: prismaVehicle.colorId,
       trimId: prismaVehicle.trimId,
+      sunroofSpecification: prismaVehicle.sunroofSpecification,
+      sideMirrors: prismaVehicle.sideMirrors,
+      carInterior: prismaVehicle.carInterior,
+      calendarNumber: prismaVehicle.calendarNumber,
+      specialInstructions: prismaVehicle.specialInstructions,
       createdAt: prismaVehicle.createdAt,
       updatedAt: prismaVehicle.updatedAt,
       deletedAt: prismaVehicle.deletedAt,
@@ -42,11 +47,18 @@ export class VehicleMapper {
       power: vehicle.power,
       insuranceValue: vehicle.insuranceValue,
       registrationDate: vehicle.registrationDate,
+      sunroofSpecification: vehicle.sunroofSpecification,
+      sideMirrors: vehicle.sideMirrors,
+      carInterior: vehicle.carInterior,
+      calendarNumber: vehicle.calendarNumber,
+      specialInstructions: vehicle.specialInstructions,
       status: vehicle.status as import('@prisma/client').VehicleStatus,
       brand: { connect: { id: vehicle.brandId } },
       model: { connect: { id: vehicle.modelId } },
       category: { connect: { id: vehicle.categoryId } },
-      color: { connect: { id: vehicle.colorId } },
+      ...(vehicle.colorId
+        ? { color: { connect: { id: vehicle.colorId } } }
+        : {}),
       ...(vehicle.fuelTypeId
         ? { fuelType: { connect: { id: vehicle.fuelTypeId } } }
         : {}),
@@ -71,11 +83,18 @@ export class VehicleMapper {
       power: vehicle.power,
       insuranceValue: vehicle.insuranceValue,
       registrationDate: vehicle.registrationDate,
+      sunroofSpecification: vehicle.sunroofSpecification,
+      sideMirrors: vehicle.sideMirrors,
+      carInterior: vehicle.carInterior,
+      calendarNumber: vehicle.calendarNumber,
+      specialInstructions: vehicle.specialInstructions,
       status: vehicle.status as import('@prisma/client').VehicleStatus,
       brand: { connect: { id: vehicle.brandId } },
       model: { connect: { id: vehicle.modelId } },
       category: { connect: { id: vehicle.categoryId } },
-      color: { connect: { id: vehicle.colorId } },
+      ...(vehicle.colorId
+        ? { color: { connect: { id: vehicle.colorId } } }
+        : { color: { disconnect: true } }),
       ...(vehicle.fuelTypeId
         ? { fuelType: { connect: { id: vehicle.fuelTypeId } } }
         : { fuelType: { disconnect: true } }),

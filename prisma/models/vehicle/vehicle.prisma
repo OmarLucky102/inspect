@@ -12,6 +12,12 @@ model Vehicle {
   insuranceValue   Decimal?  @db.Decimal(10, 2)
   registrationDate DateTime?
 
+  sunroofSpecification String?
+  sideMirrors          String?
+  carInterior          String?
+  calendarNumber       String?
+  specialInstructions  String?
+
   status VehicleStatus @default(ACTIVE)
 
   brandId            String  @db.Uuid
@@ -19,7 +25,7 @@ model Vehicle {
   categoryId         String  @db.Uuid
   fuelTypeId         String? @db.Uuid
   transmissionTypeId String? @db.Uuid
-  colorId            String  @db.Uuid
+  colorId            String? @db.Uuid
   trimId             String? @db.Uuid
 
   createdAt DateTime  @default(now())
@@ -31,7 +37,7 @@ model Vehicle {
   category         VehicleCategory   @relation(fields: [categoryId], references: [id])
   fuelType         FuelType?         @relation(fields: [fuelTypeId], references: [id])
   transmissionType TransmissionType? @relation(fields: [transmissionTypeId], references: [id])
-  color            Color             @relation(fields: [colorId], references: [id])
+  color            Color?            @relation(fields: [colorId], references: [id])
   trim             VehicleTrim?      @relation(fields: [trimId], references: [id])
 
   inspectionRequests InspectionRequest[]

@@ -26,10 +26,13 @@ import { Customer } from '../../domain/entities/customer.entity';
 import { Vehicle } from '../../../vehicle/domain/entities/vehicle.entity';
 import { InspectionStatus } from '../../domain/value-objects/inspection-status.enum';
 import { InspectionPriority } from '../../domain/value-objects/inspection-priority.enum';
+import { CaptureMode } from '../../domain/value-objects/capture-mode.enum';
 import {
   InvalidReferenceDataException,
   InspectionRequestAlreadyExistsException,
   InspectionRequestNotFoundException,
+  InvalidInspectionRequestStateException,
+  VehicleDataRequiredException,
   InvalidStatusTransitionException,
   InvalidAssignmentException,
   RepresentativeNotEligibleException,
@@ -37,6 +40,33 @@ import {
 } from '../../../shared/exceptions/inspection.exceptions';
 import { InspectionRequestDetailResponseDto } from '../../presentation/dto/inspection-request-detail.response.dto';
 import { InspectionStatusHistoryResponseDto } from '../../presentation/dto/inspection-status-history.response.dto';
+
+export interface VehicleDataInput {
+  vin: string;
+  brandId: string;
+  modelId: string;
+  manufactureYear: number;
+  categoryId: string;
+  engineNumber: string;
+  engineCc?: number;
+  plateNumber?: string;
+  power?: number;
+  mileage?: number;
+  colorId?: string;
+  trimId?: string;
+  transmissionTypeId?: string;
+  fuelTypeId?: string;
+  insuranceValue?: number;
+  sunroofSpecification?: string;
+  sideMirrors?: string;
+  carInterior?: string;
+  calendarNumber?: string;
+  specialInstructions?: string;
+  registrationDate?: Date;
+  captureMode?: CaptureMode;
+  includeInterior?: boolean;
+  submit?: boolean;
+}
 
 export interface CreateInspectionRequestInput {
   bankId: string;
@@ -56,48 +86,21 @@ export interface CreateInspectionRequestInput {
   };
   requestedCompletionDate?: Date;
   notes?: string;
-  vehicle?: {
-    vin: string;
-    plateNumber?: string;
-    manufactureYear: number;
-    mileage?: number;
-    engineNumber: string;
-    engineCc?: number;
-    power?: number;
-    insuranceValue?: number;
-    registrationDate?: Date;
-    brandId: string;
-    modelId: string;
-    categoryId: string;
-    fuelTypeId?: string;
-    transmissionTypeId?: string;
-    colorId: string;
-    trimId?: string;
-  };
+  vehicle?: VehicleDataInput;
 }
 
 export interface SubmitInspectionRequestInput {
   bankId: string;
   requestId: string;
   userId: string;
-  vehicle: {
-    vin: string;
-    plateNumber?: string;
-    manufactureYear: number;
-    mileage?: number;
-    engineNumber: string;
-    engineCc?: number;
-    power?: number;
-    insuranceValue?: number;
-    registrationDate?: Date;
-    brandId: string;
-    modelId: string;
-    categoryId: string;
-    fuelTypeId?: string;
-    transmissionTypeId?: string;
-    colorId: string;
-    trimId?: string;
-  };
+  vehicle: VehicleDataInput;
+}
+
+export interface SetVehicleInfoInput {
+  bankId: string;
+  requestId: string;
+  actor: ActorUser;
+  vehicle: VehicleDataInput;
 }
 
 export interface ActorUser {
@@ -210,33 +213,7 @@ export class InspectionRequestService {
         throw new InspectionRequestAlreadyExistsException(input.vehicle.vin);
       }
 
-      let vehicle = await this.vehicleRepository.findByVin(input.vehicle.vin);
-      if (!vehicle) {
-        vehicle = new Vehicle({
-          id: randomUUID(),
-          vin: input.vehicle.vin,
-          plateNumber: input.vehicle.plateNumber || null,
-          manufactureYear: input.vehicle.manufactureYear,
-          mileage: input.vehicle.mileage || null,
-          engineNumber: input.vehicle.engineNumber,
-          engineCc: input.vehicle.engineCc || null,
-          power: input.vehicle.power || null,
-          insuranceValue: input.vehicle.insuranceValue || null,
-          registrationDate: input.vehicle.registrationDate || null,
-          status: 'ACTIVE',
-          brandId: input.vehicle.brandId,
-          modelId: input.vehicle.modelId,
-          categoryId: input.vehicle.categoryId,
-          fuelTypeId: input.vehicle.fuelTypeId || null,
-          transmissionTypeId: input.vehicle.transmissionTypeId || null,
-          colorId: input.vehicle.colorId,
-          trimId: input.vehicle.trimId || null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null,
-        });
-        await this.vehicleRepository.save(vehicle);
-      }
+      const vehicle = await this.findOrCreateOrUpdateVehicle(input.vehicle);
       vehicleId = vehicle.id;
       initialStatus = InspectionStatus.PENDING; // Fully specified request
     }
@@ -265,6 +242,8 @@ export class InspectionRequestService {
         assignedReviewerId: null,
         currentStatus: initialStatus,
         priority: InspectionPriority.MEDIUM,
+        captureMode: input.vehicle?.captureMode ?? CaptureMode.STANDARD,
+        includeInterior: input.vehicle?.includeInterior ?? true,
         governorateId: input.location?.governorateId || null,
         cityId: input.location?.cityId || null,
         latitude: input.location?.latitude || null,
@@ -367,35 +346,18 @@ export class InspectionRequestService {
       throw new InspectionRequestAlreadyExistsException(input.vehicle.vin);
     }
 
-    let vehicle = await this.vehicleRepository.findByVin(input.vehicle.vin);
-    if (!vehicle) {
-      vehicle = new Vehicle({
-        id: randomUUID(),
-        vin: input.vehicle.vin,
-        plateNumber: input.vehicle.plateNumber || null,
-        manufactureYear: input.vehicle.manufactureYear,
-        mileage: input.vehicle.mileage || null,
-        engineNumber: input.vehicle.engineNumber,
-        engineCc: input.vehicle.engineCc || null,
-        power: input.vehicle.power || null,
-        insuranceValue: input.vehicle.insuranceValue || null,
-        registrationDate: input.vehicle.registrationDate || null,
-        status: 'ACTIVE',
-        brandId: input.vehicle.brandId,
-        modelId: input.vehicle.modelId,
-        categoryId: input.vehicle.categoryId,
-        fuelTypeId: input.vehicle.fuelTypeId || null,
-        transmissionTypeId: input.vehicle.transmissionTypeId || null,
-        colorId: input.vehicle.colorId,
-        trimId: input.vehicle.trimId || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      });
-      await this.vehicleRepository.save(vehicle);
-    }
+    const vehicle = await this.findOrCreateOrUpdateVehicle(input.vehicle);
 
     request.setVehicle(vehicle.id);
+    if (
+      input.vehicle.captureMode !== undefined ||
+      input.vehicle.includeInterior !== undefined
+    ) {
+      request.setCaptureSettings(
+        input.vehicle.captureMode,
+        input.vehicle.includeInterior,
+      );
+    }
     request.submit(); // Changes status to PENDING and validates
 
     await this.prisma.$transaction(async (tx) => {
@@ -414,6 +376,221 @@ export class InspectionRequestService {
     });
 
     return request;
+  }
+
+  async setVehicleInfo(
+    input: SetVehicleInfoInput,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      input.actor.role === Role.SUPER_ADMIN ||
+      input.actor.role === Role.SYSTEM_ADMIN;
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(input.requestId)
+      : await this.requestRepository.findByIdAndBankId(
+          input.requestId,
+          input.bankId,
+        );
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(input.requestId);
+    }
+
+    if (!isGlobalAdmin && input.actor.role !== Role.MANAGER) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    if (request.currentStatus !== InspectionStatus.DRAFT) {
+      throw new InvalidInspectionRequestStateException(
+        `Cannot edit vehicle information for an inspection request with status '${request.currentStatus}'. Only DRAFT requests can be modified.`,
+      );
+    }
+
+    const vData = input.vehicle;
+    await this.validateVehicleRefs(vData);
+
+    const existingOpenRequests =
+      await this.requestRepository.findOpenByBankAndVehicleId(
+        request.bankId,
+        vData.vin,
+      );
+    if (existingOpenRequests.some((r) => r.id !== request.id)) {
+      throw new InspectionRequestAlreadyExistsException(vData.vin);
+    }
+
+    const vehicle = await this.findOrCreateOrUpdateVehicle(vData);
+
+    request.setVehicle(vehicle.id);
+    request.setCaptureSettings(vData.captureMode, vData.includeInterior);
+
+    const shouldSubmit = vData.submit === true;
+    if (shouldSubmit) {
+      request.submit();
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.requestRepository.update(request, tx);
+
+      if (vData.categoryId) {
+        const existingItems =
+          await this.inspectionChecklistItemRepository.findByRequestId(
+            request.id,
+          );
+        if (existingItems.length === 0) {
+          const mandatoryItems =
+            await this.checklistItemRepository.findMandatoryItems();
+          const mergedItems = new Map<string, any>();
+          for (const item of mandatoryItems) {
+            mergedItems.set(item.code, item);
+          }
+          const checklists = await this.checklistRepository.findByCategoryId(
+            vData.categoryId,
+          );
+          for (const cl of checklists) {
+            const items = await this.checklistItemRepository.findByChecklistId(
+              cl.id,
+            );
+            for (const item of items) {
+              if (
+                (!item.bankId || item.bankId === request.bankId) &&
+                !mergedItems.has(item.code)
+              ) {
+                mergedItems.set(item.code, item);
+              }
+            }
+          }
+
+          const checklistEntities = Array.from(mergedItems.values()).map(
+            (item: any) =>
+              new InspectionChecklistItem({
+                id: randomUUID(),
+                inspectionRequestId: request.id,
+                checklistItemId: item.id,
+                value: null,
+                notes: null,
+                completed: false,
+                completedAt: null,
+              }),
+          );
+          if (checklistEntities.length > 0) {
+            await this.inspectionChecklistItemRepository.bulkCreate(
+              checklistEntities,
+              tx,
+            );
+          }
+        }
+      }
+
+      if (shouldSubmit) {
+        const history = new InspectionStatusHistory({
+          id: randomUUID(),
+          inspectionRequestId: request.id,
+          fromStatus: InspectionStatus.DRAFT,
+          toStatus: InspectionStatus.PENDING,
+          changedBy: input.actor.id,
+          changedAt: new Date(),
+          note: 'Vehicle information completed and request submitted',
+        });
+        await this.statusHistoryRepository.save(history, tx);
+      }
+    });
+
+    return this.getRequestDetails(request.id, request.bankId, input.actor);
+  }
+
+  private async findOrCreateOrUpdateVehicle(
+    vData: VehicleDataInput,
+  ): Promise<Vehicle> {
+    let vehicle = await this.vehicleRepository.findByVin(vData.vin);
+    if (!vehicle) {
+      vehicle = new Vehicle({
+        id: randomUUID(),
+        vin: vData.vin,
+        plateNumber: vData.plateNumber || null,
+        manufactureYear: vData.manufactureYear,
+        mileage: vData.mileage ?? null,
+        engineNumber: vData.engineNumber,
+        engineCc: vData.engineCc ?? null,
+        power: vData.power ?? null,
+        insuranceValue: vData.insuranceValue ?? null,
+        registrationDate: vData.registrationDate ?? null,
+        sunroofSpecification: vData.sunroofSpecification || null,
+        sideMirrors: vData.sideMirrors || null,
+        carInterior: vData.carInterior || null,
+        calendarNumber: vData.calendarNumber || null,
+        specialInstructions: vData.specialInstructions || null,
+        status: 'ACTIVE',
+        brandId: vData.brandId,
+        modelId: vData.modelId,
+        categoryId: vData.categoryId,
+        fuelTypeId: vData.fuelTypeId || null,
+        transmissionTypeId: vData.transmissionTypeId || null,
+        colorId: vData.colorId || null,
+        trimId: vData.trimId || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      });
+      await this.vehicleRepository.save(vehicle);
+    } else {
+      vehicle.updateDetails({
+        plateNumber:
+          vData.plateNumber !== undefined
+            ? vData.plateNumber || null
+            : vehicle.plateNumber,
+        manufactureYear: vData.manufactureYear,
+        mileage: vData.mileage !== undefined ? vData.mileage : vehicle.mileage,
+        engineNumber: vData.engineNumber,
+        engineCc:
+          vData.engineCc !== undefined ? vData.engineCc : vehicle.engineCc,
+        power: vData.power !== undefined ? vData.power : vehicle.power,
+        insuranceValue:
+          vData.insuranceValue !== undefined
+            ? vData.insuranceValue
+            : vehicle.insuranceValue,
+        registrationDate:
+          vData.registrationDate !== undefined
+            ? vData.registrationDate
+            : vehicle.registrationDate,
+        sunroofSpecification:
+          vData.sunroofSpecification !== undefined
+            ? vData.sunroofSpecification || null
+            : vehicle.sunroofSpecification,
+        sideMirrors:
+          vData.sideMirrors !== undefined
+            ? vData.sideMirrors || null
+            : vehicle.sideMirrors,
+        carInterior:
+          vData.carInterior !== undefined
+            ? vData.carInterior || null
+            : vehicle.carInterior,
+        calendarNumber:
+          vData.calendarNumber !== undefined
+            ? vData.calendarNumber || null
+            : vehicle.calendarNumber,
+        specialInstructions:
+          vData.specialInstructions !== undefined
+            ? vData.specialInstructions || null
+            : vehicle.specialInstructions,
+        brandId: vData.brandId,
+        modelId: vData.modelId,
+        categoryId: vData.categoryId,
+        fuelTypeId:
+          vData.fuelTypeId !== undefined
+            ? vData.fuelTypeId || null
+            : vehicle.fuelTypeId,
+        transmissionTypeId:
+          vData.transmissionTypeId !== undefined
+            ? vData.transmissionTypeId || null
+            : vehicle.transmissionTypeId,
+        colorId:
+          vData.colorId !== undefined ? vData.colorId || null : vehicle.colorId,
+        trimId:
+          vData.trimId !== undefined ? vData.trimId || null : vehicle.trimId,
+      });
+      await this.vehicleRepository.update(vehicle);
+    }
+    return vehicle;
   }
 
   async getRequestById(id: string, bankId: string): Promise<InspectionRequest> {
@@ -676,16 +853,18 @@ export class InspectionRequestService {
     brandId: string;
     modelId: string;
     categoryId: string;
-    colorId: string;
+    colorId?: string;
     fuelTypeId?: string;
     transmissionTypeId?: string;
     trimId?: string;
   }): Promise<void> {
     const [brand, model, cat, color, fuel, trans, trim] = await Promise.all([
       this.vehicleReferenceRepository.existsBrand(v.brandId),
-      this.vehicleReferenceRepository.existsModel(v.modelId),
+      this.vehicleReferenceRepository.existsModel(v.modelId, v.brandId),
       this.vehicleReferenceRepository.existsCategory(v.categoryId),
-      this.vehicleReferenceRepository.existsColor(v.colorId),
+      v.colorId
+        ? this.vehicleReferenceRepository.existsColor(v.colorId)
+        : Promise.resolve(true),
       v.fuelTypeId
         ? this.vehicleReferenceRepository.existsFuelType(v.fuelTypeId)
         : Promise.resolve(true),
@@ -700,7 +879,10 @@ export class InspectionRequestService {
     ]);
 
     if (!brand) throw new InvalidReferenceDataException('Brand not found');
-    if (!model) throw new InvalidReferenceDataException('Model not found');
+    if (!model)
+      throw new InvalidReferenceDataException(
+        'Model not found or does not belong to the selected Brand',
+      );
     if (!cat) throw new InvalidReferenceDataException('Category not found');
     if (!color) throw new InvalidReferenceDataException('Color not found');
     if (!fuel) throw new InvalidReferenceDataException('Fuel Type not found');

@@ -12,9 +12,11 @@ import { PrismaChecklistItemRepository } from './infrastructure/repositories/pri
 import { PrismaInspectionChecklistItemRepository } from './infrastructure/repositories/prisma-inspection-checklist-item.repository';
 import { PrismaInspectionStatusHistoryRepository } from './infrastructure/repositories/prisma-inspection-status-history.repository';
 import { PrismaInspectionAssignmentRepository } from './infrastructure/repositories/prisma-inspection-assignment.repository';
+import { PrismaInspectionPhotoChecklistRepository } from './infrastructure/repositories/prisma-inspection-photo-checklist.repository';
 import { InspectionRequestService } from './application/services/inspection-request.service';
 import { ChecklistService } from './application/services/checklist.service';
 import { InspectionRequestController } from './presentation/controllers/inspection-request.controller';
+import { InspectionRequestStandaloneController } from './presentation/controllers/inspection-request-standalone.controller';
 import { ChecklistController } from './presentation/controllers/checklist.controller';
 import { LocationController } from './presentation/controllers/location.controller';
 
@@ -22,6 +24,7 @@ import { LocationController } from './presentation/controllers/location.controll
   imports: [IdentityModule, OrganizationModule, VehicleModule],
   controllers: [
     InspectionRequestController,
+    InspectionRequestStandaloneController,
     ChecklistController,
     LocationController,
   ],
@@ -65,6 +68,10 @@ import { LocationController } from './presentation/controllers/location.controll
     {
       provide: 'IInspectionAssignmentRepository',
       useClass: PrismaInspectionAssignmentRepository,
+    },
+    {
+      provide: 'IInspectionPhotoChecklistRepository',
+      useClass: PrismaInspectionPhotoChecklistRepository,
     },
     InspectionRequestService,
     ChecklistService,

@@ -25,20 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Re-hydrate the in-memory access token from the httpOnly cookie.
   useEffect(() => {
-    let cancelled = false
+    let mounted = true
     refreshRequest()
       .then((token) => {
-        if (cancelled) return
+        if (!mounted) return
         setAccessToken(token)
         setStatus('authenticated')
       })
       .catch(() => {
-        if (cancelled) return
+        if (!mounted) return
         setAccessToken(null)
         setStatus('unauthenticated')
       })
     return () => {
-      cancelled = true
+      mounted = false
     }
   }, [])
 

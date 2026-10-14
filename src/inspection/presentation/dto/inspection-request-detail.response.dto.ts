@@ -12,6 +12,8 @@ export interface InspectionRequestWithRelations {
   createdBy?: string;
   currentStatus: InspectionStatus;
   priority: InspectionPriority;
+  captureMode?: string;
+  includeInterior?: boolean;
   requestedAt: Date;
   requestedCompletionDate: Date | null;
   assignedAt: Date | null;
@@ -44,6 +46,11 @@ export interface InspectionRequestWithRelations {
     power: number | null;
     insuranceValue: { toNumber?: () => number } | number | null;
     registrationDate: Date | null;
+    sunroofSpecification?: string | null;
+    sideMirrors?: string | null;
+    carInterior?: string | null;
+    calendarNumber?: string | null;
+    specialInstructions?: string | null;
     brand?: { id: string; name: string } | null;
     model?: { id: string; name: string } | null;
     category?: { id: string; name: string } | null;
@@ -81,6 +88,18 @@ export interface InspectionRequestWithRelations {
       isMandatory: boolean;
     } | null;
   }>;
+  photoChecklist?: {
+    id: string;
+    inspectionRequestId: string;
+    licensePhoto: boolean;
+    airbagPhoto: boolean;
+    roofPhoto: boolean;
+    odometerPhoto: boolean;
+    chassisPhoto: boolean;
+    customFields: unknown;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
 }
 
 export class InspectionRequestDetailResponseDto {
@@ -89,6 +108,8 @@ export class InspectionRequestDetailResponseDto {
   bankId!: string;
   currentStatus!: InspectionStatus;
   priority!: InspectionPriority;
+  captureMode!: string;
+  includeInterior!: boolean;
   requestedAt!: Date;
   requestedCompletionDate!: Date | null;
   assignedAt!: Date | null;
@@ -128,6 +149,11 @@ export class InspectionRequestDetailResponseDto {
     power: number | null;
     insuranceValue: number | null;
     registrationDate: Date | null;
+    sunroofSpecification: string | null;
+    sideMirrors: string | null;
+    carInterior: string | null;
+    calendarNumber: string | null;
+    specialInstructions: string | null;
     brand: { id: string; name: string } | null;
     model: { id: string; name: string } | null;
     category: { id: string; name: string } | null;
@@ -167,6 +193,19 @@ export class InspectionRequestDetailResponseDto {
     completedAt: Date | null;
   }>;
 
+  photoChecklist!: {
+    id: string;
+    inspectionRequestId: string;
+    licensePhoto: boolean;
+    airbagPhoto: boolean;
+    roofPhoto: boolean;
+    odometerPhoto: boolean;
+    chassisPhoto: boolean;
+    customFields: Array<{ id: string; name: string; required: boolean }>;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+
   static fromPrisma(
     record: InspectionRequestWithRelations,
   ): InspectionRequestDetailResponseDto {
@@ -205,6 +244,8 @@ export class InspectionRequestDetailResponseDto {
       bankId: record.bankId,
       currentStatus: record.currentStatus,
       priority: record.priority,
+      captureMode: record.captureMode ?? 'STANDARD',
+      includeInterior: record.includeInterior ?? true,
       requestedAt: record.requestedAt,
       requestedCompletionDate: record.requestedCompletionDate,
       assignedAt: record.assignedAt,
@@ -244,6 +285,11 @@ export class InspectionRequestDetailResponseDto {
             power: record.vehicle.power,
             insuranceValue: insVal,
             registrationDate: record.vehicle.registrationDate,
+            sunroofSpecification: record.vehicle.sunroofSpecification ?? null,
+            sideMirrors: record.vehicle.sideMirrors ?? null,
+            carInterior: record.vehicle.carInterior ?? null,
+            calendarNumber: record.vehicle.calendarNumber ?? null,
+            specialInstructions: record.vehicle.specialInstructions ?? null,
             brand: record.vehicle.brand
               ? { id: record.vehicle.brand.id, name: record.vehicle.brand.name }
               : null,
@@ -307,6 +353,26 @@ export class InspectionRequestDetailResponseDto {
         completed: ci.completed,
         completedAt: ci.completedAt,
       })),
+      photoChecklist: record.photoChecklist
+        ? {
+            id: record.photoChecklist.id,
+            inspectionRequestId: record.photoChecklist.inspectionRequestId,
+            licensePhoto: record.photoChecklist.licensePhoto,
+            airbagPhoto: record.photoChecklist.airbagPhoto,
+            roofPhoto: record.photoChecklist.roofPhoto,
+            odometerPhoto: record.photoChecklist.odometerPhoto,
+            chassisPhoto: record.photoChecklist.chassisPhoto,
+            customFields: Array.isArray(record.photoChecklist.customFields)
+              ? (record.photoChecklist.customFields as Array<{
+                  id: string;
+                  name: string;
+                  required: boolean;
+                }>)
+              : [],
+            createdAt: record.photoChecklist.createdAt,
+            updatedAt: record.photoChecklist.updatedAt,
+          }
+        : null,
     };
   }
 }

@@ -3,16 +3,25 @@ import { randomUUID } from 'crypto';
 import type { IChecklistRepository } from '../../domain/repositories/checklist.repository.interface';
 import type { IChecklistItemRepository } from '../../domain/repositories/checklist-item.repository.interface';
 import type { IInspectionChecklistItemRepository } from '../../domain/repositories/inspection-checklist-item.repository.interface';
+import type { IInspectionPhotoChecklistRepository } from '../../domain/repositories/inspection-photo-checklist.repository.interface';
+import type { IInspectionRequestRepository } from '../../domain/repositories/inspection-request.repository.interface';
 import { ChecklistItem } from '../../domain/entities/checklist-item.entity';
 import { InspectionChecklistItem } from '../../domain/entities/inspection-checklist-item.entity';
+import { InspectionPhotoChecklist } from '../../domain/entities/inspection-photo-checklist.entity';
 import { ChecklistInputType } from '../../domain/value-objects/checklist-input-type.enum';
+import { Role } from '../../../identity/domain/value-objects/role.enum';
 import {
   ChecklistNotFoundException,
   ChecklistItemNotFoundException,
   MandatoryItemCannotBeModifiedException,
   DuplicateChecklistItemException,
   ChecklistItemNotInBankException,
+  InspectionRequestNotFoundException,
+  InspectionRequestAccessDeniedException,
+  InspectionRequestLockedException,
 } from '../../../shared/exceptions/inspection.exceptions';
+import { UpdatePhotoChecklistDto } from '../../presentation/dto/update-photo-checklist.dto';
+import { PhotoChecklistResponseDto } from '../../presentation/dto/photo-checklist-response.dto';
 
 import { PrismaService } from '../../../database/prisma.service';
 
@@ -37,6 +46,10 @@ export class ChecklistService {
     private readonly checklistItemRepository: IChecklistItemRepository,
     @Inject('IInspectionChecklistItemRepository')
     private readonly inspectionChecklistItemRepository: IInspectionChecklistItemRepository,
+    @Inject('IInspectionPhotoChecklistRepository')
+    private readonly photoChecklistRepository: IInspectionPhotoChecklistRepository,
+    @Inject('IInspectionRequestRepository')
+    private readonly requestRepository: IInspectionRequestRepository,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -199,5 +212,82 @@ export class ChecklistService {
   ): Promise<InspectionChecklistItem[]> {
     // Basic check that we are returning for a request, assuming auth guard checked bank membership
     return this.inspectionChecklistItemRepository.findByRequestId(requestId);
+  }
+
+  async getPhotoChecklist(
+    bankId: string,
+    requestId: string,
+    actor: { id: string; role: Role },
+  ): Promise<PhotoChecklistResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(requestId)
+      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    let photoChecklist =
+      await this.photoChecklistRepository.findByRequestId(requestId);
+
+    if (!photoChecklist) {
+      photoChecklist = InspectionPhotoChecklist.createDefault(requestId);
+      await this.photoChecklistRepository.save(photoChecklist);
+    }
+
+    return PhotoChecklistResponseDto.fromDomain(photoChecklist);
+  }
+
+  async updatePhotoChecklist(
+    bankId: string,
+    requestId: string,
+    dto: UpdatePhotoChecklistDto,
+    actor: { id: string; role: Role },
+  ): Promise<PhotoChecklistResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+
+    const allowedRoles: Role[] = [
+      Role.MANAGER,
+      Role.REVIEWER,
+      Role.SUPER_ADMIN,
+      Role.SYSTEM_ADMIN,
+    ];
+
+    if (!allowedRoles.includes(actor.role)) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(requestId)
+      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    // State protection: locked or finalized inspections cannot be modified
+    const lockedStatuses = ['COMPLETED', 'APPROVED', 'CANCELLED', 'REJECTED'];
+    if (lockedStatuses.includes(request.currentStatus)) {
+      throw new InspectionRequestLockedException(
+        `Inspection request is in status '${request.currentStatus}' and cannot be modified`,
+      );
+    }
+
+    let photoChecklist =
+      await this.photoChecklistRepository.findByRequestId(requestId);
+
+    if (!photoChecklist) {
+      photoChecklist = InspectionPhotoChecklist.createDefault(requestId);
+    }
+
+    photoChecklist.update(dto);
+
+    await this.photoChecklistRepository.upsert(photoChecklist);
+
+    return PhotoChecklistResponseDto.fromDomain(photoChecklist);
   }
 }
