@@ -191,6 +191,16 @@ export function InspectionPhotoChecklistTab({
   ) => {
     if (isLocked || !isReviewerOrAdmin) return
 
+    const currentValues = {
+      license: licensePhoto,
+      airbag: airbagPhoto,
+      roof: roofPhoto,
+      odometer: odometerPhoto,
+      chassis: chassisPhoto,
+    }
+
+    if (currentValues[field] === value) return
+
     let nextState = {
       licensePhoto,
       airbagPhoto,
@@ -222,6 +232,7 @@ export function InspectionPhotoChecklistTab({
 
   const handleToggleCustom = (index: number, value: boolean) => {
     if (isLocked || !isReviewerOrAdmin) return
+    if (customFields[index]?.required === value) return
 
     const updated = [...customFields]
     updated[index] = { ...updated[index], required: value }
@@ -664,7 +675,9 @@ function ToggleButtons({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => onChange(true)}
+        onClick={() => {
+          if (!value) onChange(true)
+        }}
         className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs transition-all ${
           value
             ? 'bg-emerald-600 text-white shadow-2xs font-bold'
@@ -678,7 +691,9 @@ function ToggleButtons({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => onChange(false)}
+        onClick={() => {
+          if (value) onChange(false)
+        }}
         className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs transition-all ${
           !value
             ? 'bg-rose-600 text-white shadow-2xs font-bold'

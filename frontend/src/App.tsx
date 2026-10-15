@@ -10,6 +10,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import { RequestsPage } from './routes/RequestsPage'
 import { CreateRequestPage } from './routes/CreateRequestPage'
 import { UsersPage } from './routes/UsersPage'
+import { VehicleSettingsPage } from './routes/VehicleSettingsPage'
 
 function LoginRoute() {
   const { status } = useAuth()
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="requests/new" element={<CreateRequestPage />} />
         <Route path="checklists" element={<ChecklistsPage />} />
         <Route path="banks" element={<BanksPage />} />
+        <Route path="vehicle-settings" element={<VehicleSettingsPage />} />
         <Route path="users" element={<UsersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

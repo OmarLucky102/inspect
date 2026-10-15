@@ -44,7 +44,7 @@ export function LoginForm() {
   const mutation = useMutation({
     mutationFn: (values: LoginInput) => login(values.email, values.password),
     onSuccess: () => {
-      toast.success('Welcome back — session secured.')
+      toast.success('Welcome back!')
       void navigate(from, { replace: true })
     },
   })

@@ -18,14 +18,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const res = ctx.getResponse<Response>();
     const req = ctx.getRequest<Request>();
 
-    const isDev = process.env.NODE_ENV === 'development';
+    const isDev = process.env.NODE_ENV !== 'production';
 
     let error = this.normalizeError(exception);
+    error = this.handleKnownErrors(error, exception);
+
+    const status = error.getStatus();
+    const logMessage = `[HTTP-ERR] ${req.method} ${req.url} -> ${status} - ${error.message}`;
+    if (status >= 500) {
+      this.logger.error(logMessage, error.stack);
+    } else {
+      this.logger.warn(logMessage);
+    }
 
     if (isDev) {
       this.sendErrorDev(error, req, res);
     } else {
-      error = this.handleKnownErrors(error, exception);
       this.sendErrorProd(error, req, res);
     }
   }
@@ -38,12 +46,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      return new BaseException(exception.message, status);
+      const response = exception.getResponse();
+      let message = exception.message;
+
+      if (
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response
+      ) {
+        const resMsg = (response as any).message;
+        message = Array.isArray(resMsg) ? resMsg.join('; ') : String(resMsg);
+      }
+
+      return new BaseException(message, status);
     }
 
     // Unknown / programming error
     return new BaseException(
-      'Something went very wrong',
+      exception instanceof Error ? exception.message : 'Something went very wrong',
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }

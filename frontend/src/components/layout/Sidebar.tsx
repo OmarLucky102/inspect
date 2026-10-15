@@ -19,6 +19,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
     
     const filteredItems = section.items.filter((item) => {
       if (item.label === 'Banks' && !isSuperAdmin) return false
+      if (item.label === 'Vehicle Settings' && !isSuperAdmin) return false
       return true
     })
     

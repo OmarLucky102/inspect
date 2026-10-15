@@ -104,8 +104,8 @@ export class AuthController {
     return {
       httpOnly: true,
       secure,
-      // sameSite: 'strict' as const,
-      path: '/api/v1/auth',
+      sameSite: 'lax' as const,
+      path: '/',
       maxAge,
     };
   }

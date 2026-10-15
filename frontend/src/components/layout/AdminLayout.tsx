@@ -9,6 +9,7 @@ const TITLES: Record<string, { title: string; meta: string }> = {
   '/requests/new': { title: 'New Request', meta: 'INSPECTION · INTAKE' },
   '/checklists': { title: 'Checklists', meta: 'INSPECTION · EVIDENCE' },
   '/banks': { title: 'Banks', meta: 'ORGANIZATION · WORKSPACES' },
+  '/vehicle-settings': { title: 'Vehicle Settings', meta: 'SYSTEM · VEHICLE LOOKUPS' },
   '/users': { title: 'Users', meta: 'IDENTITY · ACCESS' },
 }
 

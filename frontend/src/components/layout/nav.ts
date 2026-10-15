@@ -1,6 +1,7 @@
 import type { Icon } from '@phosphor-icons/react'
 import {
   Bank,
+  Car,
   ClipboardText,
   SquaresFour,
   UsersThree,
@@ -19,7 +20,7 @@ export interface NavSection {
 }
 
 // Maps to backend domains: inspection (requests/checklists),
-// organization (banks), identity (users).
+// organization (banks), identity (users), vehicle (lookups/settings).
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Operate',
@@ -32,6 +33,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Configure',
     items: [
       { label: 'Banks', to: '/banks', icon: Bank },
+      { label: 'Vehicle Settings', to: '/vehicle-settings', icon: Car },
     ],
   },
   {
