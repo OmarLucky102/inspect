@@ -22,6 +22,7 @@ model User {
   bankMemberships BankMembership[]
 
   //inspection
+  representative             Representative?           @relation("RepresentativeUser")
   assignedInspectionRequests InspectionRequest[]       @relation("AssignedRepresentative")
   reviewedInspectionRequests InspectionRequest[]       @relation("AssignedReviewer")
   createdInspectionRequests  InspectionRequest[]       @relation("CreatedRequests")

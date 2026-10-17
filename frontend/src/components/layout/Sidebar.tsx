@@ -14,12 +14,19 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   
   // Filter sections based on role. SUPER_ADMIN sees everything.
   const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+  const canManageRepresentatives =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'REVIEWER' ||
+    user?.role === 'MANAGER' ||
+    user?.role === 'SYSTEM_ADMIN'
+
   const filteredSections = NAV_SECTIONS.map((section) => {
     if (section.title === 'System' && !isSuperAdmin) return null
     
     const filteredItems = section.items.filter((item) => {
       if (item.label === 'Banks' && !isSuperAdmin) return false
       if (item.label === 'Vehicle Settings' && !isSuperAdmin) return false
+      if (item.label === 'Representatives' && !canManageRepresentatives) return false
       return true
     })
     

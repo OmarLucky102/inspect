@@ -1,0 +1,25 @@
+model Representative {
+  id               String   @id @default(uuid()) @db.Uuid
+  representativeId String   @unique @map("representative_id") @db.VarChar(50)
+  name             String   @db.VarChar(255)
+  governorateId    String?  @map("governorate_id") @db.Uuid
+  cityId           String?  @map("city_id") @db.Uuid
+  branchName       String?  @map("branch_name") @db.VarChar(255)
+  locationName     String?  @map("location_name") @db.VarChar(255)
+  phone            String?  @db.VarChar(50)
+  email            String?  @db.VarChar(255)
+  isActive         Boolean  @default(true) @map("is_active")
+  userId           String?  @unique @map("user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  governorate Governorate? @relation(fields: [governorateId], references: [id], onDelete: SetNull)
+  city        City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  user        User?        @relation("RepresentativeUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([representativeId])
+  @@index([governorateId])
+  @@index([cityId])
+  @@map("representatives")
+}

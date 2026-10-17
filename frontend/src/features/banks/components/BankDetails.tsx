@@ -1,9 +1,10 @@
-import { CircleNotch, X } from '@phosphor-icons/react'
+import { CircleNotch, X, CaretDown } from '@phosphor-icons/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { fetchBankById, createBankUser, addBankMember, type CreateBankUserDto, type AddBankMemberDto } from '../api'
 import { fetchUsers } from '@/features/users/api'
 import { Button } from '@/components/ui/button'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
 
@@ -144,14 +145,22 @@ function TabNewUser({ bankId }: { bankId: string }) {
         <input required className="w-full rounded-md border border-hairline px-3 py-2 text-sm" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
       </div>
       <div>
-        <label className="block text-xs font-medium text-ink-mute mb-1">Role</label>
-        <select required className="w-full rounded-md border border-hairline px-3 py-2 text-sm bg-white" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}>
-          <option value="MANAGER">Manager</option>
-          <option value="REVIEWER">Reviewer</option>
-          <option value="USER">User</option>
-          <option value="VIEWER">Viewer</option>
-          <option value="REPRESENTATIVE">Representative</option>
-        </select>
+        <label className="block text-xs font-medium text-ink mb-1.5">Role in Bank</label>
+        <div className="relative flex items-center">
+          <select
+            required
+            className="w-full appearance-none rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none cursor-pointer hover:border-ink/20 focus:border-ink/40 focus:ring-1 focus:ring-accent transition-all pr-8"
+            value={formData.role}
+            onChange={e => setFormData({ ...formData, role: e.target.value })}
+          >
+            <option value="MANAGER">Manager (Bank Admin)</option>
+            <option value="REVIEWER">Reviewer (Auditor)</option>
+            <option value="USER">User (Standard)</option>
+            <option value="VIEWER">Viewer (Read-only)</option>
+            <option value="REPRESENTATIVE">Representative (Field Inspector)</option>
+          </select>
+          <CaretDown className="pointer-events-none absolute right-3 size-3.5 text-ink-mute" />
+        </div>
       </div>
       <label className="flex items-center gap-2 text-sm cursor-pointer mt-2">
         <input type="checkbox" checked={formData.isPrimary} onChange={e => setFormData({ ...formData, isPrimary: e.target.checked })} />
@@ -185,28 +194,32 @@ function TabExistingUser({ bankId }: { bankId: string }) {
     onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to assign user'))
   })
 
+  const userOptions = useMemo(
+    () =>
+      users?.map(u => ({
+        value: u.id,
+        label: `${u.firstName} ${u.lastName}`.trim() || u.email,
+        secondaryLabel: u.email,
+        badge: u.role,
+      })) ?? [],
+    [users]
+  )
+
   return (
     <form 
       onSubmit={(e) => { e.preventDefault(); assignMutation.mutate({ userId, isPrimary }) }}
       className="space-y-4 max-w-md"
     >
       <div>
-        <label className="block text-xs font-medium text-ink-mute mb-1">Select User</label>
-        {isLoading ? (
-          <p className="text-sm text-ink-mute">Loading users...</p>
-        ) : (
-          <select 
-            required 
-            className="w-full rounded-md border border-hairline px-3 py-2 text-sm bg-white" 
-            value={userId} 
-            onChange={e => setUserId(e.target.value)}
-          >
-            <option value="" disabled>Select a user</option>
-            {users?.map(u => (
-              <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email}) - {u.role}</option>
-            ))}
-          </select>
-        )}
+        <label className="block text-xs font-medium text-ink mb-1.5">Select User to Assign</label>
+        <SearchableSelect
+          options={userOptions}
+          value={userId}
+          onChange={setUserId}
+          placeholder={isLoading ? 'Loading users...' : 'Choose a user to assign to this bank...'}
+          searchPlaceholder="Search by name, email, or role..."
+          disabled={isLoading || assignMutation.isPending}
+        />
       </div>
       <label className="flex items-center gap-2 text-sm cursor-pointer mt-2">
         <input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)} />

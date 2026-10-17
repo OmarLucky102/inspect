@@ -7,6 +7,7 @@ const TITLES: Record<string, { title: string; meta: string }> = {
   '/': { title: 'Dashboard', meta: 'INSPECT · OVERVIEW' },
   '/requests': { title: 'Requests', meta: 'INSPECTION · PIPELINE' },
   '/requests/new': { title: 'New Request', meta: 'INSPECTION · INTAKE' },
+  '/representatives': { title: 'Representatives', meta: 'FIELD OPERATIONS · AGENTS' },
   '/checklists': { title: 'Checklists', meta: 'INSPECTION · EVIDENCE' },
   '/banks': { title: 'Banks', meta: 'ORGANIZATION · WORKSPACES' },
   '/vehicle-settings': { title: 'Vehicle Settings', meta: 'SYSTEM · VEHICLE LOOKUPS' },

@@ -19,6 +19,8 @@ import { InspectionRequestController } from './presentation/controllers/inspecti
 import { InspectionRequestStandaloneController } from './presentation/controllers/inspection-request-standalone.controller';
 import { ChecklistController } from './presentation/controllers/checklist.controller';
 import { LocationController } from './presentation/controllers/location.controller';
+import { RepresentativeController } from './presentation/controllers/representative.controller';
+import { RepresentativeService } from './application/services/representative.service';
 
 @Module({
   imports: [IdentityModule, OrganizationModule, VehicleModule],
@@ -27,6 +29,7 @@ import { LocationController } from './presentation/controllers/location.controll
     InspectionRequestStandaloneController,
     ChecklistController,
     LocationController,
+    RepresentativeController,
   ],
   providers: [
     {
@@ -75,6 +78,8 @@ import { LocationController } from './presentation/controllers/location.controll
     },
     InspectionRequestService,
     ChecklistService,
+    RepresentativeService,
   ],
+  exports: [RepresentativeService],
 })
 export class InspectionModule {}

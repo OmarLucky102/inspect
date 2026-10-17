@@ -9,6 +9,7 @@ import { LoginPage } from './routes/LoginPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { RequestsPage } from './routes/RequestsPage'
 import { CreateRequestPage } from './routes/CreateRequestPage'
+import { RepresentativesPage } from './routes/RepresentativesPage'
 import { UsersPage } from './routes/UsersPage'
 import { VehicleSettingsPage } from './routes/VehicleSettingsPage'
 
@@ -34,6 +35,7 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="requests" element={<RequestsPage />} />
         <Route path="requests/new" element={<CreateRequestPage />} />
+        <Route path="representatives" element={<RepresentativesPage />} />
         <Route path="checklists" element={<ChecklistsPage />} />
         <Route path="banks" element={<BanksPage />} />
         <Route path="vehicle-settings" element={<VehicleSettingsPage />} />

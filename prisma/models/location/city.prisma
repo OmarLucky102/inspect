@@ -10,6 +10,7 @@ model City {
 
   governorate        Governorate         @relation(fields: [governorateId], references: [id])
   inspectionRequests InspectionRequest[]
+  representatives    Representative[]
 
   @@unique([governorateId, name])
   @@index([governorateId])

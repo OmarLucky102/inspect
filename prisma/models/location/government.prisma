@@ -10,6 +10,7 @@ model Governorate {
 
   cities             City[]
   inspectionRequests InspectionRequest[]
+  representatives    Representative[]
 
   @@map("governorates")
 }
