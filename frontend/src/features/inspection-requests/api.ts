@@ -94,8 +94,14 @@ function normalizeInspectionRequest(raw: any): InspectionRequest {
   }
 }
 
-export async function fetchInspectionRequests(bankId: string): Promise<InspectionRequest[]> {
-  const res = await api.get<{ status: string; data: unknown[] }>(`/banks/${bankId}/inspection-requests`)
+export async function fetchInspectionRequests(
+  bankId: string,
+  status?: string,
+): Promise<InspectionRequest[]> {
+  const params = status ? `?status=${encodeURIComponent(status)}` : ''
+  const res = await api.get<{ status: string; data: unknown[] }>(
+    `/banks/${bankId}/inspection-requests${params}`,
+  )
   const rawList: any[] = (res.data as any).data ?? res.data ?? []
   return rawList.map(normalizeInspectionRequest)
 }
@@ -193,7 +199,20 @@ export interface InspectionRequestDetail {
     notes: string | null
     completed: boolean
     completedAt: string | null
+    reviewDecision?: 'PASS' | 'FAIL' | 'RESHOOT' | null
+    reviewNotes?: string | null
+    reviewedAt?: string | null
   }>
+  canDownloadReport?: boolean
+  latestMarketingDecision?: {
+    id: string
+    estimatedValue: number
+    approved: boolean
+    notes: string | null
+    rejectedReason: string | null
+    decidedAt: string
+    reviewerName: string | null
+  } | null
   photoChecklist?: InspectionPhotoChecklistDto | null
 }
 
@@ -239,7 +258,7 @@ export async function updateInspectionStatus(
 export async function assignRepresentative(
   bankId: string,
   id: string,
-  data: { representativeId: string; notes?: string },
+  data: { representativeId: string; notes?: string; captureMode?: 'STANDARD' | 'ADVANCED' },
 ): Promise<InspectionRequestDetail> {
   const res = await api.put<{ status: string; data: InspectionRequestDetail }>(
     `/banks/${bankId}/inspection-requests/${id}/assignment`,
@@ -384,6 +403,63 @@ export async function updateInspectionPhotoChecklist(
   const res = await api.put<{ status: string; data: InspectionPhotoChecklistDto }>(
     `/banks/${bankId}/inspection-requests/${requestId}/photo-checklist`,
     payload,
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export interface MediaReviewPayload {
+  verifiedMileage: number
+  proposedMarketingValue: number
+  notes?: string
+  checklistItems?: Array<{
+    checklistItemId: string
+    decision: 'PASS' | 'FAIL' | 'RESHOOT'
+    notes?: string
+  }>
+}
+
+export async function submitMediaReview(
+  bankId: string,
+  requestId: string,
+  payload: MediaReviewPayload,
+): Promise<InspectionRequestDetail> {
+  const res = await api.post<{ status: string; data: InspectionRequestDetail }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/media-review`,
+    payload,
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export async function finalApproveInspection(
+  bankId: string,
+  requestId: string,
+  notes?: string,
+): Promise<InspectionRequestDetail> {
+  const res = await api.post<{ status: string; data: InspectionRequestDetail }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/final-approval`,
+    { notes },
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export async function requestPriceRevision(
+  bankId: string,
+  requestId: string,
+  revisionNotes: string,
+): Promise<InspectionRequestDetail> {
+  const res = await api.post<{ status: string; data: InspectionRequestDetail }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/request-price-revision`,
+    { revisionNotes },
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export async function fetchInspectionReport(
+  bankId: string,
+  requestId: string,
+): Promise<any> {
+  const res = await api.get<{ status: string; data: any }>(
+    `/banks/${bankId}/inspection-requests/${requestId}/report`,
   )
   return (res.data as any).data ?? res.data
 }

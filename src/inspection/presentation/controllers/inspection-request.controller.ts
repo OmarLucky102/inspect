@@ -6,6 +6,7 @@ import {
   Put,
   Body,
   Param,
+  Query,
   ParseUUIDPipe,
   UseGuards,
   HttpCode,
@@ -20,6 +21,10 @@ import { SubmitInspectionRequestDto } from '../dto/submit-inspection-request.dto
 import { UpdateInspectionStatusDto } from '../dto/update-inspection-status.dto';
 import { AssignRepresentativeDto } from '../dto/assign-representative.dto';
 import { UpdatePhotoChecklistDto } from '../dto/update-photo-checklist.dto';
+import { SubmitMediaReviewDto } from '../dto/submit-media-review.dto';
+import { PriceRevisionDto } from '../dto/price-revision.dto';
+import { InspectionStatus } from '../../domain/value-objects/inspection-status.enum';
+import { InvalidStatusTransitionException } from '../../../shared/exceptions/inspection.exceptions';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { BankMembershipGuard } from '../../../organization/presentation/guards/bank-membership.guard';
@@ -171,9 +176,14 @@ export class InspectionRequestController {
 
   @Get()
   @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
-  async listRequests(@Param('bankId', ParseUUIDPipe) bankId: string) {
-    const requests =
-      await this.inspectionRequestService.listRequestsByBank(bankId);
+  async listRequests(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Query('status') status?: string,
+  ) {
+    const requests = await this.inspectionRequestService.listRequestsByBank(
+      bankId,
+      status,
+    );
     return {
       status: 'success',
       data: requests,
@@ -240,7 +250,7 @@ export class InspectionRequestController {
 
   @Put(':id/assignment')
   @HttpCode(HttpStatus.OK)
-  @Roles(Role.MANAGER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
   async assignRepresentative(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -256,6 +266,7 @@ export class InspectionRequestController {
         role: user.role,
       },
       dto.notes,
+      dto.captureMode,
     );
     return {
       status: 'success',
@@ -338,6 +349,124 @@ export class InspectionRequestController {
     return {
       status: 'success',
       data: updated,
+    };
+  }
+
+  @Post(':id/media-review')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async submitMediaReview(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SubmitMediaReviewDto,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const request = await this.inspectionRequestService.submitMediaReview(
+      id,
+      bankId,
+      dto,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+    );
+    return {
+      status: 'success',
+      data: request,
+    };
+  }
+
+  @Post(':id/final-approval')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async finalApprove(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('notes') notes?: string,
+    @CurrentUser() user?: { sub?: string; id?: string; role?: Role },
+  ) {
+    const request = await this.inspectionRequestService.superAdminFinalApproval(
+      id,
+      bankId,
+      {
+        id: (user?.sub || user?.id)!,
+        role: user?.role || Role.SUPER_ADMIN,
+      },
+      notes,
+    );
+    return {
+      status: 'success',
+      data: request,
+    };
+  }
+
+  @Post(':id/request-price-revision')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  async requestPriceRevision(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PriceRevisionDto,
+    @CurrentUser() user?: { sub?: string; id?: string; role?: Role },
+  ) {
+    const request =
+      await this.inspectionRequestService.superAdminRequestPriceRevision(
+        id,
+        bankId,
+        dto.revisionNotes,
+        {
+          id: (user?.sub || user?.id)!,
+          role: user?.role || Role.SUPER_ADMIN,
+        },
+      );
+    return {
+      status: 'success',
+      data: request,
+    };
+  }
+
+  @Get(':id/report')
+  @Roles(
+    Role.MANAGER,
+    Role.REVIEWER,
+    Role.SUPER_ADMIN,
+    Role.SYSTEM_ADMIN,
+    Role.USER,
+    Role.VIEWER,
+  )
+  async getInspectionReport(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
+  ) {
+    const details = await this.inspectionRequestService.getRequestDetails(
+      id,
+      bankId,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
+    );
+
+    if (details.currentStatus !== InspectionStatus.APPROVED) {
+      throw new InvalidStatusTransitionException(
+        'Inspection report is locked and will become available once the Super Admin grants final approval.',
+      );
+    }
+
+    return {
+      status: 'success',
+      data: {
+        requestId: id,
+        reportAvailable: true,
+        reportTitle: `EuroInspect 360 Inspection Report - ${details.requestNumber}`,
+        generatedAt: new Date().toISOString(),
+        requestNumber: details.requestNumber,
+        customer: details.customer,
+        vehicle: details.vehicle,
+        marketingValueDecision: details.latestMarketingDecision,
+        checklistItems: details.checklistItems,
+      },
     };
   }
 }

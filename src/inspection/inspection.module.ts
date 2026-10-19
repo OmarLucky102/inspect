@@ -13,6 +13,7 @@ import { PrismaInspectionChecklistItemRepository } from './infrastructure/reposi
 import { PrismaInspectionStatusHistoryRepository } from './infrastructure/repositories/prisma-inspection-status-history.repository';
 import { PrismaInspectionAssignmentRepository } from './infrastructure/repositories/prisma-inspection-assignment.repository';
 import { PrismaInspectionPhotoChecklistRepository } from './infrastructure/repositories/prisma-inspection-photo-checklist.repository';
+import { PrismaMarketingValueDecisionRepository } from './infrastructure/repositories/prisma-marketing-value-decision.repository';
 import { InspectionRequestService } from './application/services/inspection-request.service';
 import { ChecklistService } from './application/services/checklist.service';
 import { InspectionRequestController } from './presentation/controllers/inspection-request.controller';
@@ -75,6 +76,10 @@ import { RepresentativeService } from './application/services/representative.ser
     {
       provide: 'IInspectionPhotoChecklistRepository',
       useClass: PrismaInspectionPhotoChecklistRepository,
+    },
+    {
+      provide: 'IMarketingValueDecisionRepository',
+      useClass: PrismaMarketingValueDecisionRepository,
     },
     InspectionRequestService,
     ChecklistService,

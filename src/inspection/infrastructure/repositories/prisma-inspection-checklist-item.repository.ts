@@ -53,8 +53,35 @@ export class PrismaInspectionChecklistItemRepository implements IInspectionCheck
         notes: item.notes,
         completed: item.completed,
         completedAt: item.completedAt,
+        reviewDecision: item.reviewDecision ?? null,
+        reviewNotes: item.reviewNotes ?? null,
+        reviewedAt: item.reviewedAt ?? null,
       })),
       skipDuplicates: true,
     });
+  }
+
+  async update(
+    item: InspectionChecklistItem,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const db = tx || this.prisma;
+    await db.inspectionChecklistItem.update({
+      where: { id: item.id },
+      data: InspectionChecklistItemMapper.toUpdateData(item),
+    });
+  }
+
+  async bulkUpdate(
+    items: InspectionChecklistItem[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const db = tx || this.prisma;
+    for (const item of items) {
+      await db.inspectionChecklistItem.update({
+        where: { id: item.id },
+        data: InspectionChecklistItemMapper.toUpdateData(item),
+      });
+    }
   }
 }

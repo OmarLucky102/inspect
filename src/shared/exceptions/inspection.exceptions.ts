@@ -95,9 +95,9 @@ export class RepresentativeNotEligibleException extends BaseException {
 }
 
 export class InspectionRequestAccessDeniedException extends BaseException {
-  constructor() {
+  constructor(message?: string) {
     super(
-      'You are not authorized to access this inspection request',
+      message || 'You are not authorized to access this inspection request',
       HttpStatus.FORBIDDEN,
     );
   }

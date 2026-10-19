@@ -222,6 +222,7 @@ describe('Step 2: Vehicle Information Validation & Workflow', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
         mockPrisma,
       );
     });

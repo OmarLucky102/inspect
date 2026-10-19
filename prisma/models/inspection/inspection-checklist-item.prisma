@@ -10,6 +10,10 @@ model InspectionChecklistItem {
   completed   Boolean   @default(false)
   completedAt DateTime?
 
+  reviewDecision ChecklistReviewDecision?
+  reviewNotes    String?
+  reviewedAt     DateTime?
+
   inspectionRequest InspectionRequest @relation(fields: [inspectionRequestId], references: [id], onDelete: Cascade)
   checklistItem     ChecklistItem     @relation(fields: [checklistItemId], references: [id])
 

@@ -22,7 +22,7 @@ import { UpdateRepresentativeDto } from '../dto/update-representative.dto';
 
 @Controller('representatives')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN, Role.REVIEWER, Role.MANAGER, Role.SYSTEM_ADMIN)
+@Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
 export class RepresentativeController {
   constructor(
     private readonly representativeService: RepresentativeService,

@@ -105,6 +105,19 @@ export class PrismaInspectionRequestRepository implements IInspectionRequestRepo
           },
         },
         photoChecklist: true,
+        marketingDecisions: {
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { decidedAt: 'desc' },
+        },
       },
     });
 
@@ -113,9 +126,24 @@ export class PrismaInspectionRequestRepository implements IInspectionRequestRepo
     return row as unknown as InspectionRequestWithRelations;
   }
 
-  async findByBankId(bankId: string): Promise<InspectionRequest[]> {
+  async findByBankId(
+    bankId: string,
+    statusFilter?: string,
+  ): Promise<InspectionRequest[]> {
+    const statuses = statusFilter
+      ? statusFilter
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
+
     const rows = await this.prisma.inspectionRequest.findMany({
-      where: { bankId },
+      where: {
+        bankId,
+        ...(statuses && statuses.length > 0
+          ? { currentStatus: { in: statuses as any[] } }
+          : {}),
+      },
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((r) => InspectionRequestMapper.toDomain(r));

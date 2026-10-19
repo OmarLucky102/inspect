@@ -1,6 +1,7 @@
 enum InspectionStatus {
   DRAFT
   PENDING
+  PENDING_ASSIGNMENT
   ASSIGNED
   IN_PROGRESS
   UNDER_REVIEW
@@ -8,6 +9,12 @@ enum InspectionStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+enum ChecklistReviewDecision {
+  PASS
+  FAIL
+  RESHOOT
 }
 
 enum InspectionPriority {

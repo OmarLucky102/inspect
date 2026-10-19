@@ -13,12 +13,9 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useWorkspace()
   
   // Filter sections based on role. SUPER_ADMIN sees everything.
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
-  const canManageRepresentatives =
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'REVIEWER' ||
-    user?.role === 'MANAGER' ||
-    user?.role === 'SYSTEM_ADMIN'
+  const isSuperAdmin =
+    user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN'
+  const canManageRepresentatives = isSuperAdmin
 
   const filteredSections = NAV_SECTIONS.map((section) => {
     if (section.title === 'System' && !isSuperAdmin) return null

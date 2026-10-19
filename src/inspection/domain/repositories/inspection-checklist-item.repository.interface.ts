@@ -11,4 +11,12 @@ export interface IInspectionChecklistItemRepository {
     items: InspectionChecklistItem[],
     tx?: Prisma.TransactionClient,
   ): Promise<void>;
+  update(
+    item: InspectionChecklistItem,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void>;
+  bulkUpdate(
+    items: InspectionChecklistItem[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<void>;
 }

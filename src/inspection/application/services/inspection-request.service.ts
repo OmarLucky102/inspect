@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../database/prisma.service';
 import type { IInspectionRequestRepository } from '../../domain/repositories/inspection-request.repository.interface';
 import type { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
@@ -13,11 +14,14 @@ import type { IInspectionChecklistItemRepository } from '../../domain/repositori
 import type { IInspectionStatusHistoryRepository } from '../../domain/repositories/inspection-status-history.repository.interface';
 import type { IInspectionAssignmentRepository } from '../../domain/repositories/inspection-assignment.repository.interface';
 import type { IBankMembershipRepository } from '../../../organization/domain/repositories/bank-membership.repository.interface';
+import type { IMarketingValueDecisionRepository } from '../../domain/repositories/marketing-value-decision.repository.interface';
 import { InspectionChecklistItem } from '../../domain/entities/inspection-checklist-item.entity';
 import { InspectionStatusHistory } from '../../domain/entities/inspection-status-history.entity';
 import { InspectionAssignment } from '../../domain/entities/inspection-assignment.entity';
+import { MarketingValueDecision } from '../../domain/entities/marketing-value-decision.entity';
 import { AssignmentStatus } from '../../domain/value-objects/assignment-status.enum';
 import { MembershipStatus } from '../../../organization/domain/value-objects/membership-status.enum';
+import { ChecklistReviewDecision } from '../../domain/value-objects/checklist-review-decision.enum';
 import { BankService } from '../../../organization/application/services/bank.service';
 import { UserService } from '../../../identity/application/services/user.service';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
@@ -133,6 +137,8 @@ export class InspectionRequestService {
     private readonly statusHistoryRepository: IInspectionStatusHistoryRepository,
     @Inject('IInspectionAssignmentRepository')
     private readonly assignmentRepository: IInspectionAssignmentRepository,
+    @Inject('IMarketingValueDecisionRepository')
+    private readonly marketingDecisionRepository: IMarketingValueDecisionRepository,
     @Inject('IBankMembershipRepository')
     private readonly bankMembershipRepository: IBankMembershipRepository,
     private readonly userService: UserService,
@@ -396,13 +402,20 @@ export class InspectionRequestService {
       throw new InspectionRequestNotFoundException(input.requestId);
     }
 
-    if (!isGlobalAdmin && input.actor.role !== Role.MANAGER) {
+    if (
+      !isGlobalAdmin &&
+      input.actor.role !== Role.MANAGER &&
+      input.actor.role !== Role.REVIEWER
+    ) {
       throw new InspectionRequestAccessDeniedException();
     }
 
-    if (request.currentStatus !== InspectionStatus.DRAFT) {
+    if (
+      request.currentStatus !== InspectionStatus.DRAFT &&
+      request.currentStatus !== InspectionStatus.UNDER_REVIEW
+    ) {
       throw new InvalidInspectionRequestStateException(
-        `Cannot edit vehicle information for an inspection request with status '${request.currentStatus}'. Only DRAFT requests can be modified.`,
+        `Cannot edit vehicle information for an inspection request with status '${request.currentStatus}'. Only DRAFT or UNDER_REVIEW requests can be modified.`,
       );
     }
 
@@ -646,6 +659,12 @@ export class InspectionRequestService {
     }
 
     // Role-specific transition permissions
+    if (newStatus === InspectionStatus.APPROVED && !isGlobalAdmin) {
+      throw new InvalidStatusTransitionException(
+        'Only Super Admin or System Admin can grant final approval to an inspection request',
+      );
+    }
+
     if (!isGlobalAdmin) {
       if (actor.role === Role.REPRESENTATIVE) {
         if (request.assignedRepresentativeId !== actor.id) {
@@ -662,17 +681,41 @@ export class InspectionRequestService {
         }
       } else if (actor.role === Role.REVIEWER) {
         const reviewerAllowed = [
+          InspectionStatus.PENDING_ASSIGNMENT,
+          InspectionStatus.REJECTED,
           InspectionStatus.COMPLETED,
           InspectionStatus.IN_PROGRESS,
-          InspectionStatus.APPROVED,
-          InspectionStatus.REJECTED,
         ];
         if (!reviewerAllowed.includes(newStatus)) {
           throw new InvalidStatusTransitionException(
-            'Reviewers may only transition requests to COMPLETED, IN_PROGRESS, APPROVED, or REJECTED',
+            'Reviewers may only transition requests to PENDING_ASSIGNMENT, REJECTED, COMPLETED, or IN_PROGRESS',
           );
         }
-      } else if (actor.role !== Role.MANAGER) {
+        if (
+          (newStatus === InspectionStatus.PENDING_ASSIGNMENT ||
+            newStatus === InspectionStatus.REJECTED) &&
+          request.currentStatus !== InspectionStatus.PENDING
+        ) {
+          throw new InvalidStatusTransitionException(
+            'Reviewer initial approval or rejection is only permitted on PENDING requests',
+          );
+        }
+      } else if (actor.role === Role.MANAGER) {
+        if (request.currentStatus === InspectionStatus.REJECTED) {
+          if (
+            newStatus !== InspectionStatus.PENDING &&
+            newStatus !== InspectionStatus.CANCELLED
+          ) {
+            throw new InvalidStatusTransitionException(
+              'Rejected requests may only be resubmitted to PENDING or CANCELLED',
+            );
+          }
+        } else if (newStatus !== InspectionStatus.CANCELLED) {
+          throw new InvalidStatusTransitionException(
+            'Bank Managers can only cancel active requests or resubmit rejected requests',
+          );
+        }
+      } else {
         throw new InvalidStatusTransitionException(
           `Users with role '${actor.role}' are not permitted to change inspection request status`,
         );
@@ -680,6 +723,14 @@ export class InspectionRequestService {
     }
 
     const oldStatus = request.currentStatus;
+
+    // Rejection must always carry a reason
+    if (newStatus === InspectionStatus.REJECTED && !note?.trim()) {
+      throw new InvalidStatusTransitionException(
+        'A rejection reason is required when rejecting an inspection request',
+      );
+    }
+
     request.transition(newStatus);
 
     await this.prisma.$transaction(async (tx) => {
@@ -707,6 +758,19 @@ export class InspectionRequestService {
         await this.assignmentRepository.cancelActiveByRequestId(request.id, tx);
       }
 
+      // Auto-assign reviewer when a REVIEWER actor approves or rejects
+      if (
+        (newStatus === InspectionStatus.PENDING_ASSIGNMENT ||
+          newStatus === InspectionStatus.REJECTED ||
+          newStatus === InspectionStatus.COMPLETED) &&
+        actor.role === Role.REVIEWER
+      ) {
+        await tx.inspectionRequest.update({
+          where: { id: request.id },
+          data: { assignedReviewerId: actor.id },
+        });
+      }
+
       // Record status history
       const history = new InspectionStatusHistory({
         id: randomUUID(),
@@ -729,45 +793,126 @@ export class InspectionRequestService {
     representativeId: string,
     actor: ActorUser,
     notes?: string,
+    captureMode?: CaptureMode,
   ): Promise<InspectionRequestDetailResponseDto> {
     const isGlobalAdmin =
       actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(requestId)
-      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+    if (!isGlobalAdmin) {
+      throw new InspectionRequestAccessDeniedException(
+        'Only Super Admin or System Admin can assign representatives. Bank members cannot assign representatives.',
+      );
+    }
+
+    const request = await this.requestRepository.findById(requestId);
 
     if (!request) {
       throw new InspectionRequestNotFoundException(requestId);
     }
 
     if (
-      request.currentStatus !== InspectionStatus.PENDING &&
-      request.currentStatus !== InspectionStatus.ASSIGNED
+      request.currentStatus !== InspectionStatus.PENDING_ASSIGNMENT &&
+      request.currentStatus !== InspectionStatus.ASSIGNED &&
+      request.currentStatus !== InspectionStatus.IN_PROGRESS
     ) {
+      if (request.currentStatus === InspectionStatus.PENDING) {
+        throw new InvalidAssignmentException(
+          'Cannot assign representative to an inspection request with status PENDING. The request must first receive Reviewer Initial Approval.',
+        );
+      }
       throw new InvalidAssignmentException(
-        `Cannot assign representative to an inspection request with status '${request.currentStatus}'. Only PENDING or ASSIGNED requests can be assigned.`,
+        `Cannot assign representative to an inspection request with status '${request.currentStatus}'. Only PENDING_ASSIGNMENT, ASSIGNED, or IN_PROGRESS requests can be assigned.`,
       );
+    }
+
+    // Resolve target User representing the representative
+    let targetUserId = representativeId;
+    let repDisplayName = '';
+
+    const repRecord = await this.prisma.representative.findUnique({
+      where: { id: representativeId },
+      include: { user: true },
+    });
+
+    if (repRecord) {
+      repDisplayName = repRecord.name;
+      if (repRecord.userId) {
+        targetUserId = repRecord.userId;
+      } else {
+        // Auto-provision or link User account for this representative
+        const email =
+          repRecord.email?.trim().toLowerCase() ||
+          `${repRecord.representativeId.toLowerCase().replace(/[^a-z0-9]/g, '')}@inspect.local`;
+
+        let existingUser = await this.prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!existingUser) {
+          const names = repRecord.name.trim().split(' ');
+          const firstName = names[0] || 'Representative';
+          const lastName =
+            names.slice(1).join(' ') || repRecord.representativeId;
+          const passwordHash = await bcrypt.hash('Rep@123456!', 10);
+
+          existingUser = await this.prisma.user.create({
+            data: {
+              email,
+              passwordHash,
+              firstName,
+              lastName,
+              phone: repRecord.phone || '+201000000000',
+              role: Role.REPRESENTATIVE,
+              isActive: true,
+              isEmailVerified: true,
+            },
+          });
+        } else if (existingUser.role !== Role.REPRESENTATIVE) {
+          await this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: { role: Role.REPRESENTATIVE, isActive: true },
+          });
+        }
+
+        await this.prisma.representative.update({
+          where: { id: repRecord.id },
+          data: { userId: existingUser.id },
+        });
+
+        targetUserId = existingUser.id;
+      }
     }
 
     // Validate representative role
-    const repUser = await this.userService.getUserById(representativeId);
+    const repUser = await this.userService.getUserById(targetUserId);
     if (repUser.role !== Role.REPRESENTATIVE) {
       throw new RepresentativeNotEligibleException(
-        `User '${representativeId}' does not have the REPRESENTATIVE role`,
+        `User '${targetUserId}' does not have the REPRESENTATIVE role`,
       );
     }
+    if (!repDisplayName) {
+      repDisplayName = `${repUser.firstName} ${repUser.lastName}`.trim();
+    }
 
-    // Validate active bank membership
+    // Ensure active bank membership for this representative in this bank
     const membership =
       await this.bankMembershipRepository.findByBankIdAndUserId(
         request.bankId,
-        representativeId,
+        targetUserId,
       );
-    if (!membership || membership.status !== MembershipStatus.ACTIVE) {
-      throw new RepresentativeNotEligibleException(
-        `Representative '${representativeId}' is not an active member of bank '${request.bankId}'`,
-      );
+    if (!membership) {
+      await this.prisma.bankMembership.create({
+        data: {
+          bankId: request.bankId,
+          userId: targetUserId,
+          status: 'ACTIVE' as any,
+        },
+      });
+    } else if (membership.status !== MembershipStatus.ACTIVE) {
+      await this.prisma.bankMembership.update({
+        where: { id: membership.id },
+        data: { status: 'ACTIVE' as any },
+      });
     }
 
     const oldStatus = request.currentStatus;
@@ -777,34 +922,37 @@ export class InspectionRequestService {
       // Cancel previous active assignment
       await this.assignmentRepository.cancelActiveByRequestId(request.id, tx);
 
-      // Create new assignment
+      // Create new assignment - automatically accepted as inspection starts directly
       const assignment = new InspectionAssignment({
         id: randomUUID(),
         inspectionRequestId: request.id,
-        representativeId: representativeId,
+        representativeId: targetUserId,
         assignedBy: actor.id,
-        status: AssignmentStatus.PENDING,
+        status: AssignmentStatus.ACCEPTED,
         rejectedReason: null,
         assignedAt: now,
-        acceptedAt: null,
+        acceptedAt: now,
         rejectedAt: null,
       });
       await this.assignmentRepository.save(assignment, tx);
 
-      // Update request domain entity
-      request.assign(representativeId, now);
+      // Update request domain entity (assign + optional capture mode override) -> transitions directly to IN_PROGRESS
+      request.assign(targetUserId, now);
+      if (captureMode !== undefined) {
+        request.setCaptureSettings(captureMode, request.includeInterior);
+      }
       await this.requestRepository.update(request, tx);
 
       // Record status history
       const defaultNote =
-        oldStatus === InspectionStatus.PENDING
-          ? `Assigned representative ${repUser.firstName} ${repUser.lastName}`
-          : `Reassigned representative to ${repUser.firstName} ${repUser.lastName}`;
+        oldStatus === InspectionStatus.PENDING_ASSIGNMENT
+          ? `Assigned representative ${repDisplayName} — inspection in progress`
+          : `Reassigned representative to ${repDisplayName}`;
       const history = new InspectionStatusHistory({
         id: randomUUID(),
         inspectionRequestId: request.id,
         fromStatus: oldStatus,
-        toStatus: InspectionStatus.ASSIGNED,
+        toStatus: request.currentStatus,
         changedBy: actor.id,
         changedAt: now,
         note: notes || defaultNote,
@@ -845,8 +993,11 @@ export class InspectionRequestService {
     );
   }
 
-  async listRequestsByBank(bankId: string): Promise<InspectionRequest[]> {
-    return this.requestRepository.findByBankId(bankId);
+  async listRequestsByBank(
+    bankId: string,
+    statusFilter?: string,
+  ): Promise<InspectionRequest[]> {
+    return this.requestRepository.findByBankId(bankId, statusFilter);
   }
 
   private async validateVehicleRefs(v: {
@@ -889,5 +1040,243 @@ export class InspectionRequestService {
     if (!trans)
       throw new InvalidReferenceDataException('Transmission Type not found');
     if (!trim) throw new InvalidReferenceDataException('Trim not found');
+  }
+
+  async submitMediaReview(
+    requestId: string,
+    bankId: string,
+    dto: {
+      verifiedMileage: number;
+      proposedMarketingValue: number;
+      notes?: string;
+      checklistItems?: Array<{
+        checklistItemId: string;
+        decision: ChecklistReviewDecision;
+        notes?: string;
+      }>;
+    },
+    actor: ActorUser,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+    if (!isGlobalAdmin && actor.role !== Role.REVIEWER) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    const request = isGlobalAdmin
+      ? await this.requestRepository.findById(requestId)
+      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    if (request.currentStatus !== InspectionStatus.UNDER_REVIEW) {
+      throw new InvalidStatusTransitionException(
+        `Media review can only be submitted for requests with status 'UNDER_REVIEW'. Current status is '${request.currentStatus}'.`,
+      );
+    }
+
+    const hasReshoot = dto.checklistItems?.some(
+      (item) => item.decision === ChecklistReviewDecision.RESHOOT,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Update checklist items with review decisions
+      if (dto.checklistItems && dto.checklistItems.length > 0) {
+        for (const itemReview of dto.checklistItems) {
+          const item =
+            await this.inspectionChecklistItemRepository.findByRequestAndItem(
+              request.id,
+              itemReview.checklistItemId,
+            );
+          if (item) {
+            item.setReviewDecision(itemReview.decision, itemReview.notes);
+            await this.inspectionChecklistItemRepository.update(item, tx);
+          }
+        }
+      }
+
+      // 2. If any item needs reshoot, return to IN_PROGRESS
+      if (hasReshoot) {
+        request.transition(InspectionStatus.IN_PROGRESS);
+        await this.requestRepository.update(request, tx);
+
+        const history = new InspectionStatusHistory({
+          id: randomUUID(),
+          inspectionRequestId: request.id,
+          fromStatus: InspectionStatus.UNDER_REVIEW,
+          toStatus: InspectionStatus.IN_PROGRESS,
+          changedBy: actor.id,
+          changedAt: new Date(),
+          note: `Reshoot requested: ${dto.notes || 'One or more checklist items require reshooting.'}`,
+        });
+        await this.statusHistoryRepository.save(history, tx);
+      } else {
+        // 3. Update vehicle verified mileage
+        if (request.vehicleId && dto.verifiedMileage != null) {
+          const vehicle = await this.vehicleRepository.findById(
+            request.vehicleId,
+          );
+          if (vehicle) {
+            vehicle.updateDetails({ mileage: dto.verifiedMileage });
+            await this.vehicleRepository.update(vehicle);
+          }
+        }
+
+        // 4. Save proposed Marketing Value
+        const decision = new MarketingValueDecision({
+          id: randomUUID(),
+          inspectionRequestId: request.id,
+          estimatedValue: dto.proposedMarketingValue,
+          approved: false,
+          notes: dto.notes || null,
+          rejectedReason: null,
+          reviewerId: actor.id,
+          decidedAt: new Date(),
+        });
+        await this.marketingDecisionRepository.save(decision, tx);
+
+        // 5. Update assigned reviewer and transition to COMPLETED
+        await tx.inspectionRequest.update({
+          where: { id: request.id },
+          data: { assignedReviewerId: actor.id },
+        });
+
+        request.transition(InspectionStatus.COMPLETED);
+        await this.requestRepository.update(request, tx);
+
+        const history = new InspectionStatusHistory({
+          id: randomUUID(),
+          inspectionRequestId: request.id,
+          fromStatus: InspectionStatus.UNDER_REVIEW,
+          toStatus: InspectionStatus.COMPLETED,
+          changedBy: actor.id,
+          changedAt: new Date(),
+          note: `Media review completed. Proposed Marketing Value: ${dto.proposedMarketingValue.toLocaleString()} EGP. Awaiting Super Admin final approval.`,
+        });
+        await this.statusHistoryRepository.save(history, tx);
+      }
+    });
+
+    return this.getRequestDetails(requestId, bankId, actor);
+  }
+
+  async superAdminFinalApproval(
+    requestId: string,
+    bankId: string,
+    actor: ActorUser,
+    notes?: string,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+    if (!isGlobalAdmin) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    const request = await this.requestRepository.findById(requestId);
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    if (request.currentStatus !== InspectionStatus.COMPLETED) {
+      throw new InvalidStatusTransitionException(
+        `Final approval can only be granted to requests in 'COMPLETED' status. Current status is '${request.currentStatus}'.`,
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Accept latest marketing value decision
+      const latestDecision =
+        await this.marketingDecisionRepository.findLatestByRequestId(
+          request.id,
+          tx,
+        );
+      if (latestDecision) {
+        latestDecision.accept();
+        await this.marketingDecisionRepository.update(latestDecision, tx);
+      }
+
+      // 2. Transition request to APPROVED
+      request.transition(InspectionStatus.APPROVED);
+      await this.requestRepository.update(request, tx);
+
+      // 3. Record status history
+      const history = new InspectionStatusHistory({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        fromStatus: InspectionStatus.COMPLETED,
+        toStatus: InspectionStatus.APPROVED,
+        changedBy: actor.id,
+        changedAt: new Date(),
+        note: notes
+          ? `Final approval granted: ${notes}`
+          : 'Final approval granted. Marketing value accepted and inspection report unlocked.',
+      });
+      await this.statusHistoryRepository.save(history, tx);
+    });
+
+    return this.getRequestDetails(requestId, bankId, actor);
+  }
+
+  async superAdminRequestPriceRevision(
+    requestId: string,
+    bankId: string,
+    reason: string,
+    actor: ActorUser,
+  ): Promise<InspectionRequestDetailResponseDto> {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+    if (!isGlobalAdmin) {
+      throw new InspectionRequestAccessDeniedException();
+    }
+
+    const request = await this.requestRepository.findById(requestId);
+    if (!request) {
+      throw new InspectionRequestNotFoundException(requestId);
+    }
+
+    if (request.currentStatus !== InspectionStatus.COMPLETED) {
+      throw new InvalidStatusTransitionException(
+        `Price revision can only be requested for requests in 'COMPLETED' status. Current status is '${request.currentStatus}'.`,
+      );
+    }
+
+    if (!reason?.trim()) {
+      throw new InvalidStatusTransitionException(
+        'A reason is required when requesting a price revision',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Record rejection reason on latest marketing decision
+      const latestDecision =
+        await this.marketingDecisionRepository.findLatestByRequestId(
+          request.id,
+          tx,
+        );
+      if (latestDecision) {
+        latestDecision.rejectRevision(reason.trim());
+        await this.marketingDecisionRepository.update(latestDecision, tx);
+      }
+
+      // 2. Transition request back to UNDER_REVIEW
+      request.transition(InspectionStatus.UNDER_REVIEW);
+      await this.requestRepository.update(request, tx);
+
+      // 3. Record status history
+      const history = new InspectionStatusHistory({
+        id: randomUUID(),
+        inspectionRequestId: request.id,
+        fromStatus: InspectionStatus.COMPLETED,
+        toStatus: InspectionStatus.UNDER_REVIEW,
+        changedBy: actor.id,
+        changedAt: new Date(),
+        note: `Price revision requested by Super Admin: ${reason.trim()}`,
+      });
+      await this.statusHistoryRepository.save(history, tx);
+    });
+
+    return this.getRequestDetails(requestId, bankId, actor);
   }
 }

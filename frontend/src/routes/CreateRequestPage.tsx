@@ -30,11 +30,18 @@ import {
 import { InspectionPhotoChecklistTab } from '@/features/inspection-requests/components/InspectionPhotoChecklistTab'
 
 export function CreateRequestPage() {
-  const { activeBankId } = useWorkspace()
+  const { activeBankId, user } = useWorkspace()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const existingRequestId = searchParams.get('requestId')
+
+  useEffect(() => {
+    if (user?.role === 'REVIEWER') {
+      toast.error('Reviewers are not permitted to create inspection requests.')
+      navigate('/requests', { replace: true })
+    }
+  }, [user, navigate])
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(existingRequestId ? 2 : 1)
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(existingRequestId)

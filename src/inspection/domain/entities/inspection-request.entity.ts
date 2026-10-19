@@ -158,25 +158,27 @@ export class InspectionRequest {
 
   public assign(representativeId: string, assignedAt: Date = new Date()): void {
     if (
-      this.props.currentStatus !== InspectionStatus.PENDING &&
-      this.props.currentStatus !== InspectionStatus.ASSIGNED
+      this.props.currentStatus !== InspectionStatus.PENDING_ASSIGNMENT &&
+      this.props.currentStatus !== InspectionStatus.ASSIGNED &&
+      this.props.currentStatus !== InspectionStatus.IN_PROGRESS
     ) {
       throw new InvalidAssignmentException(
-        `Cannot assign representative to an inspection request with status '${this.props.currentStatus}'. Only PENDING or ASSIGNED requests can be assigned.`,
+        `Cannot assign representative to an inspection request with status '${this.props.currentStatus}'. Only PENDING_ASSIGNMENT, ASSIGNED, or IN_PROGRESS requests can be assigned.`,
       );
     }
     this.props.assignedRepresentativeId = representativeId;
     this.props.assignedAt = assignedAt;
-    if (this.props.currentStatus === InspectionStatus.PENDING) {
-      this.props.currentStatus = InspectionStatus.ASSIGNED;
-    }
+    this.props.currentStatus = InspectionStatus.IN_PROGRESS;
   }
 
   public unassign(): void {
     this.props.assignedRepresentativeId = null;
     this.props.assignedAt = null;
-    if (this.props.currentStatus === InspectionStatus.ASSIGNED) {
-      this.props.currentStatus = InspectionStatus.PENDING;
+    if (
+      this.props.currentStatus === InspectionStatus.ASSIGNED ||
+      this.props.currentStatus === InspectionStatus.IN_PROGRESS
+    ) {
+      this.props.currentStatus = InspectionStatus.PENDING_ASSIGNMENT;
     }
   }
 
@@ -188,12 +190,22 @@ export class InspectionRequest {
     const ALLOWED_TRANSITIONS: Record<InspectionStatus, InspectionStatus[]> = {
       [InspectionStatus.DRAFT]: [InspectionStatus.PENDING],
       [InspectionStatus.PENDING]: [
+        InspectionStatus.PENDING_ASSIGNMENT,
+        InspectionStatus.REJECTED,
+        InspectionStatus.CANCELLED,
+      ],
+      [InspectionStatus.REJECTED]: [
+        InspectionStatus.PENDING,
+        InspectionStatus.CANCELLED,
+      ],
+      [InspectionStatus.PENDING_ASSIGNMENT]: [
+        InspectionStatus.IN_PROGRESS,
         InspectionStatus.ASSIGNED,
         InspectionStatus.CANCELLED,
       ],
       [InspectionStatus.ASSIGNED]: [
         InspectionStatus.IN_PROGRESS,
-        InspectionStatus.PENDING,
+        InspectionStatus.PENDING_ASSIGNMENT,
         InspectionStatus.CANCELLED,
       ],
       [InspectionStatus.IN_PROGRESS]: [
@@ -207,10 +219,10 @@ export class InspectionRequest {
       ],
       [InspectionStatus.COMPLETED]: [
         InspectionStatus.APPROVED,
-        InspectionStatus.REJECTED,
+        InspectionStatus.UNDER_REVIEW,
+        InspectionStatus.CANCELLED,
       ],
       [InspectionStatus.APPROVED]: [],
-      [InspectionStatus.REJECTED]: [],
       [InspectionStatus.CANCELLED]: [],
     };
 

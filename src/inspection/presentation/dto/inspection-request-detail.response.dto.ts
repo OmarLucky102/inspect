@@ -81,6 +81,9 @@ export interface InspectionRequestWithRelations {
     notes: string | null;
     completed: boolean;
     completedAt: Date | null;
+    reviewDecision?: string | null;
+    reviewNotes?: string | null;
+    reviewedAt?: Date | null;
     checklistItem?: {
       code: string;
       label: string;
@@ -100,6 +103,21 @@ export interface InspectionRequestWithRelations {
     createdAt: Date;
     updatedAt: Date;
   } | null;
+  marketingDecisions?: Array<{
+    id: string;
+    estimatedValue: { toNumber?: () => number } | number;
+    approved: boolean;
+    notes: string | null;
+    rejectedReason: string | null;
+    decidedAt: Date;
+    reviewerId: string;
+    reviewer?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
+  }>;
 }
 
 export class InspectionRequestDetailResponseDto {
@@ -191,7 +209,22 @@ export class InspectionRequestDetailResponseDto {
     notes: string | null;
     completed: boolean;
     completedAt: Date | null;
+    reviewDecision: string | null;
+    reviewNotes: string | null;
+    reviewedAt: Date | null;
   }>;
+
+  canDownloadReport!: boolean;
+
+  latestMarketingDecision!: {
+    id: string;
+    estimatedValue: number;
+    approved: boolean;
+    notes: string | null;
+    rejectedReason: string | null;
+    decidedAt: Date;
+    reviewerName: string | null;
+  } | null;
 
   photoChecklist!: {
     id: string;
@@ -352,7 +385,33 @@ export class InspectionRequestDetailResponseDto {
         notes: ci.notes,
         completed: ci.completed,
         completedAt: ci.completedAt,
+        reviewDecision: ci.reviewDecision ?? null,
+        reviewNotes: ci.reviewNotes ?? null,
+        reviewedAt: ci.reviewedAt ?? null,
       })),
+      canDownloadReport: record.currentStatus === InspectionStatus.APPROVED,
+      latestMarketingDecision: (() => {
+        const latest = record.marketingDecisions?.[0];
+        if (!latest) return null;
+        const val =
+          latest.estimatedValue != null
+            ? typeof latest.estimatedValue === 'object' &&
+              'toNumber' in latest.estimatedValue
+              ? (latest.estimatedValue as any).toNumber()
+              : Number(latest.estimatedValue)
+            : 0;
+        return {
+          id: latest.id,
+          estimatedValue: val,
+          approved: latest.approved,
+          notes: latest.notes,
+          rejectedReason: latest.rejectedReason,
+          decidedAt: latest.decidedAt,
+          reviewerName: latest.reviewer
+            ? `${latest.reviewer.firstName} ${latest.reviewer.lastName}`.trim()
+            : null,
+        };
+      })(),
       photoChecklist: record.photoChecklist
         ? {
             id: record.photoChecklist.id,
