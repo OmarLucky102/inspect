@@ -12,6 +12,7 @@ import { CreateRequestPage } from './routes/CreateRequestPage'
 import { RepresentativesPage } from './routes/RepresentativesPage'
 import { UsersPage } from './routes/UsersPage'
 import { VehicleSettingsPage } from './routes/VehicleSettingsPage'
+import { ProfilePage } from './routes/ProfilePage'
 
 function LoginRoute() {
   const { status } = useAuth()
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="banks" element={<BanksPage />} />
         <Route path="vehicle-settings" element={<VehicleSettingsPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

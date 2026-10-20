@@ -74,4 +74,14 @@ export class UserService {
     await this.userRepository.save(user);
     return user;
   }
+
+  async updateProfile(
+    userId: string,
+    input: { firstName?: string; lastName?: string; phone?: string },
+  ): Promise<User> {
+    const user = await this.getUserById(userId);
+    user.updateProfile(input);
+    await this.userRepository.update(user);
+    return user;
+  }
 }

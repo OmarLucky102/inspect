@@ -5,10 +5,15 @@ export interface UserProfile {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   role: string;
-  status: string;
+  status?: string;
+  isActive?: boolean;
+  isEmailVerified?: boolean;
+  emailVerifiedAt?: string | null;
+  lastLoginAt?: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export function parseJwt(token: string) {
@@ -16,7 +21,7 @@ export function parseJwt(token: string) {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(window.atob(base64));
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -25,12 +30,7 @@ export async function fetchCurrentWorkspaceUser(): Promise<UserProfile> {
   const token = getAccessToken();
   if (!token) throw new Error('No token');
 
-  const payload = parseJwt(token);
-  if (!payload || !payload.sub) throw new Error('Invalid token');
-
-  const res = await api.get<{ status: string; data: UserProfile }>(
-    `/users/${payload.sub}`,
-  );
+  const res = await api.get<{ status: string; data: UserProfile }>('/users/me');
   return (res.data as any).data || res.data;
 }
 

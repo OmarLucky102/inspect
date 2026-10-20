@@ -12,6 +12,7 @@ const TITLES: Record<string, { title: string; meta: string }> = {
   '/banks': { title: 'Banks', meta: 'ORGANIZATION · WORKSPACES' },
   '/vehicle-settings': { title: 'Vehicle Settings', meta: 'SYSTEM · VEHICLE LOOKUPS' },
   '/users': { title: 'Users', meta: 'IDENTITY · ACCESS' },
+  '/profile': { title: 'My Profile', meta: 'IDENTITY · ACCOUNT' },
 }
 
 /** Protected shell: sidebar + sticky header + routed content. */

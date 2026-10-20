@@ -93,4 +93,33 @@ export class User {
     this.props.isEmailVerified = false;
     this.props.emailVerifiedAt = null;
   }
+
+  public updateProfile(data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+  }): void {
+    if (data.firstName !== undefined) {
+      const trimmed = data.firstName.trim();
+      if (!trimmed) {
+        throw new Error('First name cannot be empty');
+      }
+      this.props.firstName = trimmed;
+    }
+
+    if (data.lastName !== undefined) {
+      const trimmed = data.lastName.trim();
+      if (!trimmed) {
+        throw new Error('Last name cannot be empty');
+      }
+      this.props.lastName = trimmed;
+    }
+
+    if (data.phone !== undefined) {
+      const trimmed = data.phone.trim();
+      this.props.phone = trimmed;
+    }
+
+    this.props.updatedAt = new Date();
+  }
 }

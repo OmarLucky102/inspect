@@ -1,8 +1,8 @@
 import { CircleNotch, List, SignOut } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/use-logout'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { BankWorkspaceDropdown } from './BankWorkspaceDropdown'
+import { UserProfileDropdown } from './UserProfileDropdown'
 
 interface AdminHeaderProps {
   onMenu: () => void
@@ -12,11 +12,6 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
   const logoutMutation = useLogout()
-  const { user } = useWorkspace()
-  
-  const initials = user
-    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-    : '..'
 
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-bone/85 backdrop-blur">
@@ -40,19 +35,15 @@ export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           {/* Bank Workspace Selector Dropdown */}
           <BankWorkspaceDropdown />
 
           <div className="h-5 w-[1px] bg-hairline hidden sm:block" />
 
-          <span
-            aria-hidden
-            className="hidden size-9 items-center justify-center rounded-full bg-ink font-mono text-[11px] text-white sm:flex"
-            title={user ? `${user.firstName} ${user.lastName} (${user.role})` : undefined}
-          >
-            {initials}
-          </span>
+          {/* Interactive Profile Circle Avatar Dropdown */}
+          <UserProfileDropdown />
+
           <Button
             variant="outline"
             size="sm"
@@ -71,3 +62,4 @@ export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
     </header>
   )
 }
+

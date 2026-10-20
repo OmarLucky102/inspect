@@ -22,6 +22,7 @@ interface WorkspaceContextValue {
   activeBankId: string | null
   setActiveBankId: (id: string | null) => void
   isLoading: boolean
+  refreshUser: () => Promise<void>
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
@@ -36,6 +37,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem(STORAGE_KEY)
   })
   const [isLoading, setIsLoading] = useState(true)
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const updated = await fetchCurrentWorkspaceUser()
+      setUser(updated)
+    } catch (err) {
+      console.error('Failed to refresh workspace user', err)
+    }
+  }, [])
 
   const setActiveBankId = useCallback((id: string | null) => {
     setActiveBankIdState(id)
@@ -117,7 +127,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   return (
     <WorkspaceContext.Provider
-      value={{ user, banks, activeBankId, setActiveBankId, isLoading }}
+      value={{
+        user,
+        banks,
+        activeBankId,
+        setActiveBankId,
+        isLoading,
+        refreshUser,
+      }}
     >
       {children}
     </WorkspaceContext.Provider>
