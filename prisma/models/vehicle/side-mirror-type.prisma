@@ -1,0 +1,8 @@
+model SideMirrorType {
+  id     String  @id @default(uuid()) @db.Uuid
+  code   String  @unique
+  name   String
+  nameAr String?
+
+  @@map("side_mirror_types")
+}

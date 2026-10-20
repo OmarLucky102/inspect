@@ -38,4 +38,10 @@ export interface IVehicleReferenceRepository {
   findTrims(): Promise<
     Array<{ id: string; code: string; name: string; nameAr: string | null }>
   >;
+  findSideMirrorTypes(): Promise<
+    Array<{ id: string; code: string; name: string; nameAr: string | null }>
+  >;
+  findSunroofTypes(): Promise<
+    Array<{ id: string; code: string; name: string; nameAr: string | null }>
+  >;
 }

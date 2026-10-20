@@ -6,6 +6,7 @@ import {
   IsArray,
   ValidateNested,
   IsEnum,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ChecklistReviewDecision } from '../../domain/value-objects/checklist-review-decision.enum';
@@ -30,6 +31,22 @@ export class SubmitMediaReviewDto {
   @IsNumber()
   @IsPositive()
   proposedMarketingValue!: number;
+
+  @IsOptional()
+  @IsString()
+  sideMirrors?: string;
+
+  @IsOptional()
+  @IsString()
+  sunroofSpecification?: string;
+
+  @IsOptional()
+  @IsUUID()
+  transmissionTypeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  trimId?: string;
 
   @IsOptional()
   @IsString()

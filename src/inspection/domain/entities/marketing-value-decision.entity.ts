@@ -46,6 +46,12 @@ export class MarketingValueDecision {
     this.props.rejectedReason = null;
   }
 
+  public updateEstimatedValue(value: number): void {
+    if (value > 0) {
+      this.props.estimatedValue = value;
+    }
+  }
+
   public rejectRevision(reason: string): void {
     this.props.approved = false;
     this.props.rejectedReason = reason;

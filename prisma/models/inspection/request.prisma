@@ -4,9 +4,10 @@ model InspectionRequest {
   id            String @id @default(uuid()) @db.Uuid
   requestNumber String @unique
 
-  bankId     String  @db.Uuid
-  vehicleId  String? @db.Uuid
-  customerId String  @db.Uuid
+  bankId         String  @db.Uuid
+  vehicleId      String? @db.Uuid
+  customerId     String  @db.Uuid
+  originalTrimId String? @db.Uuid
 
   assignedRepresentativeId String? @db.Uuid
   assignedReviewerId       String? @db.Uuid
@@ -37,6 +38,7 @@ model InspectionRequest {
   bank                   Bank         @relation(fields: [bankId], references: [id])
   vehicle                Vehicle?     @relation(fields: [vehicleId], references: [id])
   customer               Customer     @relation(fields: [customerId], references: [id])
+  originalTrim           VehicleTrim? @relation("OriginalTrimRequests", fields: [originalTrimId], references: [id])
   governorate            Governorate? @relation(fields: [governorateId], references: [id])
   city                   City?        @relation(fields: [cityId], references: [id])
   assignedRepresentative User?        @relation("AssignedRepresentative", fields: [assignedRepresentativeId], references: [id])
@@ -53,6 +55,7 @@ model InspectionRequest {
   @@index([bankId])
   @@index([vehicleId])
   @@index([customerId])
+  @@index([originalTrimId])
   @@index([assignedRepresentativeId])
   @@index([assignedReviewerId])
   @@index([createdBy])

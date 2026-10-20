@@ -114,4 +114,20 @@ export class PrismaVehicleReferenceRepository implements IVehicleReferenceReposi
       orderBy: { name: 'asc' },
     });
   }
+
+  async findSideMirrorTypes(): Promise<
+    Array<{ id: string; code: string; name: string; nameAr: string | null }>
+  > {
+    return this.prisma.sideMirrorType.findMany({
+      orderBy: { code: 'asc' },
+    });
+  }
+
+  async findSunroofTypes(): Promise<
+    Array<{ id: string; code: string; name: string; nameAr: string | null }>
+  > {
+    return this.prisma.sunroofType.findMany({
+      orderBy: { code: 'asc' },
+    });
+  }
 }

@@ -14,6 +14,7 @@ export class InspectionRequestMapper {
       bankId: prismaRequest.bankId,
       vehicleId: prismaRequest.vehicleId,
       customerId: prismaRequest.customerId,
+      originalTrimId: (prismaRequest as any).originalTrimId || null,
       assignedRepresentativeId: prismaRequest.assignedRepresentativeId,
       assignedReviewerId: prismaRequest.assignedReviewerId,
       currentStatus: prismaRequest.currentStatus as InspectionStatus,
@@ -65,6 +66,9 @@ export class InspectionRequestMapper {
       ...(request.vehicleId
         ? { vehicle: { connect: { id: request.vehicleId } } }
         : {}),
+      ...(request.originalTrimId
+        ? { originalTrim: { connect: { id: request.originalTrimId } } }
+        : {}),
       ...(request.governorateId
         ? { governorate: { connect: { id: request.governorateId } } }
         : {}),
@@ -100,6 +104,9 @@ export class InspectionRequestMapper {
       assignedAt: request.assignedAt,
       completedAt: request.completedAt,
       notes: request.notes,
+      ...(request.originalTrimId
+        ? { originalTrim: { connect: { id: request.originalTrimId } } }
+        : {}),
       ...(request.vehicleId
         ? { vehicle: { connect: { id: request.vehicleId } } }
         : { vehicle: { disconnect: true } }),

@@ -49,9 +49,11 @@ export function RepresentativesPage() {
   const [deletingRepresentative, setDeletingRepresentative] =
     useState<Representative | null>(null);
 
-  // Authorization check - only Super Admin can manage representatives
+  // Authorization check - Super Admin and Reviewer can access representatives roster
   const isAuthorized =
-    user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'SYSTEM_ADMIN' ||
+    user?.role === 'REVIEWER';
 
   // Fetch Governorates for filtering
   const { data: governorates = [] } = useQuery({

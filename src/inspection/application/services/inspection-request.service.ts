@@ -244,6 +244,7 @@ export class InspectionRequestService {
         bankId: bank.id,
         vehicleId,
         customerId: customer.id,
+        originalTrimId: input.vehicle?.trimId || null,
         assignedRepresentativeId: null,
         assignedReviewerId: null,
         currentStatus: initialStatus,
@@ -795,12 +796,14 @@ export class InspectionRequestService {
     notes?: string,
     captureMode?: CaptureMode,
   ): Promise<InspectionRequestDetailResponseDto> {
-    const isGlobalAdmin =
-      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+    const isAllowed =
+      actor.role === Role.SUPER_ADMIN ||
+      actor.role === Role.SYSTEM_ADMIN ||
+      actor.role === Role.REVIEWER;
 
-    if (!isGlobalAdmin) {
+    if (!isAllowed) {
       throw new InspectionRequestAccessDeniedException(
-        'Only Super Admin or System Admin can assign representatives. Bank members cannot assign representatives.',
+        'Only Reviewer, Super Admin, or System Admin can assign representatives. Bank members cannot assign representatives.',
       );
     }
 
@@ -1048,6 +1051,10 @@ export class InspectionRequestService {
     dto: {
       verifiedMileage: number;
       proposedMarketingValue: number;
+      trimId?: string;
+      transmissionTypeId?: string;
+      sideMirrors?: string;
+      sunroofSpecification?: string;
       notes?: string;
       checklistItems?: Array<{
         checklistItemId: string;
@@ -1113,13 +1120,19 @@ export class InspectionRequestService {
         });
         await this.statusHistoryRepository.save(history, tx);
       } else {
-        // 3. Update vehicle verified mileage
-        if (request.vehicleId && dto.verifiedMileage != null) {
+        // 3. Update vehicle verified mileage & verified specifications
+        if (request.vehicleId) {
           const vehicle = await this.vehicleRepository.findById(
             request.vehicleId,
           );
           if (vehicle) {
-            vehicle.updateDetails({ mileage: dto.verifiedMileage });
+            vehicle.updateDetails({
+              ...(dto.verifiedMileage != null ? { mileage: dto.verifiedMileage } : {}),
+              ...(dto.trimId !== undefined ? { trimId: dto.trimId || null } : {}),
+              ...(dto.transmissionTypeId !== undefined ? { transmissionTypeId: dto.transmissionTypeId || null } : {}),
+              ...(dto.sideMirrors !== undefined ? { sideMirrors: dto.sideMirrors || null } : {}),
+              ...(dto.sunroofSpecification !== undefined ? { sunroofSpecification: dto.sunroofSpecification || null } : {}),
+            });
             await this.vehicleRepository.update(vehicle);
           }
         }
@@ -1167,6 +1180,7 @@ export class InspectionRequestService {
     bankId: string,
     actor: ActorUser,
     notes?: string,
+    approvedMarketingValue?: number,
   ): Promise<InspectionRequestDetailResponseDto> {
     const isGlobalAdmin =
       actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
@@ -1186,13 +1200,16 @@ export class InspectionRequestService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // 1. Accept latest marketing value decision
+      // 1. Accept latest marketing value decision (and update if overridden by Super Admin)
       const latestDecision =
         await this.marketingDecisionRepository.findLatestByRequestId(
           request.id,
           tx,
         );
       if (latestDecision) {
+        if (approvedMarketingValue != null && approvedMarketingValue > 0) {
+          latestDecision.updateEstimatedValue(approvedMarketingValue);
+        }
         latestDecision.accept();
         await this.marketingDecisionRepository.update(latestDecision, tx);
       }
@@ -1202,6 +1219,7 @@ export class InspectionRequestService {
       await this.requestRepository.update(request, tx);
 
       // 3. Record status history
+      const effectiveVal = approvedMarketingValue ?? latestDecision?.estimatedValue;
       const history = new InspectionStatusHistory({
         id: randomUUID(),
         inspectionRequestId: request.id,
@@ -1210,8 +1228,8 @@ export class InspectionRequestService {
         changedBy: actor.id,
         changedAt: new Date(),
         note: notes
-          ? `Final approval granted: ${notes}`
-          : 'Final approval granted. Marketing value accepted and inspection report unlocked.',
+          ? `Final approval granted: ${notes}${effectiveVal ? ` (Authorized value: ${effectiveVal.toLocaleString()} EGP)` : ''}`
+          : `Final approval granted. Marketing value ${effectiveVal ? `(${effectiveVal.toLocaleString()} EGP) ` : ''}accepted and inspection report unlocked.`,
       });
       await this.statusHistoryRepository.save(history, tx);
     });
@@ -1278,5 +1296,395 @@ export class InspectionRequestService {
     });
 
     return this.getRequestDetails(requestId, bankId, actor);
+  }
+
+  async getAnalytics(
+    params: { bankId?: string; periodDays?: number },
+    actor: ActorUser,
+  ) {
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+    const isReviewer = actor.role === Role.REVIEWER;
+    const periodDays =
+      params.periodDays && params.periodDays > 0 ? params.periodDays : 30;
+
+    let targetBankId: string | undefined = undefined;
+    let bankName: string | null = null;
+    let isGlobal = false;
+
+    if (isGlobalAdmin) {
+      if (params.bankId && params.bankId !== 'all') {
+        targetBankId = params.bankId;
+        const b = await this.prisma.bank.findUnique({
+          where: { id: targetBankId },
+          select: { name: true },
+        });
+        bankName = b?.name || null;
+      } else {
+        isGlobal = true;
+      }
+    } else if (isReviewer) {
+      const memberships = await this.prisma.bankMembership.findMany({
+        where: { userId: actor.id, status: 'ACTIVE' as any },
+        select: { bankId: true, bank: { select: { name: true } } },
+      });
+      const allowedBankIds = memberships.map((m) => m.bankId);
+
+      if (params.bankId && params.bankId !== 'all') {
+        if (
+          allowedBankIds.length > 0 &&
+          !allowedBankIds.includes(params.bankId)
+        ) {
+          throw new InspectionRequestAccessDeniedException(
+            'Access denied. You can only view analytics for your assigned bank.',
+          );
+        }
+        targetBankId = params.bankId;
+        const b = await this.prisma.bank.findUnique({
+          where: { id: targetBankId },
+          select: { name: true },
+        });
+        bankName = b?.name || null;
+      } else {
+        if (allowedBankIds.length > 0) {
+          targetBankId = allowedBankIds[0];
+          const b = memberships.find((m) => m.bankId === targetBankId)?.bank;
+          bankName = b?.name || null;
+        } else {
+          isGlobal = true;
+        }
+      }
+    } else {
+      // Bank Admin, Member, Manager, User, Viewer
+      const memberships = await this.prisma.bankMembership.findMany({
+        where: { userId: actor.id, status: 'ACTIVE' as any },
+        select: { bankId: true, bank: { select: { name: true } } },
+      });
+
+      if (memberships.length === 0) {
+        throw new InspectionRequestAccessDeniedException(
+          'No active bank membership found.',
+        );
+      }
+
+      const allowedBankIds = memberships.map((m) => m.bankId);
+      if (params.bankId && params.bankId !== 'all') {
+        if (!allowedBankIds.includes(params.bankId)) {
+          throw new InspectionRequestAccessDeniedException(
+            'Access denied. You cannot view analytics for other banks.',
+          );
+        }
+        targetBankId = params.bankId;
+      } else {
+        targetBankId = allowedBankIds[0];
+      }
+
+      const b = memberships.find((m) => m.bankId === targetBankId)?.bank;
+      bankName = b?.name || null;
+      isGlobal = false;
+    }
+
+    const whereClause: any = {};
+    if (targetBankId) {
+      whereClause.bankId = targetBankId;
+    }
+
+    const requests = await this.prisma.inspectionRequest.findMany({
+      where: whereClause,
+      include: {
+        vehicle: {
+          include: {
+            category: true,
+            brand: true,
+            model: true,
+          },
+        },
+        customer: true,
+        bank: {
+          select: { id: true, name: true },
+        },
+        marketingDecisions: {
+          orderBy: { decidedAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const totalRequests = requests.length;
+    let pendingInitialApproval = 0;
+    let pendingAssignment = 0;
+    let inField = 0;
+    let underValuationReview = 0;
+    let completed = 0;
+    let approved = 0;
+    let rejected = 0;
+    let cancelled = 0;
+
+    let totalValuation = 0;
+    let turnaroundTotalDays = 0;
+    let turnaroundCount = 0;
+
+    const priorityCounts: Record<string, number> = {
+      LOW: 0,
+      MEDIUM: 0,
+      HIGH: 0,
+      URGENT: 0,
+    };
+
+    const categoryMap = new Map<
+      string,
+      { name: string; count: number; totalValuation: number }
+    >();
+
+    for (const req of requests) {
+      if (priorityCounts[req.priority] !== undefined) {
+        priorityCounts[req.priority] += 1;
+      }
+
+      switch (req.currentStatus) {
+        case InspectionStatus.PENDING:
+          pendingInitialApproval += 1;
+          break;
+        case InspectionStatus.PENDING_ASSIGNMENT:
+          pendingAssignment += 1;
+          break;
+        case InspectionStatus.ASSIGNED:
+        case InspectionStatus.IN_PROGRESS:
+          inField += 1;
+          break;
+        case InspectionStatus.UNDER_REVIEW:
+          underValuationReview += 1;
+          break;
+        case InspectionStatus.COMPLETED:
+          completed += 1;
+          break;
+        case InspectionStatus.APPROVED:
+          approved += 1;
+          break;
+        case InspectionStatus.REJECTED:
+          rejected += 1;
+          break;
+        case InspectionStatus.CANCELLED:
+          cancelled += 1;
+          break;
+      }
+
+      const val = req.marketingDecisions[0]?.estimatedValue
+        ? Number(req.marketingDecisions[0].estimatedValue)
+        : req.vehicle?.insuranceValue
+        ? Number(req.vehicle.insuranceValue)
+        : 0;
+
+      if (req.currentStatus === InspectionStatus.APPROVED && val > 0) {
+        totalValuation += val;
+      }
+
+      if (req.currentStatus === InspectionStatus.APPROVED) {
+        const finishDate = req.completedAt || req.updatedAt;
+        const diffMs = finishDate.getTime() - req.createdAt.getTime();
+        const diffDays = Math.max(0, diffMs / (1000 * 60 * 60 * 24));
+        turnaroundTotalDays += diffDays;
+        turnaroundCount += 1;
+      }
+
+      const catName = req.vehicle?.category?.name || 'Standard';
+      const existing = categoryMap.get(catName) || {
+        name: catName,
+        count: 0,
+        totalValuation: 0,
+      };
+      existing.count += 1;
+      if (req.currentStatus === InspectionStatus.APPROVED) {
+        existing.totalValuation += val;
+      }
+      categoryMap.set(catName, existing);
+    }
+
+    const activePipeline =
+      pendingInitialApproval +
+      pendingAssignment +
+      inField +
+      underValuationReview +
+      completed;
+
+    const decisiveTotal = approved + rejected + cancelled;
+    const approvalRate =
+      decisiveTotal > 0
+        ? Math.round((approved / decisiveTotal) * 100)
+        : approved > 0
+        ? 100
+        : 0;
+
+    const averageValuation =
+      approved > 0 ? Math.round(totalValuation / approved) : 0;
+
+    const averageTurnaroundDays =
+      turnaroundCount > 0
+        ? Math.round((turnaroundTotalDays / turnaroundCount) * 10) / 10
+        : 0;
+
+    const trendMap = new Map<string, { created: number; approved: number }>();
+    for (let i = periodDays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      trendMap.set(key, { created: 0, approved: 0 });
+    }
+
+    for (const req of requests) {
+      const cKey = req.createdAt.toISOString().slice(0, 10);
+      if (trendMap.has(cKey)) {
+        trendMap.get(cKey)!.created += 1;
+      }
+      if (req.currentStatus === InspectionStatus.APPROVED) {
+        const aKey = (req.completedAt || req.updatedAt)
+          .toISOString()
+          .slice(0, 10);
+        if (trendMap.has(aKey)) {
+          trendMap.get(aKey)!.approved += 1;
+        }
+      }
+    }
+
+    const volumeTrend = Array.from(trendMap.entries()).map(([date, counts]) => ({
+      date,
+      formattedDate: new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      }),
+      created: counts.created,
+      approved: counts.approved,
+    }));
+
+    const statusBreakdown = [
+      {
+        status: 'PENDING',
+        label: 'Initial Review',
+        count: pendingInitialApproval,
+        color: '#f59e0b',
+      },
+      {
+        status: 'PENDING_ASSIGNMENT',
+        label: 'Awaiting Rep Assignment',
+        count: pendingAssignment,
+        color: '#3b82f6',
+      },
+      {
+        status: 'IN_FIELD',
+        label: 'Field Inspection',
+        count: inField,
+        color: '#8b5cf6',
+      },
+      {
+        status: 'UNDER_REVIEW',
+        label: 'Media & Pricing Review',
+        count: underValuationReview + completed,
+        color: '#06b6d4',
+      },
+      {
+        status: 'APPROVED',
+        label: 'Final Approved',
+        count: approved,
+        color: '#10b981',
+      },
+      {
+        status: 'REJECTED_CANCELLED',
+        label: 'Rejected / Cancelled',
+        count: rejected + cancelled,
+        color: '#ef4444',
+      },
+    ].map((item) => ({
+      ...item,
+      percentage:
+        totalRequests > 0
+          ? Math.round((item.count / totalRequests) * 100)
+          : 0,
+    }));
+
+    const categoryDistribution = Array.from(categoryMap.values()).sort(
+      (a, b) => b.count - a.count,
+    );
+
+    const checklistItems = await this.prisma.inspectionChecklistItem.findMany({
+      where: {
+        inspectionRequest: whereClause,
+        reviewDecision: { not: null },
+      },
+      select: { reviewDecision: true },
+    });
+    const passCount = checklistItems.filter(
+      (c) => c.reviewDecision === 'PASS',
+    ).length;
+    const failCount = checklistItems.filter(
+      (c) => c.reviewDecision === 'FAIL',
+    ).length;
+    const reshootCount = checklistItems.filter(
+      (c) => c.reviewDecision === 'RESHOOT',
+    ).length;
+    const totalReviewed = checklistItems.length;
+    const passRate =
+      totalReviewed > 0 ? Math.round((passCount / totalReviewed) * 100) : 0;
+
+    const recentRequests = requests.slice(0, 6).map((r) => ({
+      id: r.id,
+      requestNumber: r.requestNumber,
+      status: r.currentStatus,
+      priority: r.priority,
+      requestedAt: r.requestedAt.toISOString(),
+      bankId: r.bankId,
+      bankName: r.bank?.name || 'Bank',
+      customerName: r.customer?.fullName || 'N/A',
+      vehicleDescription: r.vehicle
+        ? `${r.vehicle.brand?.name || ''} ${r.vehicle.model?.name || ''} ${
+            r.vehicle.manufactureYear || ''
+          }`.trim()
+        : 'Vehicle info pending',
+      marketValue: r.marketingDecisions[0]?.estimatedValue
+        ? Number(r.marketingDecisions[0].estimatedValue)
+        : undefined,
+    }));
+
+    return {
+      scope: {
+        bankId: targetBankId || null,
+        bankName,
+        isGlobal,
+        periodDays,
+      },
+      overview: {
+        totalRequests,
+        activePipeline,
+        pendingInitialApproval,
+        pendingAssignment,
+        inField,
+        underValuationReview: underValuationReview + completed,
+        completed,
+        approved,
+        rejected,
+        cancelled,
+        approvalRate,
+        totalValuation,
+        averageValuation,
+        averageTurnaroundDays,
+      },
+      statusBreakdown,
+      volumeTrend,
+      categoryDistribution,
+      priorityDistribution: [
+        { priority: 'LOW', count: priorityCounts.LOW },
+        { priority: 'MEDIUM', count: priorityCounts.MEDIUM },
+        { priority: 'HIGH', count: priorityCounts.HIGH },
+        { priority: 'URGENT', count: priorityCounts.URGENT },
+      ],
+      checklistPerformance: {
+        totalItemsReviewed: totalReviewed,
+        passCount,
+        failCount,
+        reshootCount,
+        passRate,
+      },
+      recentRequests,
+    };
   }
 }

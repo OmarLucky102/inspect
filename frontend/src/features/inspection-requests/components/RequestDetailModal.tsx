@@ -31,11 +31,33 @@ import {
   finalApproveInspection,
   requestPriceRevision,
   fetchInspectionReport,
+  fetchVehicleLookups,
 } from '../api'
 import { fetchBankMembers } from '@/features/banks/api'
 import { fetchRepresentatives } from '@/features/representatives/api'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { InspectionPhotoChecklistTab } from './InspectionPhotoChecklistTab'
+
+const DEFAULT_SIDE_MIRRORS = [
+  { code: 'Manual', name: 'Manual (عادي)' },
+  { code: 'Electric', name: 'Electric (كهرباء)' },
+]
+
+const DEFAULT_SUNROOF_OPTIONS = [
+  { code: 'No Sunroof', name: 'No Sunroof — بدون فتحة سقف' },
+  { code: 'Manual Sunroof', name: 'Manual Sunroof — فتحة سقف يدوية' },
+  { code: 'Electric Sunroof', name: 'Electric Sunroof — فتحة سقف كهربائية' },
+  { code: 'Panoramic Sunroof', name: 'Panoramic Sunroof — فتحة سقف بانورامية' },
+  { code: 'Panoramic Moonroof', name: 'Panoramic Moonroof — فتحة سقف بانورامية زجاجية' },
+  { code: 'Pop-up Sunroof', name: 'Pop-up Sunroof — فتحة سقف قابلة للرفع' },
+  { code: 'Sliding Sunroof', name: 'Sliding Sunroof — فتحة سقف منزلقة' },
+  { code: 'Tilt-and-Slide Sunroof', name: 'Tilt-and-Slide Sunroof — فتحة سقف قابلة للإمالة والانزلاق' },
+]
+
+const DEFAULT_TRANSMISSION_OPTIONS = [
+  { id: '', name: 'Automatic', nameAr: 'أوتوماتيك' },
+  { id: '', name: 'Manual', nameAr: 'عادي / مانيوال' },
+]
 
 interface RequestDetailModalProps {
   requestId: string
@@ -67,6 +89,10 @@ export function RequestDetailModal({
   const [verifiedMileage, setVerifiedMileage] = useState<string>('')
   const [proposedMarketingValue, setProposedMarketingValue] = useState<string>('')
   const [mediaReviewNotes, setMediaReviewNotes] = useState<string>('')
+  const [selectedTrimId, setSelectedTrimId] = useState<string>('')
+  const [selectedTransmissionTypeId, setSelectedTransmissionTypeId] = useState<string>('')
+  const [selectedSideMirrors, setSelectedSideMirrors] = useState<string>('Manual')
+  const [selectedSunroof, setSelectedSunroof] = useState<string>('No Sunroof')
   const [checklistDecisions, setChecklistDecisions] = useState<
     Record<string, { decision: 'PASS' | 'FAIL' | 'RESHOOT'; notes: string }>
   >({})
@@ -78,9 +104,17 @@ export function RequestDetailModal({
   // Super Admin Final Approval Modal
   const [isFinalApproveOpen, setIsFinalApproveOpen] = useState(false)
   const [finalApproveNotes, setFinalApproveNotes] = useState<string>('')
+  const [finalApprovedPrice, setFinalApprovedPrice] = useState<string>('')
 
   // Report download loading
   const [isDownloadingReport, setIsDownloadingReport] = useState(false)
+
+  // Query: Vehicle Lookups (Trims, Transmissions, Side Mirrors, Sunroofs)
+  const { data: vehicleLookups } = useQuery({
+    queryKey: ['vehicle-lookups'],
+    queryFn: fetchVehicleLookups,
+    staleTime: 5 * 60 * 1000,
+  })
 
   // Query: Full Request Details
   const {
@@ -209,6 +243,10 @@ export function RequestDetailModal({
     mutationFn: (payload: {
       verifiedMileage: number
       proposedMarketingValue: number
+      trimId?: string
+      transmissionTypeId?: string
+      sideMirrors?: string
+      sunroofSpecification?: string
       notes?: string
       checklistItems?: Array<{
         checklistItemId: string
@@ -237,8 +275,8 @@ export function RequestDetailModal({
 
   // Mutation: Final Approve (Super Admin)
   const finalApproveMutation = useMutation({
-    mutationFn: (notes?: string) =>
-      finalApproveInspection(activeBankId!, requestId, notes),
+    mutationFn: (payload?: { approvedMarketingValue?: number; notes?: string }) =>
+      finalApproveInspection(activeBankId!, requestId, payload),
     onSuccess: () => {
       toast.success(
         'Inspection officially approved! Final report is now unlocked and available for download.',
@@ -323,6 +361,10 @@ export function RequestDetailModal({
         : '',
     )
     setMediaReviewNotes(details?.latestMarketingDecision?.notes || '')
+    setSelectedTrimId(details?.vehicle?.trim?.id || details?.originalTrim?.id || '')
+    setSelectedTransmissionTypeId(details?.vehicle?.transmissionType?.id || '')
+    setSelectedSideMirrors(details?.vehicle?.sideMirrors || 'Manual')
+    setSelectedSunroof(details?.vehicle?.sunroofSpecification || 'No Sunroof')
     const initialDecisions: Record<
       string,
       { decision: 'PASS' | 'FAIL' | 'RESHOOT'; notes: string }
@@ -364,14 +406,36 @@ export function RequestDetailModal({
     mediaReviewMutation.mutate({
       verifiedMileage: mileageNum,
       proposedMarketingValue: valNum,
+      trimId: selectedTrimId || undefined,
+      transmissionTypeId: selectedTransmissionTypeId || undefined,
+      sideMirrors: selectedSideMirrors || undefined,
+      sunroofSpecification: selectedSunroof || undefined,
       notes: mediaReviewNotes.trim() || undefined,
       checklistItems: itemsPayload.length > 0 ? itemsPayload : undefined,
     })
   }
 
+  const handleOpenFinalApprove = () => {
+    setFinalApprovedPrice(
+      details?.latestMarketingDecision?.estimatedValue != null
+        ? String(details.latestMarketingDecision.estimatedValue)
+        : '',
+    )
+    setFinalApproveNotes('')
+    setIsFinalApproveOpen(true)
+  }
+
   const handleFinalApproveSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    finalApproveMutation.mutate(finalApproveNotes.trim() || undefined)
+    const approvedValNum = parseFloat(finalApprovedPrice)
+    if (finalApprovedPrice && (isNaN(approvedValNum) || approvedValNum <= 0)) {
+      toast.error('Please enter a valid authorized marketing value in EGP')
+      return
+    }
+    finalApproveMutation.mutate({
+      approvedMarketingValue: !isNaN(approvedValNum) && approvedValNum > 0 ? approvedValNum : undefined,
+      notes: finalApproveNotes.trim() || undefined,
+    })
   }
 
   const handlePriceRevisionSubmit = (e: React.FormEvent) => {
@@ -436,6 +500,7 @@ export function RequestDetailModal({
     user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN'
   const isReviewer = user?.role === 'REVIEWER'
   const isRep = user?.role === 'REPRESENTATIVE'
+  const canAssign = isSuperAdmin || isReviewer
 
   const availableActions: Array<{
     status?: string
@@ -478,14 +543,16 @@ export function RequestDetailModal({
         })
       }
     } else if (cur === 'PENDING_ASSIGNMENT') {
-      // ONLY EuroInspect Super Admin / System Admin can assign a representative
+      // EuroInspect Reviewer, Super Admin, or System Admin can assign a representative
       // Bank members and bank admins are strictly prohibited from assigning representatives
-      if (isSuperAdmin) {
+      if (canAssign) {
         availableActions.push({
           label: 'Assign Representative',
           variant: 'primary',
           action: () => setIsAssigning(true),
         })
+      }
+      if (isSuperAdmin) {
         availableActions.push({
           status: 'CANCELLED',
           label: 'Cancel Request',
@@ -499,6 +566,13 @@ export function RequestDetailModal({
           status: 'IN_PROGRESS',
           label: 'Start Inspection',
           variant: 'primary',
+        })
+      }
+      if (canAssign) {
+        availableActions.push({
+          label: 'Reassign Representative',
+          variant: 'outline',
+          action: () => setIsAssigning(true),
         })
       }
       if (isSuperAdmin) {
@@ -551,7 +625,7 @@ export function RequestDetailModal({
         availableActions.push({
           label: 'Accept & Final Approve',
           variant: 'primary',
-          action: () => setIsFinalApproveOpen(true),
+          action: handleOpenFinalApprove,
         })
         availableActions.push({
           label: 'Request Price Revision',
@@ -916,7 +990,7 @@ export function RequestDetailModal({
                             <Button
                               size="sm"
                               className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                              onClick={() => setIsFinalApproveOpen(true)}
+                              onClick={handleOpenFinalApprove}
                             >
                               <Check className="mr-1 size-3.5" />
                               Accept & Final Approve
@@ -1117,10 +1191,48 @@ export function RequestDetailModal({
                             {details.vehicle.category?.name || '—'}
                           </p>
                         </div>
+                        <div className="col-span-1 sm:col-span-2 rounded-xl bg-paper/60 p-3 border border-hairline space-y-1">
+                          <p className="text-[11px] font-semibold text-ink">Trim / Edition (الفئة / الإصدار)</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                            <div>
+                              <span className="text-[10px] text-ink-mute block">Original (Bank):</span>
+                              <span className="font-medium text-ink">
+                                {details.originalTrim?.name || details.originalTrim?.code || details.vehicle.trim?.name || '—'}
+                                {details.originalTrim?.nameAr ? ` (${details.originalTrim.nameAr})` : ''}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-ink-mute block">Current (Company Decision):</span>
+                              <span className="font-semibold text-emerald-700">
+                                {details.vehicle.trim?.name || '—'}
+                                {details.vehicle.trim?.nameAr ? ` (${details.vehicle.trim.nameAr})` : ''}
+                                {details.originalTrim?.id && details.vehicle.trim?.id === details.originalTrim.id
+                                  ? ' (unchanged)'
+                                  : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
                         <div>
-                          <p className="text-[11px] text-ink-mute">Trim</p>
-                          <p className="mt-0.5 text-sm text-ink">
-                            {details.vehicle.trim?.name || '—'}
+                          <p className="text-[11px] text-ink-mute">Transmission</p>
+                          <p className="mt-0.5 text-sm text-ink font-medium">
+                            {details.vehicle.transmissionType?.name || '—'}
+                            {details.vehicle.transmissionType?.nameAr ? ` (${details.vehicle.transmissionType.nameAr})` : ''}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] text-ink-mute">Side Mirrors</p>
+                          <p className="mt-0.5 text-sm text-ink font-medium">
+                            {details.vehicle.sideMirrors || '—'}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] text-ink-mute">Sunroof Specification</p>
+                          <p className="mt-0.5 text-sm text-ink font-medium">
+                            {details.vehicle.sunroofSpecification || '—'}
                           </p>
                         </div>
                         <div>
@@ -1307,7 +1419,7 @@ export function RequestDetailModal({
                         <p className="mt-0.5 text-[11px] text-ink-mute">
                           {details.currentStatus === 'PENDING'
                             ? 'The request must first receive Reviewer Initial Approval before a representative can be assigned.'
-                            : isSuperAdmin
+                            : canAssign
                             ? 'Assign an eligible field representative to conduct the on-site inspection.'
                             : 'EuroInspect Super Admin will assign a field representative for this inspection.'}
                         </p>
@@ -1465,7 +1577,7 @@ export function RequestDetailModal({
       </div>
 
       {/* ASSIGN REPRESENTATIVE MODAL */}
-      {isAssigning && isSuperAdmin && (
+      {isAssigning && canAssign && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="relative w-full max-w-md rounded-2xl border border-hairline bg-white p-6 shadow-2xl">
             <button
@@ -1684,11 +1796,112 @@ export function RequestDetailModal({
               onSubmit={handleMediaReviewSubmit}
               className="flex flex-1 flex-col overflow-y-auto p-6 space-y-5"
             >
-              {/* Step 1: Valuation and Mileage inputs */}
+              {/* Step 1: Trim / Edition Comparison & Decision */}
+              <div className="rounded-xl border border-hairline bg-paper/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-ink">
+                    Trim / Edition (الفئة / الإصدار)
+                  </label>
+                  <span className="text-[10px] text-ink-mute font-medium">
+                    Our company's decision is final
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-hairline/80 bg-white p-3">
+                    <span className="block text-[11px] font-medium text-ink-mute">
+                      Original (Bank):
+                    </span>
+                    <p className="mt-0.5 text-sm font-bold text-ink">
+                      {details.originalTrim?.name || details.originalTrim?.code || details.vehicle?.trim?.name || 'Standard'}
+                      {details.originalTrim?.nameAr ? ` (${details.originalTrim.nameAr})` : ''}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-hairline/80 bg-white p-3">
+                    <label className="block text-[11px] font-medium text-ink-mute mb-1">
+                      Current (Company Decision):
+                    </label>
+                    <select
+                      value={selectedTrimId}
+                      onChange={(e) => setSelectedTrimId(e.target.value)}
+                      className="w-full rounded-md border border-hairline bg-zinc-50/80 px-2.5 py-1.5 text-xs font-medium text-ink outline-none focus:border-accent"
+                    >
+                      <option value="">— Select Confirmed Trim —</option>
+                      {(vehicleLookups?.trims || []).map((t) => {
+                        const origId = details.originalTrim?.id || details.vehicle?.trim?.id
+                        const isUnchanged = t.id === origId
+                        return (
+                          <option key={t.id} value={t.id}>
+                            {t.name} {t.nameAr ? `(${t.nameAr})` : ''} {isUnchanged ? '— (unchanged)' : ''}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Mechanical & Exterior Specs Verification */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ink-soft">
+                    Transmission (ناقل الحركة)
+                  </label>
+                  <select
+                    value={selectedTransmissionTypeId}
+                    onChange={(e) => setSelectedTransmissionTypeId(e.target.value)}
+                    className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink outline-none focus:border-accent"
+                  >
+                    <option value="">— Select Transmission —</option>
+                    {(vehicleLookups?.transmissionTypes || DEFAULT_TRANSMISSION_OPTIONS).map((tr) => (
+                      <option key={tr.id || tr.name} value={tr.id || tr.name}>
+                        {tr.name} {tr.nameAr ? `(${tr.nameAr})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ink-soft">
+                    Side Mirrors (المرايا الجانبية)
+                  </label>
+                  <select
+                    value={selectedSideMirrors}
+                    onChange={(e) => setSelectedSideMirrors(e.target.value)}
+                    className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink outline-none focus:border-accent"
+                  >
+                    {DEFAULT_SIDE_MIRRORS.map((m) => (
+                      <option key={m.code} value={m.code}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ink-soft">
+                    Sunroof Specification (فتحة السقف) *
+                  </label>
+                  <select
+                    value={selectedSunroof}
+                    onChange={(e) => setSelectedSunroof(e.target.value)}
+                    className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink outline-none focus:border-accent"
+                  >
+                    {DEFAULT_SUNROOF_OPTIONS.map((sn) => (
+                      <option key={sn.code} value={sn.name}>
+                        {sn.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Step 3: Valuation and Mileage inputs */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    Verified Mileage (KM) *
+                    Vehicle Mileage (KM) *
                   </label>
                   <input
                     type="number"
@@ -1706,7 +1919,7 @@ export function RequestDetailModal({
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    Proposed Marketing Value (EGP) *
+                    Marketing Value (EGP) *
                   </label>
                   <input
                     type="number"
@@ -1899,6 +2112,31 @@ export function RequestDetailModal({
             </div>
 
             <form onSubmit={handleFinalApproveSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-ink">
+                  Authorized Marketing Value (EGP) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  step="any"
+                  value={finalApprovedPrice}
+                  onChange={(e) => setFinalApprovedPrice(e.target.value)}
+                  placeholder="e.g. 750000"
+                  className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 font-mono text-sm font-semibold text-ink outline-none focus:border-accent"
+                />
+                <p className="mt-1 text-[11px] text-ink-mute">
+                  Reviewer proposed{' '}
+                  <span className="font-semibold text-ink">
+                    {details?.latestMarketingDecision?.estimatedValue != null
+                      ? `${details.latestMarketingDecision.estimatedValue.toLocaleString()} EGP`
+                      : '—'}
+                  </span>
+                  . You can accept this value or type your authorized final price.
+                </p>
+              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink-soft">
                   Approval Note (Optional)

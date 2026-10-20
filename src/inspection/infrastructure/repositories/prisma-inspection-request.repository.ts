@@ -37,6 +37,7 @@ export class PrismaInspectionRequestRepository implements IInspectionRequestRepo
       where: { id },
       include: {
         customer: true,
+        originalTrim: true,
         governorate: true,
         city: true,
         assignedRepresentative: {

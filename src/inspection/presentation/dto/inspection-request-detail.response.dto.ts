@@ -35,6 +35,12 @@ export interface InspectionRequestWithRelations {
   } | null;
   governorate?: { name: string } | null;
   city?: { name: string } | null;
+  originalTrim?: {
+    id: string;
+    code: string;
+    name: string;
+    nameAr: string | null;
+  } | null;
   vehicle?: {
     id: string;
     vin: string;
@@ -56,8 +62,8 @@ export interface InspectionRequestWithRelations {
     category?: { id: string; name: string } | null;
     color?: { id: string; name: string } | null;
     fuelType?: { id: string; name: string } | null;
-    transmissionType?: { id: string; name: string } | null;
-    trim?: { id: string; name: string } | null;
+    transmissionType?: { id: string; name: string; nameAr?: string | null } | null;
+    trim?: { id: string; code?: string; name: string; nameAr?: string | null } | null;
   } | null;
   assignedRepresentative?: {
     id: string;
@@ -177,8 +183,15 @@ export class InspectionRequestDetailResponseDto {
     category: { id: string; name: string } | null;
     color: { id: string; name: string } | null;
     fuelType: { id: string; name: string } | null;
-    transmissionType: { id: string; name: string } | null;
-    trim: { id: string; name: string } | null;
+    transmissionType: { id: string; name: string; nameAr?: string | null } | null;
+    trim: { id: string; code?: string; name: string; nameAr?: string | null } | null;
+  } | null;
+
+  originalTrim!: {
+    id: string;
+    code: string;
+    name: string;
+    nameAr: string | null;
   } | null;
 
   assignedRepresentative!: {
@@ -348,11 +361,25 @@ export class InspectionRequestDetailResponseDto {
               ? {
                   id: record.vehicle.transmissionType.id,
                   name: record.vehicle.transmissionType.name,
+                  nameAr: (record.vehicle.transmissionType as any).nameAr ?? null,
                 }
               : null,
             trim: record.vehicle.trim
-              ? { id: record.vehicle.trim.id, name: record.vehicle.trim.name }
+              ? {
+                  id: record.vehicle.trim.id,
+                  code: (record.vehicle.trim as any).code,
+                  name: record.vehicle.trim.name,
+                  nameAr: (record.vehicle.trim as any).nameAr ?? null,
+                }
               : null,
+          }
+        : null,
+      originalTrim: record.originalTrim
+        ? {
+            id: record.originalTrim.id,
+            code: record.originalTrim.code,
+            name: record.originalTrim.name,
+            nameAr: record.originalTrim.nameAr ?? null,
           }
         : null,
       assignedRepresentative: record.assignedRepresentative

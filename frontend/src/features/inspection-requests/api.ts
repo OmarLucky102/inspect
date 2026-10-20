@@ -152,6 +152,12 @@ export interface InspectionRequestDetail {
     latitude: number | null
     longitude: number | null
   }
+  originalTrim?: {
+    id: string
+    code: string
+    name: string
+    nameAr: string | null
+  } | null
   vehicle: {
     id: string
     vin: string
@@ -168,8 +174,10 @@ export interface InspectionRequestDetail {
     category: { id: string; name: string } | null
     color: { id: string; name: string } | null
     fuelType: { id: string; name: string } | null
-    transmissionType: { id: string; name: string } | null
-    trim: { id: string; name: string } | null
+    transmissionType: { id: string; name: string; nameAr?: string | null } | null
+    trim: { id: string; code?: string; name: string; nameAr?: string | null } | null
+    sunroofSpecification?: string | null
+    sideMirrors?: string | null
     calendarNumber?: string | null
     specialInstructions?: string | null
   } | null
@@ -305,6 +313,8 @@ export interface VehicleReferenceLookups {
   fuelTypes: VehicleReferenceItem[]
   transmissionTypes: VehicleReferenceItem[]
   trims: VehicleReferenceItem[]
+  sideMirrorTypes?: VehicleReferenceItem[]
+  sunroofTypes?: VehicleReferenceItem[]
 }
 
 export async function fetchVehicleLookups(): Promise<VehicleReferenceLookups> {
@@ -410,6 +420,10 @@ export async function updateInspectionPhotoChecklist(
 export interface MediaReviewPayload {
   verifiedMileage: number
   proposedMarketingValue: number
+  trimId?: string
+  transmissionTypeId?: string
+  sideMirrors?: string
+  sunroofSpecification?: string
   notes?: string
   checklistItems?: Array<{
     checklistItemId: string
@@ -430,14 +444,23 @@ export async function submitMediaReview(
   return (res.data as any).data ?? res.data
 }
 
+export interface FinalApprovePayload {
+  approvedMarketingValue?: number
+  notes?: string
+}
+
 export async function finalApproveInspection(
   bankId: string,
   requestId: string,
-  notes?: string,
+  payload?: FinalApprovePayload | string,
 ): Promise<InspectionRequestDetail> {
+  const body =
+    typeof payload === 'string'
+      ? { notes: payload }
+      : payload ?? {}
   const res = await api.post<{ status: string; data: InspectionRequestDetail }>(
     `/banks/${bankId}/inspection-requests/${requestId}/final-approval`,
-    { notes },
+    body,
   )
   return (res.data as any).data ?? res.data
 }
@@ -460,6 +483,86 @@ export async function fetchInspectionReport(
 ): Promise<any> {
   const res = await api.get<{ status: string; data: any }>(
     `/banks/${bankId}/inspection-requests/${requestId}/report`,
+  )
+  return (res.data as any).data ?? res.data
+}
+
+export interface InspectionAnalyticsData {
+  scope: {
+    bankId: string | null
+    bankName: string | null
+    isGlobal: boolean
+    periodDays: number
+  }
+  overview: {
+    totalRequests: number
+    activePipeline: number
+    pendingInitialApproval: number
+    pendingAssignment: number
+    inField: number
+    underValuationReview: number
+    completed: number
+    approved: number
+    rejected: number
+    cancelled: number
+    approvalRate: number
+    totalValuation: number
+    averageValuation: number
+    averageTurnaroundDays: number
+  }
+  statusBreakdown: Array<{
+    status: string
+    label: string
+    count: number
+    percentage: number
+    color: string
+  }>
+  volumeTrend: Array<{
+    date: string
+    formattedDate: string
+    created: number
+    approved: number
+  }>
+  categoryDistribution: Array<{
+    name: string
+    count: number
+    totalValuation: number
+  }>
+  priorityDistribution: Array<{
+    priority: string
+    count: number
+  }>
+  checklistPerformance: {
+    totalItemsReviewed: number
+    passCount: number
+    failCount: number
+    reshootCount: number
+    passRate: number
+  }
+  recentRequests: Array<{
+    id: string
+    requestNumber: string
+    status: string
+    priority: string
+    requestedAt: string
+    bankId: string
+    bankName: string
+    customerName: string
+    vehicleDescription: string
+    marketValue?: number
+  }>
+}
+
+export async function fetchInspectionAnalytics(params?: {
+  bankId?: string
+  periodDays?: number
+}): Promise<InspectionAnalyticsData> {
+  const q = new URLSearchParams()
+  if (params?.bankId) q.set('bankId', params.bankId)
+  if (params?.periodDays) q.set('periodDays', String(params.periodDays))
+  const qs = q.toString() ? `?${q.toString()}` : ''
+  const res = await api.get<{ status: string; data: InspectionAnalyticsData }>(
+    `/inspection-requests/analytics${qs}`,
   )
   return (res.data as any).data ?? res.data
 }

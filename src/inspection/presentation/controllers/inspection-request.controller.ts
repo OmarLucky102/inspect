@@ -23,6 +23,7 @@ import { AssignRepresentativeDto } from '../dto/assign-representative.dto';
 import { UpdatePhotoChecklistDto } from '../dto/update-photo-checklist.dto';
 import { SubmitMediaReviewDto } from '../dto/submit-media-review.dto';
 import { PriceRevisionDto } from '../dto/price-revision.dto';
+import { FinalApprovalDto } from '../dto/final-approval.dto';
 import { InspectionStatus } from '../../domain/value-objects/inspection-status.enum';
 import { InvalidStatusTransitionException } from '../../../shared/exceptions/inspection.exceptions';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
@@ -175,7 +176,13 @@ export class InspectionRequestController {
   }
 
   @Get()
-  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  @Roles(
+    Role.MANAGER,
+    Role.REVIEWER,
+    Role.REPRESENTATIVE,
+    Role.SUPER_ADMIN,
+    Role.SYSTEM_ADMIN,
+  )
   async listRequests(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Query('status') status?: string,
@@ -250,7 +257,7 @@ export class InspectionRequestController {
 
   @Put(':id/assignment')
   @HttpCode(HttpStatus.OK)
-  @Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN, Role.REVIEWER)
   async assignRepresentative(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -382,7 +389,7 @@ export class InspectionRequestController {
   async finalApprove(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('notes') notes?: string,
+    @Body() dto: FinalApprovalDto,
     @CurrentUser() user?: { sub?: string; id?: string; role?: Role },
   ) {
     const request = await this.inspectionRequestService.superAdminFinalApproval(
@@ -392,7 +399,8 @@ export class InspectionRequestController {
         id: (user?.sub || user?.id)!,
         role: user?.role || Role.SUPER_ADMIN,
       },
-      notes,
+      dto?.notes,
+      dto?.approvedMarketingValue,
     );
     return {
       status: 'success',

@@ -15,35 +15,49 @@ export class VehicleLookupController {
 
   @Get('lookups')
   async getAllLookups() {
-    const [brands, categories, colors, fuelTypes, transmissionTypes, trims] =
-      await Promise.all([
-        this.prisma.vehicleBrand.findMany({
-          orderBy: { name: 'asc' },
-          include: {
-            models: {
-              orderBy: { name: 'asc' },
-            },
+    const [
+      brands,
+      categories,
+      colors,
+      fuelTypes,
+      transmissionTypes,
+      trims,
+      sideMirrorTypes,
+      sunroofTypes,
+    ] = await Promise.all([
+      this.prisma.vehicleBrand.findMany({
+        orderBy: { name: 'asc' },
+        include: {
+          models: {
+            orderBy: { name: 'asc' },
           },
-        }),
-        this.prisma.vehicleCategory.findMany({
-          where: { isActive: true },
-          orderBy: { name: 'asc' },
-        }),
-        this.prisma.color.findMany({
-          where: { isActive: true },
-          orderBy: { name: 'asc' },
-        }),
-        this.prisma.fuelType.findMany({
-          orderBy: { name: 'asc' },
-        }),
-        this.prisma.transmissionType.findMany({
-          orderBy: { name: 'asc' },
-        }),
-        this.prisma.vehicleTrim.findMany({
-          where: { isActive: true },
-          orderBy: { name: 'asc' },
-        }),
-      ]);
+        },
+      }),
+      this.prisma.vehicleCategory.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.color.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.fuelType.findMany({
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.transmissionType.findMany({
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.vehicleTrim.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.sideMirrorType.findMany({
+        orderBy: { code: 'asc' },
+      }),
+      this.prisma.sunroofType.findMany({
+        orderBy: { code: 'asc' },
+      }),
+    ]);
 
     return {
       status: 'success',
@@ -54,7 +68,31 @@ export class VehicleLookupController {
         fuelTypes,
         transmissionTypes,
         trims,
+        sideMirrorTypes,
+        sunroofTypes,
       },
+    };
+  }
+
+  @Get('side-mirrors')
+  async getSideMirrors() {
+    const sideMirrors = await this.prisma.sideMirrorType.findMany({
+      orderBy: { code: 'asc' },
+    });
+    return {
+      status: 'success',
+      data: sideMirrors,
+    };
+  }
+
+  @Get('sunroof-types')
+  async getSunroofTypes() {
+    const sunroofTypes = await this.prisma.sunroofType.findMany({
+      orderBy: { code: 'asc' },
+    });
+    return {
+      status: 'success',
+      data: sunroofTypes,
     };
   }
 

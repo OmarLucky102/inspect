@@ -1,6 +1,8 @@
 import {
   Controller,
   Put,
+  Get,
+  Query,
   Body,
   Param,
   ParseUUIDPipe,
@@ -28,6 +30,38 @@ export class InspectionRequestStandaloneController {
     private readonly inspectionRequestService: InspectionRequestService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Get('analytics')
+  @HttpCode(HttpStatus.OK)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.SYSTEM_ADMIN,
+    Role.REVIEWER,
+    Role.MANAGER,
+    Role.USER,
+    Role.VIEWER,
+    Role.REPRESENTATIVE,
+  )
+  async getAnalytics(
+    @Query('bankId') bankId?: string,
+    @Query('periodDays') periodDays?: string,
+    @CurrentUser() user?: { sub?: string; id?: string; role?: Role },
+  ) {
+    const data = await this.inspectionRequestService.getAnalytics(
+      {
+        bankId,
+        periodDays: periodDays ? parseInt(periodDays, 10) : 30,
+      },
+      {
+        id: (user?.sub || user?.id)!,
+        role: user?.role || Role.SUPER_ADMIN,
+      },
+    );
+    return {
+      status: 'success',
+      data,
+    };
+  }
 
   @Put(':requestId/vehicle')
   @HttpCode(HttpStatus.OK)

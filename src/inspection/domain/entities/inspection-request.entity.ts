@@ -14,6 +14,7 @@ export interface InspectionRequestProps {
   bankId: string;
   vehicleId: string | null;
   customerId: string;
+  originalTrimId?: string | null;
   assignedRepresentativeId: string | null;
   assignedReviewerId: string | null;
   currentStatus: InspectionStatus;
@@ -63,6 +64,9 @@ export class InspectionRequest {
   }
   get customerId(): string {
     return this.props.customerId;
+  }
+  get originalTrimId(): string | null {
+    return this.props.originalTrimId ?? null;
   }
   get assignedRepresentativeId(): string | null {
     return this.props.assignedRepresentativeId;
