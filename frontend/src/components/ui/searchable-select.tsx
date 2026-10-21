@@ -6,6 +6,7 @@ export interface SelectOption {
   label: string
   secondaryLabel?: string
   badge?: string
+  colorDot?: string
 }
 
 interface SearchableSelectProps {
@@ -117,6 +118,12 @@ export function SearchableSelect({
         <span className="truncate">
           {selectedOption ? (
             <span className="flex items-center gap-2">
+              {selectedOption.colorDot && (
+                <span
+                  className="size-3.5 shrink-0 rounded-full border border-slate-300 shadow-2xs"
+                  style={{ backgroundColor: selectedOption.colorDot }}
+                />
+              )}
               <span className="font-medium text-ink">{selectedOption.label}</span>
               {selectedOption.secondaryLabel && (
                 <span className="font-sans text-xs text-ink-mute">
@@ -198,6 +205,12 @@ export function SearchableSelect({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
+                      {opt.colorDot && (
+                        <span
+                          className="size-3.5 shrink-0 rounded-full border border-slate-300 shadow-2xs"
+                          style={{ backgroundColor: opt.colorDot }}
+                        />
+                      )}
                       <span className="truncate">{opt.label}</span>
                       {opt.secondaryLabel && (
                         <span className="text-xs text-ink-mute">

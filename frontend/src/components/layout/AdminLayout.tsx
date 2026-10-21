@@ -19,9 +19,18 @@ const TITLES: Record<string, { title: string; meta: string }> = {
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
-  const active = TITLES[location.pathname] ?? {
-    title: 'Admin',
-    meta: 'INSPECT',
+  let active = TITLES[location.pathname]
+  if (!active && location.pathname.startsWith('/requests/')) {
+    active = {
+      title: 'Inspection Request',
+      meta: 'INSPECTION · DETAILS & WORKFLOW',
+    }
+  }
+  if (!active) {
+    active = {
+      title: 'Admin',
+      meta: 'INSPECT',
+    }
   }
 
   // Close the drawer on Escape. Route-change closing is handled by

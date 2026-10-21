@@ -6,7 +6,7 @@ interface ModuleEmptyStateProps {
   title: string
   body: string
   icon: Icon
-  actionLabel: string
+  actionLabel?: string
   onAction?: () => void
 }
 
@@ -39,21 +39,23 @@ export function ModuleEmptyState({
             </p>
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-          <Button
-            type="button"
-            disabled={!onAction}
-            onClick={onAction}
-            title={!onAction ? 'Available in stage 2' : undefined}
-          >
-            {actionLabel}
-          </Button>
-          {!onAction && (
-            <span className="font-mono text-[11px] tracking-[0.14em] text-ink-mute">
-              STAGE 02 · WIRES TO API
-            </span>
-          )}
-        </div>
+        {actionLabel && (
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+            <Button
+              type="button"
+              disabled={!onAction}
+              onClick={onAction}
+              title={!onAction ? 'Available in stage 2' : undefined}
+            >
+              {actionLabel}
+            </Button>
+            {!onAction && (
+              <span className="font-mono text-[11px] tracking-[0.14em] text-ink-mute">
+                STAGE 02 · WIRES TO API
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </section>
   )

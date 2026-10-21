@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   ParseUUIDPipe,
@@ -210,6 +211,20 @@ export class BankController {
         isPrimary: m.isPrimary,
         status: m.status,
       })),
+    };
+  }
+
+  @Delete(':bankId/members/:userId')
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER)
+  @HttpCode(HttpStatus.OK)
+  async removeBankMember(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    await this.bankService.removeBankMember(bankId, userId);
+    return {
+      status: 'success',
+      message: 'User removed from bank successfully',
     };
   }
 }

@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,13 +11,13 @@ import {
   IdentificationCard,
   ListChecks,
   MapPin,
-} from '@phosphor-icons/react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { SearchableSelect } from '@/components/ui/searchable-select'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
-import { getApiErrorMessage } from '@/lib/api'
+} from '@phosphor-icons/react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { useWorkspace } from '@/features/workspaces/workspace-context';
+import { getApiErrorMessage } from '@/lib/api';
 import {
   fetchGovernorates,
   createInspectionRequest,
@@ -26,26 +26,40 @@ import {
   fetchInspectionRequestDetails,
   type CreateInspectionRequestDto,
   type VehicleInfoPayload,
-} from '@/features/inspection-requests/api'
-import { InspectionPhotoChecklistTab } from '@/features/inspection-requests/components/InspectionPhotoChecklistTab'
+} from '@/features/inspection-requests/api';
+import { InspectionPhotoChecklistTab } from '@/features/inspection-requests/components/InspectionPhotoChecklistTab';
+import {
+  LicensePlateInput,
+  parseLicensePlate,
+} from '@/features/inspection-requests/components/LicensePlateInput';
+import { getVehicleColorHex } from '@/lib/colors';
 
 export function CreateRequestPage() {
-  const { activeBankId, user } = useWorkspace()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [searchParams] = useSearchParams()
-  const existingRequestId = searchParams.get('requestId')
+  const { activeBankId, user } = useWorkspace();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const existingRequestId = searchParams.get('requestId');
+
+  const canCreateRequest =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'SYSTEM_ADMIN' ||
+    user?.role === 'MANAGER';
 
   useEffect(() => {
-    if (user?.role === 'REVIEWER') {
-      toast.error('Reviewers are not permitted to create inspection requests.')
-      navigate('/requests', { replace: true })
+    if (user && !canCreateRequest) {
+      toast.error('You do not have permission to create inspection requests.');
+      navigate('/requests', { replace: true });
     }
-  }, [user, navigate])
+  }, [user, canCreateRequest, navigate]);
 
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(existingRequestId ? 2 : 1)
-  const [createdRequestId, setCreatedRequestId] = useState<string | null>(existingRequestId)
-  const [requestNumber, setRequestNumber] = useState<string | null>(null)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(
+    existingRequestId ? 2 : 1,
+  );
+  const [createdRequestId, setCreatedRequestId] = useState<string | null>(
+    existingRequestId,
+  );
+  const [requestNumber, setRequestNumber] = useState<string | null>(null);
 
   // ----------------------------------------------------
   // STEP 1: Customer & Location State
@@ -59,15 +73,17 @@ export function CreateRequestPage() {
     cityId: '',
     address: '',
     notes: '',
-  })
+  });
 
   // ----------------------------------------------------
   // STEP 2: Vehicle Information State (13 Bank Fields)
   // ----------------------------------------------------
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
   const [vehicleForm, setVehicleForm] = useState({
     vin: '',
     plateNumber: '',
+    plateDigits: '',
+    plateLetters: '',
     engineNumber: '',
     calendarNumber: '',
     brandId: '',
@@ -79,7 +95,7 @@ export function CreateRequestPage() {
     engineCc: 1600,
     insuranceValue: '',
     specialInstructions: '',
-  })
+  });
 
   // ----------------------------------------------------
   // Queries
@@ -87,23 +103,24 @@ export function CreateRequestPage() {
   const { data: governorates = [], isLoading: isLoadingLocations } = useQuery({
     queryKey: ['locations', 'governorates'],
     queryFn: fetchGovernorates,
-  })
+  });
 
   const { data: lookups, isLoading: isLoadingLookups } = useQuery({
     queryKey: ['vehicle', 'lookups'],
     queryFn: fetchVehicleLookups,
-  })
+  });
 
   // If loading existing draft request
   const { data: existingRequest } = useQuery({
     queryKey: ['inspection-request-details', activeBankId, existingRequestId],
-    queryFn: () => fetchInspectionRequestDetails(activeBankId!, existingRequestId!),
+    queryFn: () =>
+      fetchInspectionRequestDetails(activeBankId!, existingRequestId!),
     enabled: !!activeBankId && !!existingRequestId,
-  })
+  });
 
   useEffect(() => {
     if (existingRequest) {
-      setRequestNumber(existingRequest.requestNumber)
+      setRequestNumber(existingRequest.requestNumber);
       if (existingRequest.customer) {
         setCustomerForm((prev) => ({
           ...prev,
@@ -115,14 +132,17 @@ export function CreateRequestPage() {
           cityId: existingRequest.location?.cityId || '',
           address: existingRequest.location?.address || '',
           notes: existingRequest.notes || '',
-        }))
+        }));
       }
       if (existingRequest.vehicle) {
-        const v = existingRequest.vehicle
+        const v = existingRequest.vehicle;
+        const parsedPlate = parseLicensePlate(v.plateNumber);
         setVehicleForm((prev) => ({
           ...prev,
           vin: v.vin || '',
           plateNumber: v.plateNumber || '',
+          plateDigits: parsedPlate.digits,
+          plateLetters: parsedPlate.letters,
           engineNumber: v.engineNumber || '',
           calendarNumber: v.calendarNumber || '',
           brandId: v.brand?.id || '',
@@ -132,18 +152,19 @@ export function CreateRequestPage() {
           categoryId: v.category?.id || '',
           trimId: v.trim?.id || '',
           engineCc: v.engineCc || 1600,
-          insuranceValue: v.insuranceValue != null ? String(v.insuranceValue) : '',
+          insuranceValue:
+            v.insuranceValue != null ? String(v.insuranceValue) : '',
           specialInstructions: v.specialInstructions || '',
-        }))
+        }));
       }
     }
-  }, [existingRequest, currentYear])
+  }, [existingRequest, currentYear]);
 
   // Dependent location options
   const selectedGovernorate = useMemo(
     () => governorates.find((g) => g.id === customerForm.governorateId),
     [governorates, customerForm.governorateId],
-  )
+  );
 
   const governorateOptions = useMemo(
     () =>
@@ -151,79 +172,85 @@ export function CreateRequestPage() {
         value: g.id,
         label: g.name,
         secondaryLabel: g.nameAr ?? undefined,
-        badge: g.cities && g.cities.length > 0 ? `${g.cities.length} cities` : undefined,
+        badge:
+          g.cities && g.cities.length > 0
+            ? `${g.cities.length} cities`
+            : undefined,
       })),
     [governorates],
-  )
+  );
 
   const cityOptions = useMemo(() => {
-    if (!selectedGovernorate || !selectedGovernorate.cities) return []
+    if (!selectedGovernorate || !selectedGovernorate.cities) return [];
     return selectedGovernorate.cities.map((c) => ({
       value: c.id,
       label: c.name,
       secondaryLabel: c.nameAr ?? undefined,
-    }))
-  }, [selectedGovernorate])
+    }));
+  }, [selectedGovernorate]);
 
   // Vehicle options
   const brandOptions = useMemo(() => {
-    if (!lookups?.brands) return []
+    if (!lookups?.brands) return [];
     return lookups.brands.map((b) => ({
       value: b.id,
       label: b.name,
       secondaryLabel: b.code ?? undefined,
-      badge: b.models && b.models.length > 0 ? `${b.models.length} models` : undefined,
-    }))
-  }, [lookups])
+      badge:
+        b.models && b.models.length > 0
+          ? `${b.models.length} models`
+          : undefined,
+    }));
+  }, [lookups]);
 
   const selectedBrand = useMemo(
     () => lookups?.brands?.find((b) => b.id === vehicleForm.brandId),
     [lookups, vehicleForm.brandId],
-  )
+  );
 
   const modelOptions = useMemo(() => {
-    if (!selectedBrand || !selectedBrand.models) return []
+    if (!selectedBrand || !selectedBrand.models) return [];
     return selectedBrand.models.map((m) => ({
       value: m.id,
       label: m.name,
-    }))
-  }, [selectedBrand])
+    }));
+  }, [selectedBrand]);
 
   const categoryOptions = useMemo(() => {
-    if (!lookups?.categories) return []
+    if (!lookups?.categories) return [];
     return lookups.categories.map((c) => ({
       value: c.id,
       label: c.name,
       secondaryLabel: c.nameAr ?? undefined,
-    }))
-  }, [lookups])
+    }));
+  }, [lookups]);
 
   const colorOptions = useMemo(() => {
-    if (!lookups?.colors) return []
+    if (!lookups?.colors) return [];
     return lookups.colors.map((c) => ({
       value: c.id,
       label: c.name,
       secondaryLabel: c.nameAr ?? undefined,
-      badge: c.hex ?? undefined,
-    }))
-  }, [lookups])
+      colorDot: getVehicleColorHex(c.name, c.hex),
+    }));
+  }, [lookups]);
 
   const trimOptions = useMemo(() => {
-    if (!lookups?.trims) return []
+    if (!lookups?.trims) return [];
     return lookups.trims.map((t) => ({
       value: t.id,
       label: t.name,
       secondaryLabel: t.nameAr ?? undefined,
-    }))
-  }, [lookups])
+    }));
+  }, [lookups]);
 
   const yearOptions = useMemo(() => {
-    const years: number[] = []
+    const years: number[] = [];
     for (let y = currentYear + 1; y >= 1985; y--) {
-      years.push(y)
+      years.push(y);
     }
-    return years
-  }, [currentYear])
+    return years;
+  }, [currentYear]);
 
   // ----------------------------------------------------
   // Mutations
@@ -232,93 +259,119 @@ export function CreateRequestPage() {
     mutationFn: (payload: CreateInspectionRequestDto) =>
       createInspectionRequest(activeBankId!, payload),
     onSuccess: (data) => {
-      setCreatedRequestId(data.id)
-      setRequestNumber(data.requestNumber)
-      setCurrentStep(2)
-      toast.success(`Draft #${data.requestNumber} created! Now enter vehicle info.`)
+      setCreatedRequestId(data.id);
+      setRequestNumber(data.requestNumber);
+      setCurrentStep(2);
+      toast.success(
+        `Draft #${data.requestNumber} created! Now enter vehicle info.`,
+      );
       void queryClient.invalidateQueries({
         queryKey: ['inspection-requests', activeBankId],
-      })
+      });
     },
-    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to create request')),
-  })
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, 'Failed to create request')),
+  });
 
   const saveVehicleMutation = useMutation({
     mutationFn: (vars: {
-      payload: VehicleInfoPayload
-      isSubmitting: boolean
-      advanceToStep3?: boolean
+      payload: VehicleInfoPayload;
+      isSubmitting: boolean;
+      advanceToStep3?: boolean;
     }) =>
-      updateInspectionRequestVehicle(activeBankId!, createdRequestId!, vars.payload),
+      updateInspectionRequestVehicle(
+        activeBankId!,
+        createdRequestId!,
+        vars.payload,
+      ),
     onSuccess: (_, vars) => {
       void queryClient.invalidateQueries({
         queryKey: ['inspection-requests', activeBankId],
-      })
+      });
       void queryClient.invalidateQueries({
-        queryKey: ['inspection-request-details', activeBankId, createdRequestId],
-      })
+        queryKey: [
+          'inspection-request-details',
+          activeBankId,
+          createdRequestId,
+        ],
+      });
       if (vars.advanceToStep3) {
-        toast.success('Vehicle information saved! Now review the inspection checklist.')
-        setCurrentStep(3)
+        toast.success(
+          'Vehicle information saved! Now review the inspection checklist.',
+        );
+        setCurrentStep(3);
       } else if (vars.isSubmitting) {
-        toast.success('Inspection request submitted for review successfully!')
-        navigate('/requests')
+        toast.success('Inspection request submitted for review successfully!');
+        navigate('/requests');
       } else {
-        toast.success('Vehicle information saved as draft.')
-        navigate('/requests')
+        toast.success('Vehicle information saved as draft.');
+        navigate('/requests');
       }
     },
-    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to save vehicle info')),
-  })
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, 'Failed to save vehicle info')),
+  });
 
   const submitFinalMutation = useMutation({
     mutationFn: () => {
-      const payload = getVehiclePayload(true)
-      return updateInspectionRequestVehicle(activeBankId!, createdRequestId!, payload)
+      const payload = getVehiclePayload(true);
+      return updateInspectionRequestVehicle(
+        activeBankId!,
+        createdRequestId!,
+        payload,
+      );
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['inspection-requests', activeBankId],
-      })
+      });
       void queryClient.invalidateQueries({
-        queryKey: ['inspection-request-details', activeBankId, createdRequestId],
-      })
-      toast.success('Inspection request submitted for review successfully!')
-      navigate('/requests')
+        queryKey: [
+          'inspection-request-details',
+          activeBankId,
+          createdRequestId,
+        ],
+      });
+      toast.success('Inspection request submitted for review successfully!');
+      navigate('/requests');
     },
     onError: (err) =>
-      toast.error(getApiErrorMessage(err, 'Failed to submit inspection request')),
-  })
+      toast.error(
+        getApiErrorMessage(err, 'Failed to submit inspection request'),
+      ),
+  });
 
   // ----------------------------------------------------
   // Handlers
   // ----------------------------------------------------
   const handleStep1Submit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!customerForm.fullName.trim() || !customerForm.phone.trim()) {
-      toast.error('Customer name and phone number are required')
-      return
+      toast.error('Customer name and phone number are required');
+      return;
     }
     if (!customerForm.governorateId) {
-      toast.error('Please select a governorate')
-      return
+      toast.error('Please select a governorate');
+      return;
     }
     if (!customerForm.cityId) {
-      toast.error('Please select a city')
-      return
+      toast.error('Please select a city');
+      return;
     }
 
     if (createdRequestId) {
       // Already created, simply advance
-      setCurrentStep(2)
-      return
+      setCurrentStep(2);
+      return;
     }
 
     const payload: CreateInspectionRequestDto = {
       customer: {
         fullName: customerForm.fullName.trim(),
         phone: customerForm.phone.trim(),
-        ...(customerForm.email.trim() ? { email: customerForm.email.trim() } : {}),
+        ...(customerForm.email.trim()
+          ? { email: customerForm.email.trim() }
+          : {}),
         ...(customerForm.nationalId.trim()
           ? { nationalId: customerForm.nationalId.trim() }
           : {}),
@@ -326,17 +379,23 @@ export function CreateRequestPage() {
       location: {
         governorateId: customerForm.governorateId,
         cityId: customerForm.cityId,
-        ...(customerForm.address.trim() ? { address: customerForm.address.trim() } : {}),
+        ...(customerForm.address.trim()
+          ? { address: customerForm.address.trim() }
+          : {}),
       },
-      ...(customerForm.notes.trim() ? { notes: customerForm.notes.trim() } : {}),
-    }
+      ...(customerForm.notes.trim()
+        ? { notes: customerForm.notes.trim() }
+        : {}),
+    };
 
-    createStep1Mutation.mutate(payload)
-  }
+    createStep1Mutation.mutate(payload);
+  };
 
   const getVehiclePayload = (submit: boolean): VehicleInfoPayload => ({
     vin: vehicleForm.vin.trim().toUpperCase(),
     plateNumber: vehicleForm.plateNumber.trim() || undefined,
+    plateDigits: vehicleForm.plateDigits?.trim() || undefined,
+    plateLetters: vehicleForm.plateLetters?.trim() || undefined,
     engineNumber: vehicleForm.engineNumber.trim().toUpperCase(),
     calendarNumber: vehicleForm.calendarNumber.trim() || undefined,
     brandId: vehicleForm.brandId,
@@ -359,64 +418,64 @@ export function CreateRequestPage() {
     licenseBackImage: null,
 
     submit,
-  })
+  });
 
   const validateVehicleForm = (): boolean => {
     if (!createdRequestId) {
-      toast.error('Please complete customer intake first')
-      setCurrentStep(1)
-      return false
+      toast.error('Please complete customer intake first');
+      setCurrentStep(1);
+      return false;
     }
 
     // Required fields: VIN, Motor Number, CC Power, Make/Brand, Model, Year, Category
     if (!vehicleForm.vin.trim()) {
-      toast.error('VIN Number is required')
-      return false
+      toast.error('VIN Number is required');
+      return false;
     }
     if (vehicleForm.vin.trim().length > 25) {
-      toast.error('VIN must not exceed 25 characters')
-      return false
+      toast.error('VIN must not exceed 25 characters');
+      return false;
     }
     if (!vehicleForm.engineNumber.trim()) {
-      toast.error('Motor Number is required')
-      return false
+      toast.error('Motor Number is required');
+      return false;
     }
     if (!vehicleForm.brandId) {
-      toast.error('Make / Brand is required')
-      return false
+      toast.error('Make / Brand is required');
+      return false;
     }
     if (!vehicleForm.modelId) {
-      toast.error('Model is required')
-      return false
+      toast.error('Model is required');
+      return false;
     }
     if (!vehicleForm.manufactureYear) {
-      toast.error('Year is required')
-      return false
+      toast.error('Year is required');
+      return false;
     }
     if (!vehicleForm.categoryId) {
-      toast.error('Category is required')
-      return false
+      toast.error('Category is required');
+      return false;
     }
     if (!vehicleForm.engineCc || Number(vehicleForm.engineCc) <= 0) {
-      toast.error('CC Power must be a positive number')
-      return false
+      toast.error('CC Power must be a positive number');
+      return false;
     }
-    return true
-  }
+    return true;
+  };
 
   const handleStep2Submit = (isSubmitting: boolean, advanceToStep3 = false) => {
-    if (!validateVehicleForm()) return
+    if (!validateVehicleForm()) return;
 
-    const payload = getVehiclePayload(isSubmitting)
-    saveVehicleMutation.mutate({ payload, isSubmitting, advanceToStep3 })
-  }
+    const payload = getVehiclePayload(isSubmitting);
+    saveVehicleMutation.mutate({ payload, isSubmitting, advanceToStep3 });
+  };
 
   if (!activeBankId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
         <p>Please select a bank workspace first.</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -442,9 +501,12 @@ export function CreateRequestPage() {
             )}
           </div>
           <p className="text-xs text-ink-mute">
-            Three-step intake process: customer details, vehicle specifications, and required photo checklist.
+            Three-step intake process: customer details, vehicle specifications,
+            and required photo checklist.
           </p>
         </div>
+
+
       </div>
 
       {/* Stepper Progress Bar */}
@@ -468,7 +530,11 @@ export function CreateRequestPage() {
                   : 'bg-paper text-ink-mute'
             }`}
           >
-            {createdRequestId && currentStep !== 1 ? <CheckCircle className="size-4" /> : '1'}
+            {createdRequestId && currentStep !== 1 ? (
+              <CheckCircle className="size-4" />
+            ) : (
+              '1'
+            )}
           </div>
           <div className="min-w-0">
             <p className="font-mono text-[10px] tracking-wider text-ink-mute uppercase">
@@ -484,8 +550,8 @@ export function CreateRequestPage() {
         <button
           type="button"
           onClick={() => {
-            if (createdRequestId) setCurrentStep(2)
-            else toast.info('Complete customer intake first to continue')
+            if (createdRequestId) setCurrentStep(2);
+            else toast.info('Complete customer intake first to continue');
           }}
           className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-left transition-all ${
             currentStep === 2
@@ -519,11 +585,11 @@ export function CreateRequestPage() {
           type="button"
           onClick={() => {
             if (!createdRequestId) {
-              toast.info('Complete customer intake first to continue')
-              return
+              toast.info('Complete customer intake first to continue');
+              return;
             }
             if (validateVehicleForm()) {
-              setCurrentStep(3)
+              setCurrentStep(3);
             }
           }}
           className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-left transition-all ${
@@ -560,7 +626,9 @@ export function CreateRequestPage() {
             <div className="mb-4 flex items-center gap-2 border-b border-hairline pb-3">
               <IdentificationCard className="size-5 text-accent" />
               <div>
-                <h2 className="text-sm font-semibold text-ink">Customer Information</h2>
+                <h2 className="text-sm font-semibold text-ink">
+                  Customer Information
+                </h2>
                 <p className="text-[11px] text-ink-mute">
                   Primary vehicle owner or requesting party details
                 </p>
@@ -577,7 +645,10 @@ export function CreateRequestPage() {
                   placeholder="e.g. Tarek Mahmoud"
                   value={customerForm.fullName}
                   onChange={(e) =>
-                    setCustomerForm({ ...customerForm, fullName: e.target.value })
+                    setCustomerForm({
+                      ...customerForm,
+                      fullName: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -618,7 +689,10 @@ export function CreateRequestPage() {
                   placeholder="14-digit National ID"
                   value={customerForm.nationalId}
                   onChange={(e) =>
-                    setCustomerForm({ ...customerForm, nationalId: e.target.value })
+                    setCustomerForm({
+                      ...customerForm,
+                      nationalId: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -630,7 +704,9 @@ export function CreateRequestPage() {
             <div className="mb-4 flex items-center gap-2 border-b border-hairline pb-3">
               <MapPin className="size-5 text-accent" />
               <div>
-                <h2 className="text-sm font-semibold text-ink">Inspection Location</h2>
+                <h2 className="text-sm font-semibold text-ink">
+                  Inspection Location
+                </h2>
                 <p className="text-[11px] text-ink-mute">
                   Where the representative will inspect the vehicle
                 </p>
@@ -653,7 +729,9 @@ export function CreateRequestPage() {
                     })
                   }
                   placeholder={
-                    isLoadingLocations ? 'Loading governorates...' : 'Select governorate...'
+                    isLoadingLocations
+                      ? 'Loading governorates...'
+                      : 'Select governorate...'
                   }
                   searchPlaceholder="Search governorate..."
                 />
@@ -684,7 +762,10 @@ export function CreateRequestPage() {
                   placeholder="e.g. 14 El-Tahrir St, Near City Center"
                   value={customerForm.address}
                   onChange={(e) =>
-                    setCustomerForm({ ...customerForm, address: e.target.value })
+                    setCustomerForm({
+                      ...customerForm,
+                      address: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -715,10 +796,7 @@ export function CreateRequestPage() {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={createStep1Mutation.isPending}
-            >
+            <Button type="submit" disabled={createStep1Mutation.isPending}>
               {createStep1Mutation.isPending ? (
                 <>
                   <CircleNotch className="mr-1.5 size-4 animate-spin" />
@@ -751,7 +829,11 @@ export function CreateRequestPage() {
                     : 'Customer Intake Saved'}
                 </p>
                 <p className="text-[11px] text-ink-soft">
-                  Customer: <span className="font-medium text-ink">{customerForm.fullName || '—'}</span> · {customerForm.phone}
+                  Customer:{' '}
+                  <span className="font-medium text-ink">
+                    {customerForm.fullName || '—'}
+                  </span>{' '}
+                  · {customerForm.phone}
                 </p>
               </div>
             </div>
@@ -778,61 +860,70 @@ export function CreateRequestPage() {
               </div>
             </div>
 
+            {/* Top Identity Block: Motor + VIN on Left, Plate on Right */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {/* Left Column: Motor Number (top) + VIN Number (under Motor Number) */}
+              <div className="space-y-4">
+                {/* 1. Motor Number * */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ink-soft">
+                    Motor Number <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    required
+                    placeholder="e.g. N20B20A123456"
+                    className="font-mono uppercase"
+                    value={vehicleForm.engineNumber}
+                    onChange={(e) =>
+                      setVehicleForm({
+                        ...vehicleForm,
+                        engineNumber: e.target.value.toUpperCase(),
+                      })
+                    }
+                  />
+                </div>
+
+                {/* 2. VIN / Chassis Number * (Under Motor Number) */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ink-soft">
+                    VIN / Chassis Number <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    required
+                    maxLength={25}
+                    placeholder="e.g. WBA3A5C50DF123456"
+                    className="font-mono uppercase tracking-wider"
+                    value={vehicleForm.vin}
+                    onChange={(e) =>
+                      setVehicleForm({
+                        ...vehicleForm,
+                        vin: e.target.value.toUpperCase(),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: License Plate (Dual 4-Digits & 4-Characters) */}
+              <div>
+                <LicensePlateInput
+                  digits={vehicleForm.plateDigits}
+                  letters={vehicleForm.plateLetters}
+                  onChange={(combined, digits, letters) =>
+                    setVehicleForm({
+                      ...vehicleForm,
+                      plateNumber: combined,
+                      plateDigits: digits,
+                      plateLetters: letters,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Vehicle Specifications Grid */}
             <div className="grid gap-4 sm:grid-cols-3">
-              {/* 1. VIN Number * */}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  VIN Number <span className="text-rose-500">*</span>
-                </label>
-                <Input
-                  required
-                  maxLength={25}
-                  placeholder="e.g. WBA3A5C50DF123456"
-                  className="font-mono uppercase tracking-wider"
-                  value={vehicleForm.vin}
-                  onChange={(e) =>
-                    setVehicleForm({
-                      ...vehicleForm,
-                      vin: e.target.value.toUpperCase(),
-                    })
-                  }
-                />
-              </div>
-
-              {/* 2. License Plate */}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  License Plate
-                </label>
-                <Input
-                  placeholder="e.g. ABC 1234 / أ ب ج ١٢٣٤"
-                  value={vehicleForm.plateNumber}
-                  onChange={(e) =>
-                    setVehicleForm({ ...vehicleForm, plateNumber: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* 3. Motor Number * */}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  Motor Number <span className="text-rose-500">*</span>
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. N20B20A123456"
-                  className="font-mono uppercase"
-                  value={vehicleForm.engineNumber}
-                  onChange={(e) =>
-                    setVehicleForm({
-                      ...vehicleForm,
-                      engineNumber: e.target.value.toUpperCase(),
-                    })
-                  }
-                />
-              </div>
-
-              {/* 4. Calendar Number */}
+              {/* 3. Calendar Number */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink-soft">
                   Calendar Number
@@ -862,7 +953,7 @@ export function CreateRequestPage() {
                       ...vehicleForm,
                       brandId,
                       modelId: '', // Reset model when make changes
-                    })
+                    });
                   }}
                   placeholder={
                     isLoadingLookups ? 'Loading makes...' : 'Select make...'
@@ -1079,5 +1170,5 @@ export function CreateRequestPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

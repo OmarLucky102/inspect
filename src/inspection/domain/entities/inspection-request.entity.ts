@@ -242,7 +242,7 @@ export class InspectionRequest {
     }
 
     this.props.currentStatus = newStatus;
-    if (newStatus === InspectionStatus.COMPLETED) {
+    if (newStatus === InspectionStatus.APPROVED) {
       this.props.completedAt = new Date();
     }
   }

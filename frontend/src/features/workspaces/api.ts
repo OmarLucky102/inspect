@@ -1,7 +1,15 @@
 import { api, getAccessToken } from '@/lib/api';
 
-export interface UserProfile {
+export interface UserBankMembership {
   id: string;
+  name: string;
+  code: string;
+  isPrimary?: boolean;
+  status?: string;
+}
+
+export interface UserProfile {
+  id?: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -14,6 +22,7 @@ export interface UserProfile {
   lastLoginAt?: string | null;
   createdAt: string;
   updatedAt?: string;
+  banks?: UserBankMembership[];
 }
 
 export function parseJwt(token: string) {

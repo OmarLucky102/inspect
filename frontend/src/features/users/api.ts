@@ -32,3 +32,15 @@ export async function fetchUserById(id: string): Promise<UserProfile> {
   return (res.data as any).data || res.data
 }
 
+export async function updateUserBanks(
+  userId: string,
+  bankIds: string[],
+  primaryBankId?: string,
+): Promise<UserProfile['banks']> {
+  const res = await api.put<{ status: string; data: any }>(`/users/${userId}/banks`, {
+    bankIds,
+    primaryBankId,
+  })
+  return (res.data as any).data || res.data
+}
+

@@ -26,9 +26,23 @@ export class PrismaBankMembershipRepository implements IBankMembershipRepository
     return rows.map((row) => BankMembershipMapper.toDomain(row));
   }
 
+  async findAllByUserId(userId: string): Promise<BankMembership[]> {
+    const rows = await this.prisma.bankMembership.findMany({
+      where: { userId },
+      orderBy: { joinedAt: 'desc' },
+    });
+    return rows.map((row) => BankMembershipMapper.toDomain(row));
+  }
+
   async save(membership: BankMembership): Promise<void> {
     await this.prisma.bankMembership.create({
       data: BankMembershipMapper.toCreateData(membership),
+    });
+  }
+
+  async delete(bankId: string, userId: string): Promise<void> {
+    await this.prisma.bankMembership.deleteMany({
+      where: { bankId, userId },
     });
   }
 }

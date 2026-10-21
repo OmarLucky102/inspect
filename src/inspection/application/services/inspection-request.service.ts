@@ -1166,7 +1166,7 @@ export class InspectionRequestService {
           toStatus: InspectionStatus.COMPLETED,
           changedBy: actor.id,
           changedAt: new Date(),
-          note: `Media review completed. Proposed Marketing Value: ${dto.proposedMarketingValue.toLocaleString()} EGP. Awaiting Super Admin final approval.`,
+          note: `Valuation proposed: ${dto.proposedMarketingValue.toLocaleString()} EGP submitted by reviewer. Awaiting Super Admin final approval.`,
         });
         await this.statusHistoryRepository.save(history, tx);
       }

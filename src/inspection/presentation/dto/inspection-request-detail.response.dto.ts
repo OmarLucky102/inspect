@@ -60,7 +60,7 @@ export interface InspectionRequestWithRelations {
     brand?: { id: string; name: string } | null;
     model?: { id: string; name: string } | null;
     category?: { id: string; name: string } | null;
-    color?: { id: string; name: string } | null;
+    color?: { id: string; name: string; hex?: string | null } | null;
     fuelType?: { id: string; name: string } | null;
     transmissionType?: { id: string; name: string; nameAr?: string | null } | null;
     trim?: { id: string; code?: string; name: string; nameAr?: string | null } | null;
@@ -181,7 +181,7 @@ export class InspectionRequestDetailResponseDto {
     brand: { id: string; name: string } | null;
     model: { id: string; name: string } | null;
     category: { id: string; name: string } | null;
-    color: { id: string; name: string } | null;
+    color: { id: string; name: string; hex?: string | null } | null;
     fuelType: { id: string; name: string } | null;
     transmissionType: { id: string; name: string; nameAr?: string | null } | null;
     trim: { id: string; code?: string; name: string; nameAr?: string | null } | null;
@@ -349,7 +349,11 @@ export class InspectionRequestDetailResponseDto {
                 }
               : null,
             color: record.vehicle.color
-              ? { id: record.vehicle.color.id, name: record.vehicle.color.name }
+              ? {
+                  id: record.vehicle.color.id,
+                  name: record.vehicle.color.name,
+                  hex: record.vehicle.color.hex,
+                }
               : null,
             fuelType: record.vehicle.fuelType
               ? {

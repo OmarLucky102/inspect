@@ -104,18 +104,34 @@ export class BankService {
     // 2. Validate role is allowed for bank members
     this.validateBankRole(input.role);
 
-    // 3. Create the user through the Identity abstraction (hashing, uniqueness,
-    //    persistence are handled inside Identity's UserService)
-    const user = await this.userService.createUser({
-      email: input.email,
-      password: input.password,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      phone: input.phone,
-      role: input.role,
-    });
+    // 3. Find or create the user through Identity abstraction
+    let user: User;
+    try {
+      user = await this.userService.getUserByEmail(input.email);
+    } catch {
+      user = await this.userService.createUser({
+        email: input.email,
+        password: input.password,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        phone: input.phone,
+        role: input.role,
+      });
+    }
 
-    // 4. Create the bank membership (Organization responsibility)
+    // 4. Check if membership already exists for this specific bank
+    const existing = await this.membershipRepository.findByBankIdAndUserId(
+      input.bankId,
+      user.id,
+    );
+    if (existing) {
+      throw new BankMembershipAlreadyExistsException(
+        user.id,
+        input.bankId,
+      );
+    }
+
+    // 5. Create the bank membership
     const membership = this.buildMembership(
       input.bankId,
       user.id,
@@ -156,6 +172,49 @@ export class BankService {
     );
     await this.membershipRepository.save(membership);
     return membership;
+  }
+
+  // ── Remove User from Bank ────────────────────────────────────────────────
+  async removeBankMember(bankId: string, userId: string): Promise<void> {
+    await this.ensureBankExists(bankId);
+    await this.membershipRepository.delete(bankId, userId);
+  }
+
+  // ── Assign User to Multiple Banks ────────────────────────────────────────
+  async assignUserToBanks(
+    userId: string,
+    bankIds: string[],
+    primaryBankId?: string,
+  ): Promise<BankMembership[]> {
+    const user = await this.userService.getUserById(userId);
+    this.validateBankRole(user.role);
+
+    const currentMemberships = await this.membershipRepository.findAllByUserId(userId);
+    const targetSet = new Set(bankIds);
+
+    // Remove memberships not in targetSet
+    for (const cur of currentMemberships) {
+      if (!targetSet.has(cur.bankId)) {
+        await this.membershipRepository.delete(cur.bankId, userId);
+      }
+    }
+
+    // Add new memberships
+    const result: BankMembership[] = [];
+    for (const bankId of bankIds) {
+      await this.ensureBankExists(bankId);
+      const isPrimary = primaryBankId ? primaryBankId === bankId : false;
+      const existing = await this.membershipRepository.findByBankIdAndUserId(bankId, userId);
+      if (!existing) {
+        const membership = this.buildMembership(bankId, userId, isPrimary);
+        await this.membershipRepository.save(membership);
+        result.push(membership);
+      } else {
+        result.push(existing);
+      }
+    }
+
+    return result;
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

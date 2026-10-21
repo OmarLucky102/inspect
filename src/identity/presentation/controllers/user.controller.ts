@@ -2,9 +2,11 @@ import {
   Controller,
   Get,
   Patch,
+  Put,
   Body,
   Param,
   ForbiddenException,
+  NotFoundException,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -17,6 +19,7 @@ import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.gua
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { User } from '../../domain/entities/user.entity';
+import { PrismaService } from '../../../database/prisma.service';
 
 interface RequestUser {
   sub?: string;
@@ -28,7 +31,10 @@ interface RequestUser {
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly prisma?: PrismaService,
+  ) {}
 
   @Get('me')
   async getMyProfile(@CurrentUser() currentUser: RequestUser) {
@@ -80,22 +86,156 @@ export class UserController {
       throw new ForbiddenException('Cannot access other user profiles');
     }
 
+    if (this.prisma) {
+      const userWithBanks = await this.prisma.user.findUnique({
+        where: { id },
+        include: {
+          bankMemberships: {
+            include: {
+              bank: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
+        },
+      });
+      if (!userWithBanks) throw new NotFoundException('User not found');
+
+      return {
+        status: 'success',
+        data: {
+          email: userWithBanks.email,
+          firstName: userWithBanks.firstName,
+          lastName: userWithBanks.lastName,
+          phone: userWithBanks.phone,
+          role: userWithBanks.role,
+          isActive: userWithBanks.isActive,
+          status: userWithBanks.isActive ? 'ACTIVE' : 'INACTIVE',
+          isEmailVerified: userWithBanks.isEmailVerified,
+          emailVerifiedAt: userWithBanks.emailVerifiedAt,
+          lastLoginAt: userWithBanks.lastLoginAt,
+          createdAt: userWithBanks.createdAt,
+          updatedAt: userWithBanks.updatedAt,
+          banks: userWithBanks.bankMemberships.map((bm) => ({
+            id: bm.bank.id,
+            name: bm.bank.name,
+            code: bm.bank.code,
+            isPrimary: bm.isPrimary,
+            status: bm.status,
+          })),
+        },
+      };
+    }
+
     const user = await this.userService.getUserById(id);
     return {
       status: 'success',
-      data: this.toResponse(user),
+      data: {
+        ...this.toResponse(user),
+        banks: [],
+      },
     };
   }
 
   @Get()
   @Roles(Role.SUPER_ADMIN)
   async getUsers() {
+    if (this.prisma) {
+      const users = await this.prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          bankMemberships: {
+            include: {
+              bank: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        status: 'success',
+        data: users.map((user) => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          role: user.role,
+          isActive: user.isActive,
+          status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+          isEmailVerified: user.isEmailVerified,
+          emailVerifiedAt: user.emailVerifiedAt,
+          lastLoginAt: user.lastLoginAt,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          banks: user.bankMemberships.map((bm) => ({
+            id: bm.bank.id,
+            name: bm.bank.name,
+            code: bm.bank.code,
+            isPrimary: bm.isPrimary,
+            status: bm.status,
+          })),
+        })),
+      };
+    }
+
     const users = await this.userService.getAllUsers();
     return {
       status: 'success',
       data: users.map((user) => ({
         id: user.id,
         ...this.toResponse(user),
+        banks: [],
+      })),
+    };
+  }
+
+  @Put(':id/banks')
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async updateUserBanks(
+    @Param('id') id: string,
+    @Body() body: { bankIds: string[]; primaryBankId?: string },
+  ) {
+    if (!this.prisma) {
+      throw new NotFoundException('Database service unavailable');
+    }
+
+    const { bankIds = [], primaryBankId } = body;
+
+    // 1. Delete all current bank memberships for this user
+    await this.prisma.bankMembership.deleteMany({
+      where: { userId: id },
+    });
+
+    // 2. Insert new memberships for each selected bank
+    if (bankIds.length > 0) {
+      await this.prisma.bankMembership.createMany({
+        data: bankIds.map((bankId) => ({
+          bankId,
+          userId: id,
+          isPrimary: primaryBankId ? primaryBankId === bankId : false,
+          status: 'ACTIVE',
+        })),
+      });
+    }
+
+    // 3. Return updated banks
+    const memberships = await this.prisma.bankMembership.findMany({
+      where: { userId: id },
+      include: { bank: { select: { id: true, name: true, code: true } } },
+    });
+
+    return {
+      status: 'success',
+      data: memberships.map((bm) => ({
+        id: bm.bank.id,
+        name: bm.bank.name,
+        code: bm.bank.code,
+        isPrimary: bm.isPrimary,
+        status: bm.status,
       })),
     };
   }

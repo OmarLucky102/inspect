@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Car,
   CheckCircle,
@@ -17,8 +17,8 @@ import {
   CheckSquare,
   Funnel,
   Eye,
-} from '@phosphor-icons/react'
-import { useNavigate } from 'react-router-dom'
+} from '@phosphor-icons/react';
+import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer,
   PieChart,
@@ -32,46 +32,47 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
-} from 'recharts'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
+} from 'recharts';
+import { useWorkspace } from '@/features/workspaces/workspace-context';
 import {
   fetchInspectionAnalytics,
   type InspectionAnalyticsData,
-} from '@/features/inspection-requests/api'
-import { RequestDetailModal } from '@/features/inspection-requests/components/RequestDetailModal'
+} from '@/features/inspection-requests/api';
 
 const PERIOD_OPTIONS = [
   { label: '7 Days', value: 7 },
   { label: '30 Days', value: 30 },
   { label: '90 Days', value: 90 },
-]
+];
 
 export function DashboardPage() {
-  const navigate = useNavigate()
-  const { user, banks, activeBankId, setActiveBankId } = useWorkspace()
+  const navigate = useNavigate();
+  const { user, banks, activeBankId, setActiveBankId } = useWorkspace();
 
   // Period filter (7, 30, 90 days)
-  const [periodDays, setPeriodDays] = useState<number>(30)
+  const [periodDays, setPeriodDays] = useState<number>(30);
 
   // Selected bank for Super Admin / Reviewer filter ('all' or specific bank id)
   const isGlobalStaff =
     user?.role === 'SUPER_ADMIN' ||
     user?.role === 'SYSTEM_ADMIN' ||
-    user?.role === 'REVIEWER'
+    user?.role === 'REVIEWER';
+
+  const canCreateRequest =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'SYSTEM_ADMIN' ||
+    user?.role === 'MANAGER';
 
   const [selectedBankScope, setSelectedBankScope] = useState<string>(
     isGlobalStaff ? 'all' : activeBankId || '',
-  )
-
-  // Modal inspection inspection detail preview
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  );
 
   // Determine query bankId parameter
   const queryBankId = isGlobalStaff
     ? selectedBankScope === 'all'
       ? undefined
       : selectedBankScope
-    : activeBankId || undefined
+    : activeBankId || undefined;
 
   // Fetch analytics query
   const {
@@ -87,27 +88,27 @@ export function DashboardPage() {
         periodDays,
       }),
     refetchInterval: 30000, // automatic 30s live poll
-  })
+  });
 
   // Format currency helper
   const formatCurrency = (val: number | undefined) => {
-    if (!val) return '0 EGP'
+    if (!val) return '0 EGP';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EGP',
       maximumFractionDigits: 0,
-    }).format(val)
-  }
+    }).format(val);
+  };
 
   // Active bank name for display
   const activeBankObj = useMemo(() => {
     if (queryBankId) {
-      return banks.find((b) => b.id === queryBankId)
+      return banks.find((b) => b.id === queryBankId);
     }
-    return null
-  }, [banks, queryBankId])
+    return null;
+  }, [banks, queryBankId]);
 
-  const overview = analytics?.overview
+  const overview = analytics?.overview;
 
   return (
     <div className="space-y-6 pb-16 animate-in fade-in-0 duration-300">
@@ -127,7 +128,9 @@ export function DashboardPage() {
             ) : (
               <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-medium text-blue-700 border border-blue-100">
                 <Buildings className="size-3" />
-                {analytics?.scope.bankName || activeBankObj?.name || 'Selected Bank'}
+                {analytics?.scope.bankName ||
+                  activeBankObj?.name ||
+                  'Selected Bank'}
               </span>
             )}
           </div>
@@ -135,7 +138,8 @@ export function DashboardPage() {
             Inspection Operations Dashboard
           </h1>
           <p className="mt-0.5 text-xs text-ink-mute">
-            Live business intelligence, operational workflow velocity, and market valuation metrics.
+            Live business intelligence, operational workflow velocity, and
+            market valuation metrics.
           </p>
         </div>
 
@@ -149,9 +153,9 @@ export function DashboardPage() {
                 aria-label="Filter by bank scope"
                 value={selectedBankScope}
                 onChange={(e) => {
-                  setSelectedBankScope(e.target.value)
+                  setSelectedBankScope(e.target.value);
                   if (e.target.value !== 'all') {
-                    setActiveBankId(e.target.value)
+                    setActiveBankId(e.target.value);
                   }
                 }}
                 className="bg-transparent font-medium text-ink outline-hidden cursor-pointer"
@@ -198,14 +202,16 @@ export function DashboardPage() {
           </button>
 
           {/* Create Request CTA */}
-          <button
-            type="button"
-            onClick={() => navigate('/requests/new')}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-accent/90 transition-colors"
-          >
-            <Plus className="size-3.5" />
-            <span>New Request</span>
-          </button>
+          {canCreateRequest && (
+            <button
+              type="button"
+              onClick={() => navigate('/requests/new')}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-accent/90 transition-colors"
+            >
+              <Plus className="size-3.5" />
+              <span>New Request</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -225,7 +231,9 @@ export function DashboardPage() {
             <span className="text-3xl font-extrabold tracking-tight text-ink">
               {isLoading ? '—' : overview?.totalRequests.toLocaleString()}
             </span>
-            <span className="text-xs font-medium text-ink-mute">all-time logged</span>
+            <span className="text-xs font-medium text-ink-mute">
+              all-time logged
+            </span>
           </div>
           <div className="mt-3 flex items-center gap-2 border-t border-hairline pt-3 text-[11px] text-ink-mute">
             <span className="font-semibold text-accent">
@@ -256,7 +264,10 @@ export function DashboardPage() {
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-hairline pt-3 text-[11px] text-ink-mute">
             <span>
-              Rejected: <strong className="text-rose-600">{overview?.rejected || 0}</strong>
+              Rejected:{' '}
+              <strong className="text-rose-600">
+                {overview?.rejected || 0}
+              </strong>
             </span>
             <span>
               Cancelled: <strong>{overview?.cancelled || 0}</strong>
@@ -302,10 +313,12 @@ export function DashboardPage() {
               {isLoading
                 ? '—'
                 : overview?.averageTurnaroundDays === 0
-                ? '< 1'
-                : overview?.averageTurnaroundDays}
+                  ? '< 1'
+                  : overview?.averageTurnaroundDays}
             </span>
-            <span className="text-xs font-medium text-ink-mute">days to approval</span>
+            <span className="text-xs font-medium text-ink-mute">
+              days to approval
+            </span>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-hairline pt-3 text-[11px] text-ink-mute">
             <span>First-time pass rate:</span>
@@ -338,7 +351,9 @@ export function DashboardPage() {
             <p className="mt-2 text-2xl font-bold text-ink">
               {overview?.pendingInitialApproval || 0}
             </p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Awaiting Reviewer Approval</p>
+            <p className="mt-0.5 text-[10px] text-ink-mute">
+              Awaiting Reviewer Approval
+            </p>
           </div>
 
           {/* Stage 2: Assignment */}
@@ -352,7 +367,9 @@ export function DashboardPage() {
             <p className="mt-2 text-2xl font-bold text-ink">
               {overview?.pendingAssignment || 0}
             </p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Awaiting Field Rep</p>
+            <p className="mt-0.5 text-[10px] text-ink-mute">
+              Awaiting Field Rep
+            </p>
           </div>
 
           {/* Stage 3: Field Inspection */}
@@ -366,7 +383,9 @@ export function DashboardPage() {
             <p className="mt-2 text-2xl font-bold text-ink">
               {overview?.inField || 0}
             </p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Assigned / In Progress</p>
+            <p className="mt-0.5 text-[10px] text-ink-mute">
+              Assigned / In Progress
+            </p>
           </div>
 
           {/* Stage 4: Media & Valuation Review */}
@@ -380,7 +399,9 @@ export function DashboardPage() {
             <p className="mt-2 text-2xl font-bold text-ink">
               {overview?.underValuationReview || 0}
             </p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Media Review & Pricing</p>
+            <p className="mt-0.5 text-[10px] text-ink-mute">
+              Media Review & Pricing
+            </p>
           </div>
 
           {/* Stage 5: Final Authorization */}
@@ -414,7 +435,8 @@ export function DashboardPage() {
                 </h3>
               </div>
               <p className="mt-1 text-xs text-ink-mute">
-                Daily trend of new inspection requests vs authorized completions over the last {periodDays} days.
+                Daily trend of new inspection requests vs authorized completions
+                over the last {periodDays} days.
               </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
@@ -441,16 +463,40 @@ export function DashboardPage() {
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <defs>
-                    <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="createdGrad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      <stop
+                        offset="95%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
-                    <linearGradient id="approvedGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="approvedGrad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      <stop
+                        offset="95%"
+                        stopColor="#10b981"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f0f0f0"
+                  />
                   <XAxis
                     dataKey="formattedDate"
                     tickLine={false}
@@ -526,7 +572,9 @@ export function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={analytics.statusBreakdown.filter((s) => s.count > 0)}
+                      data={analytics.statusBreakdown.filter(
+                        (s) => s.count > 0,
+                      )}
                       innerRadius={55}
                       outerRadius={80}
                       paddingAngle={4}
@@ -611,7 +659,11 @@ export function DashboardPage() {
                   data={analytics.categoryDistribution}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f0f0f0"
+                  />
                   <XAxis
                     dataKey="name"
                     tickLine={false}
@@ -688,19 +740,25 @@ export function DashboardPage() {
               {/* Items Breakdown */}
               <div className="grid grid-cols-3 gap-2 rounded-xl bg-paper p-3 text-center">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-emerald-600">Pass</p>
+                  <p className="text-[10px] uppercase font-bold text-emerald-600">
+                    Pass
+                  </p>
                   <p className="mt-1 text-base font-bold text-ink">
                     {analytics?.checklistPerformance.passCount || 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-amber-600">Reshoot</p>
+                  <p className="text-[10px] uppercase font-bold text-amber-600">
+                    Reshoot
+                  </p>
                   <p className="mt-1 text-base font-bold text-ink">
                     {analytics?.checklistPerformance.reshootCount || 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-rose-600">Fail</p>
+                  <p className="text-[10px] uppercase font-bold text-rose-600">
+                    Fail
+                  </p>
                   <p className="mt-1 text-base font-bold text-ink">
                     {analytics?.checklistPerformance.failCount || 0}
                   </p>
@@ -711,7 +769,9 @@ export function DashboardPage() {
 
           {/* Priority SLA breakdown */}
           <div className="mt-6 border-t border-hairline pt-4">
-            <h4 className="text-xs font-semibold text-ink-soft">Priority Demands</h4>
+            <h4 className="text-xs font-semibold text-ink-soft">
+              Priority Demands
+            </h4>
             <div className="mt-2 grid grid-cols-4 gap-1.5 text-center text-[10px]">
               {analytics?.priorityDistribution.map((p) => (
                 <div
@@ -770,16 +830,24 @@ export function DashboardPage() {
             <tbody className="divide-y divide-hairline">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-ink-mute">
+                  <td
+                    colSpan={7}
+                    className="px-5 py-8 text-center text-ink-mute"
+                  >
                     Loading recent requests...
                   </td>
                 </tr>
-              ) : analytics?.recentRequests && analytics.recentRequests.length > 0 ? (
+              ) : analytics?.recentRequests &&
+                analytics.recentRequests.length > 0 ? (
                 analytics.recentRequests.map((req) => (
                   <tr
                     key={req.id}
                     className="hover:bg-paper/50 transition-colors cursor-pointer"
-                    onClick={() => setSelectedRequestId(req.id)}
+                    onClick={() =>
+                      navigate(
+                        `/requests/${req.id}?bankId=${req.bankId || queryBankId || activeBankId || ''}`,
+                      )
+                    }
                   >
                     <td className="px-5 py-3.5 font-mono font-bold text-accent">
                       {req.requestNumber}
@@ -802,16 +870,20 @@ export function DashboardPage() {
                         className={`inline-block rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold ${
                           req.status === 'APPROVED'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : req.status === 'REJECTED' || req.status === 'CANCELLED'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : req.status === 'IN_PROGRESS' || req.status === 'ASSIGNED'
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                            : req.status === 'UNDER_REVIEW' || req.status === 'COMPLETED'
-                            ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : req.status === 'COMPLETED'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : req.status === 'REJECTED' ||
+                                  req.status === 'CANCELLED'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : req.status === 'IN_PROGRESS' ||
+                                    req.status === 'ASSIGNED'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  : req.status === 'UNDER_REVIEW'
+                                    ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}
                       >
-                        {req.status}
+                        {req.status === 'COMPLETED' ? 'AWAITING APPROVAL' : req.status}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 font-mono text-ink-mute text-[11px]">
@@ -826,20 +898,25 @@ export function DashboardPage() {
                       <button
                         type="button"
                         onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedRequestId(req.id)
+                          e.stopPropagation();
+                          navigate(
+                            `/requests/${req.id}?bankId=${req.bankId || queryBankId || activeBankId || ''}`,
+                          );
                         }}
-                        className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-hairline bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-soft hover:text-accent hover:border-accent transition-colors"
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-hairline px-2.5 py-1 text-[11px] font-medium text-ink hover:text-accent hover:border-accent/40 hover:bg-paper transition-colors"
                       >
                         <Eye className="size-3" />
-                        <span>Inspect</span>
+                        <span>Details</span>
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-ink-mute">
+                  <td
+                    colSpan={7}
+                    className="px-5 py-8 text-center text-ink-mute"
+                  >
                     No inspection requests found in database.
                   </td>
                 </tr>
@@ -848,14 +925,6 @@ export function DashboardPage() {
           </table>
         </div>
       </div>
-
-      {/* Modal for viewing Request Details directly from dashboard */}
-      {selectedRequestId && (
-        <RequestDetailModal
-          requestId={selectedRequestId}
-          onClose={() => setSelectedRequestId(null)}
-        />
-      )}
     </div>
-  )
+  );
 }

@@ -1,17 +1,28 @@
-import { ClipboardText, CircleNotch, Plus, FunnelSimple } from '@phosphor-icons/react'
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
 import {
-  fetchInspectionRequests,
-  type InspectionRequest,
-} from '@/features/inspection-requests/api'
-import { RequestDetailModal } from '@/features/inspection-requests/components/RequestDetailModal'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
-import { Button } from '@/components/ui/button'
+  ClipboardText,
+  CircleNotch,
+  Plus,
+  FunnelSimple,
+  Clock,
+} from '@phosphor-icons/react';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState';
+import { fetchInspectionRequests } from '@/features/inspection-requests/api';
+import { useWorkspace } from '@/features/workspaces/workspace-context';
+import { Button } from '@/components/ui/button';
 
 function getStatusBadge(status: string) {
+  if (status === 'COMPLETED') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-500/10 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wider text-amber-800">
+        <Clock className="size-3 text-amber-700" />
+        AWAITING APPROVAL
+      </span>
+    );
+  }
+
   const styles: Record<string, string> = {
     DRAFT: 'bg-zinc-100 text-zinc-700 border-zinc-200',
     PENDING: 'bg-amber-500/10 text-amber-800 border-amber-300',
@@ -19,11 +30,10 @@ function getStatusBadge(status: string) {
     ASSIGNED: 'bg-sky-500/10 text-sky-800 border-sky-300',
     IN_PROGRESS: 'bg-indigo-500/10 text-indigo-800 border-indigo-300',
     UNDER_REVIEW: 'bg-purple-500/10 text-purple-800 border-purple-300',
-    COMPLETED: 'bg-teal-500/10 text-teal-800 border-teal-300',
     APPROVED: 'bg-emerald-500/10 text-emerald-800 border-emerald-300',
     REJECTED: 'bg-rose-500/10 text-rose-800 border-rose-300',
     CANCELLED: 'bg-zinc-200 text-zinc-600 border-zinc-300',
-  }
+  };
   return (
     <span
       className={`inline-flex items-center rounded-lg border px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wider ${
@@ -32,38 +42,46 @@ function getStatusBadge(status: string) {
     >
       {status}
     </span>
-  )
+  );
 }
 
 export function RequestsPage() {
-  const { activeBankId, user } = useWorkspace()
-  const navigate = useNavigate()
-  const [selectedRequest, setSelectedRequest] = useState<InspectionRequest | null>(null)
-  const [reviewerQueueFilter, setReviewerQueueFilter] = useState<'ALL' | 'INITIAL' | 'MEDIA' | 'DONE'>('ALL')
+  const { activeBankId, user } = useWorkspace();
+  const navigate = useNavigate();
+  const [reviewerQueueFilter, setReviewerQueueFilter] = useState<
+    'ALL' | 'INITIAL' | 'MEDIA' | 'AWAITING_APPROVAL' | 'DONE'
+  >('ALL');
 
-  const isReviewer = user?.role === 'REVIEWER'
+  const isReviewer = user?.role === 'REVIEWER';
+  const canCreateRequest =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'SYSTEM_ADMIN' ||
+    user?.role === 'MANAGER';
 
   // Build query key and status param based on role and active queue filter
-  let statusParam: string | undefined = undefined
+  let statusParam: string | undefined = undefined;
   if (isReviewer) {
-    if (reviewerQueueFilter === 'INITIAL') statusParam = 'PENDING'
-    else if (reviewerQueueFilter === 'MEDIA') statusParam = 'UNDER_REVIEW'
-    else if (reviewerQueueFilter === 'DONE') statusParam = 'COMPLETED,APPROVED,REJECTED'
-    else statusParam = undefined // 'ALL' shows all requests so state updates in-place without disappearing
+    if (reviewerQueueFilter === 'INITIAL') statusParam = 'PENDING';
+    else if (reviewerQueueFilter === 'MEDIA') statusParam = 'UNDER_REVIEW';
+    else if (reviewerQueueFilter === 'AWAITING_APPROVAL')
+      statusParam = 'COMPLETED';
+    else if (reviewerQueueFilter === 'DONE')
+      statusParam = 'APPROVED,REJECTED,CANCELLED';
+    else statusParam = undefined;
   }
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['inspection-requests', activeBankId, statusParam],
     queryFn: () => fetchInspectionRequests(activeBankId!, statusParam),
     enabled: !!activeBankId,
-  })
+  });
 
   if (!activeBankId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
         <p>Please select a bank workspace first.</p>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -71,7 +89,7 @@ export function RequestsPage() {
       <div className="flex justify-center py-20">
         <CircleNotch className="size-8 animate-spin text-ink-mute" />
       </div>
-    )
+    );
   }
 
   if (isError) {
@@ -85,7 +103,7 @@ export function RequestsPage() {
           Try again
         </button>
       </div>
-    )
+    );
   }
 
   if (!data || data.length === 0) {
@@ -94,8 +112,12 @@ export function RequestsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-hairline bg-white p-4 rounded-xl">
             <div>
-              <h2 className="font-semibold text-ink">Reviewer Workflow Queues</h2>
-              <p className="text-xs text-ink-mute">Initial intake reviews and field media inspections</p>
+              <h2 className="font-semibold text-ink">
+                Reviewer Workflow Queues
+              </h2>
+              <p className="text-xs text-ink-mute">
+                Initial intake reviews and field media inspections
+              </p>
             </div>
             <div className="flex items-center gap-1 rounded-xl border border-hairline bg-paper p-1 text-xs font-medium">
               <button
@@ -133,6 +155,17 @@ export function RequestsPage() {
               </button>
               <button
                 type="button"
+                onClick={() => setReviewerQueueFilter('AWAITING_APPROVAL')}
+                className={`rounded-lg px-3 py-1 transition-colors ${
+                  reviewerQueueFilter === 'AWAITING_APPROVAL'
+                    ? 'bg-white font-semibold text-accent shadow-xs'
+                    : 'text-ink-mute hover:text-ink'
+                }`}
+              >
+                Awaiting Approval
+              </button>
+              <button
+                type="button"
                 onClick={() => setReviewerQueueFilter('DONE')}
                 className={`rounded-lg px-3 py-1 transition-colors ${
                   reviewerQueueFilter === 'DONE'
@@ -147,13 +180,16 @@ export function RequestsPage() {
 
           <div className="flex flex-col items-center justify-center rounded-2xl border border-hairline bg-white py-16 text-center shadow-xs">
             <ClipboardText className="size-12 text-ink-mute" />
-            <h3 className="mt-3 text-base font-bold text-ink">No Requests in Reviewer Queue</h3>
+            <h3 className="mt-3 text-base font-bold text-ink">
+              No Requests in Reviewer Queue
+            </h3>
             <p className="mt-1 text-xs text-ink-mute max-w-sm">
-              There are currently no inspection requests matching this review queue filter.
+              There are currently no inspection requests matching this review
+              queue filter.
             </p>
           </div>
         </div>
-      )
+      );
     }
 
     return (
@@ -162,10 +198,10 @@ export function RequestsPage() {
         title="Inspection Requests."
         body="Create and manage vehicle inspection requests for your bank."
         icon={ClipboardText}
-        actionLabel="New Request"
-        onAction={() => navigate('/requests/new')}
+        actionLabel={canCreateRequest ? 'New Request' : undefined}
+        onAction={canCreateRequest ? () => navigate('/requests/new') : undefined}
       />
-    )
+    );
   }
 
   return (
@@ -176,18 +212,24 @@ export function RequestsPage() {
             {isReviewer ? (
               <>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-ink">Reviewer Workflow Queues</h2>
+                  <h2 className="font-semibold text-ink">
+                    Reviewer Workflow Queues
+                  </h2>
                   <span className="inline-flex items-center gap-1 rounded-lg bg-accent/10 border border-accent/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-accent tracking-wider">
                     <FunnelSimple className="size-3" />
                     {reviewerQueueFilter}
                   </span>
                 </div>
-                <p className="text-xs text-ink-mute">Initial intake reviews (Stage 2) & media evaluations (Stage 4)</p>
+                <p className="text-xs text-ink-mute">
+                  Initial intake reviews (Stage 2) & media evaluations (Stage 4)
+                </p>
               </>
             ) : (
               <>
                 <h2 className="font-semibold text-ink">Inspection Requests</h2>
-                <p className="text-xs text-ink-mute">Intake and status of vehicle inspections</p>
+                <p className="text-xs text-ink-mute">
+                  Intake and status of vehicle inspections
+                </p>
               </>
             )}
           </div>
@@ -229,6 +271,17 @@ export function RequestsPage() {
               </button>
               <button
                 type="button"
+                onClick={() => setReviewerQueueFilter('AWAITING_APPROVAL')}
+                className={`rounded-lg px-2.5 py-1 transition-colors ${
+                  reviewerQueueFilter === 'AWAITING_APPROVAL'
+                    ? 'bg-white font-semibold text-accent shadow-xs'
+                    : 'text-ink-mute hover:text-ink'
+                }`}
+              >
+                Awaiting Approval
+              </button>
+              <button
+                type="button"
                 onClick={() => setReviewerQueueFilter('DONE')}
                 className={`rounded-lg px-2.5 py-1 transition-colors ${
                   reviewerQueueFilter === 'DONE'
@@ -239,11 +292,15 @@ export function RequestsPage() {
                 History
               </button>
             </div>
-          ) : (
-            <Button size="sm" onClick={() => navigate('/requests/new')}>
-              <Plus className="mr-1 size-4" /> New Request
+          ) : canCreateRequest ? (
+            <Button
+              size="sm"
+              onClick={() => navigate('/requests/new')}
+              className="h-8 rounded-lg px-3"
+            >
+              <Plus className="mr-1.5 size-4" /> New Request
             </Button>
-          )}
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">
@@ -260,8 +317,16 @@ export function RequestsPage() {
             </thead>
             <tbody className="divide-y divide-hairline">
               {data.map((r) => (
-                <tr key={r.id} className="transition-colors hover:bg-paper/40">
-                  <td className="px-6 py-3.5 font-mono text-xs font-semibold text-ink">
+                <tr
+                  key={r.id}
+                  onClick={() =>
+                    navigate(
+                      `/requests/${r.id}?bankId=${r.bankId || activeBankId || ''}`,
+                    )
+                  }
+                  className="cursor-pointer transition-colors hover:bg-paper/40"
+                >
+                  <td className="px-6 py-3.5 font-mono text-xs font-semibold text-accent hover:underline">
                     {r.requestNumber}
                   </td>
                   <td className="px-6 py-3.5 text-xs text-ink-soft">
@@ -278,12 +343,15 @@ export function RequestsPage() {
                   </td>
                   <td className="px-6 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {r.currentStatus === 'DRAFT' && (
+                      {r.currentStatus === 'DRAFT' && canCreateRequest && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/requests/new?requestId=${r.id}`)}
-                          className="text-xs text-accent hover:border-accent hover:text-accent-deep"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/requests/new?requestId=${r.id}`);
+                          }}
+                          className="h-7 px-2.5 text-xs text-accent border-accent/30 hover:bg-accent/10"
                         >
                           Continue Intake
                         </Button>
@@ -291,7 +359,13 @@ export function RequestsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedRequest(r)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(
+                            `/requests/${r.id}?bankId=${r.bankId || activeBankId || ''}`,
+                          );
+                        }}
+                        className="h-7 px-3 text-xs font-medium text-ink hover:bg-paper"
                       >
                         Details
                       </Button>
@@ -303,13 +377,6 @@ export function RequestsPage() {
           </table>
         </div>
       </div>
-
-      {selectedRequest && (
-        <RequestDetailModal
-          requestId={selectedRequest.id}
-          onClose={() => setSelectedRequest(null)}
-        />
-      )}
     </div>
-  )
+  );
 }

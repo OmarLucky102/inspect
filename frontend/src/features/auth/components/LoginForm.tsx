@@ -77,12 +77,12 @@ export function LoginForm() {
 
       <div className="space-y-5">
         <div>
-          <Label htmlFor="email" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/80">
+          <Label htmlFor="email" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/90">
             Work email
           </Label>
-          <div className="relative">
+          <div className="relative flex items-center">
             <Envelope
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-white/45"
+              className="pointer-events-none absolute left-3.5 z-10 size-4.5 text-zinc-500 transition-colors peer-focus:text-emerald-600"
               aria-hidden
             />
             <Input
@@ -92,7 +92,7 @@ export function LoginForm() {
               placeholder="admin@euroassist.com"
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'email-error' : undefined}
-              className="h-11.5 rounded-xl border-white/15 bg-white/[0.06] pl-10.5 text-[15px] text-white placeholder:text-white/35 transition-all hover:border-white/25 hover:bg-white/[0.08] focus:border-emerald-400 focus:bg-white/[0.1] focus:ring-2 focus:ring-emerald-400/25"
+              className="peer h-11 w-full rounded-xl border border-zinc-200 bg-white pl-11 text-[15px] font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
               {...register('email')}
             />
           </div>
@@ -105,13 +105,13 @@ export function LoginForm() {
 
         <div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/80">
+            <Label htmlFor="password" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/90">
               Password
             </Label>
           </div>
-          <div className="relative">
+          <div className="relative flex items-center">
             <LockKey
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-white/45"
+              className="pointer-events-none absolute left-3.5 z-10 size-4.5 text-zinc-500 transition-colors peer-focus:text-emerald-600"
               aria-hidden
             />
             <Input
@@ -121,7 +121,7 @@ export function LoginForm() {
               placeholder="Minimum 8 characters"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
-              className="h-11.5 rounded-xl border-white/15 bg-white/[0.06] pr-11 pl-10.5 text-[15px] text-white placeholder:text-white/35 transition-all hover:border-white/25 hover:bg-white/[0.08] focus:border-emerald-400 focus:bg-white/[0.1] focus:ring-2 focus:ring-emerald-400/25"
+              className="peer h-11 w-full rounded-xl border border-zinc-200 bg-white pr-11 pl-11 text-[15px] font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
               {...register('password')}
             />
             <button
@@ -129,7 +129,7 @@ export function LoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded-lg p-1.5 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+              className="absolute right-2.5 z-10 cursor-pointer rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
             >
               {showPassword ? (
                 <EyeSlash className="size-4" aria-hidden />

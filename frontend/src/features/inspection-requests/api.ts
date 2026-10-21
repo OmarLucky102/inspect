@@ -172,7 +172,7 @@ export interface InspectionRequestDetail {
     brand: { id: string; name: string } | null
     model: { id: string; name: string } | null
     category: { id: string; name: string } | null
-    color: { id: string; name: string } | null
+    color: { id: string; name: string; hex?: string | null } | null
     fuelType: { id: string; name: string } | null
     transmissionType: { id: string; name: string; nameAr?: string | null } | null
     trim: { id: string; code?: string; name: string; nameAr?: string | null } | null
@@ -332,6 +332,8 @@ export interface VehicleInfoPayload {
   engineCc: number
 
   plateNumber?: string
+  plateDigits?: string
+  plateLetters?: string
   power?: number
   mileage?: number
   colorId?: string

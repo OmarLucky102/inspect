@@ -74,3 +74,7 @@ export async function fetchBankMembers(bankId: string): Promise<BankMemberUser[]
   const res = await api.get<{ status: string; data: BankMemberUser[] }>(`/banks/${bankId}/members`)
   return res.data.data
 }
+
+export async function removeBankMember(bankId: string, userId: string): Promise<void> {
+  await api.delete(`/banks/${bankId}/members/${userId}`)
+}

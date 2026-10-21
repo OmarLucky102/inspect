@@ -133,6 +133,16 @@ export class VehicleDto {
   @IsOptional()
   licensePlate?: string;
 
+  @Transform(trimString)
+  @IsString({ message: 'Plate digits must be a string' })
+  @IsOptional()
+  plateDigits?: string;
+
+  @Transform(trimString)
+  @IsString({ message: 'Plate letters must be a string' })
+  @IsOptional()
+  plateLetters?: string;
+
   // Optional fields: Power / Motor Horsepower
   @Transform(toNumber)
   @IsInt({ message: 'Power must be an integer' })
@@ -300,6 +310,12 @@ export class VehicleDto {
   }
 
   getResolvedPlateNumber(): string | undefined {
+    if (this.plateDigits || this.plateLetters) {
+      const parts = [this.plateDigits?.trim(), this.plateLetters?.trim()].filter(
+        Boolean,
+      );
+      if (parts.length > 0) return parts.join(' ');
+    }
     const val = this.plateNumber ?? this.licensePlate;
     return val ? val.trim() : undefined;
   }
