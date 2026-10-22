@@ -10,6 +10,8 @@ import { CreateModelDto } from '../../presentation/dto/create-model.dto';
 import { UpdateModelDto } from '../../presentation/dto/update-model.dto';
 import { CreateColorDto } from '../../presentation/dto/create-color.dto';
 import { UpdateColorDto } from '../../presentation/dto/update-color.dto';
+import { CreateTrimDto } from '../../presentation/dto/create-trim.dto';
+import { UpdateTrimDto } from '../../presentation/dto/update-trim.dto';
 
 @Injectable()
 export class VehicleAdminService {
@@ -17,11 +19,12 @@ export class VehicleAdminService {
 
   // ─── Overview Stats ────────────────────────────────────────────────────────
   async getOverview() {
-    const [totalBrands, totalModels, totalColors, totalVehicles] =
+    const [totalBrands, totalModels, totalColors, totalTrims, totalVehicles] =
       await Promise.all([
         this.prisma.vehicleBrand.count(),
         this.prisma.vehicleModel.count(),
         this.prisma.color.count(),
+        this.prisma.vehicleTrim.count(),
         this.prisma.vehicle.count(),
       ]);
 
@@ -29,6 +32,7 @@ export class VehicleAdminService {
       totalBrands,
       totalModels,
       totalColors,
+      totalTrims,
       totalVehicles,
     };
   }
@@ -455,6 +459,198 @@ export class VehicleAdminService {
     }
 
     return this.prisma.color.delete({
+      where: { id },
+    });
+  }
+
+  // ─── Trim Management ──────────────────────────────────────────────────────
+  async getAllTrimsAdmin() {
+    return this.prisma.vehicleTrim.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: {
+            vehicles: true,
+            originalTrimRequests: true,
+          },
+        },
+      },
+    });
+  }
+
+  async createTrim(dto: CreateTrimDto) {
+    const cleanName = dto.name.trim();
+    const cleanNameAr = dto.nameAr?.trim() || null;
+
+    const existing = await this.prisma.vehicleTrim.findFirst({
+      where: { name: { equals: cleanName, mode: 'insensitive' } },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        `Trim with name "${cleanName}" already exists.`,
+      );
+    }
+
+    let code: string;
+    if (dto.code && dto.code.trim()) {
+      code = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      const codeExists = await this.prisma.vehicleTrim.findUnique({
+        where: { code },
+      });
+      if (codeExists) {
+        throw new BadRequestException(
+          `Trim code "${code}" is already in use.`,
+        );
+      }
+    } else {
+      let baseCode = cleanName
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+      if (!baseCode) {
+        baseCode = 'TRIM';
+      }
+      code = baseCode;
+      let counter = 1;
+      while (await this.prisma.vehicleTrim.findUnique({ where: { code } })) {
+        code = `${baseCode}_${counter++}`;
+      }
+    }
+
+    return this.prisma.vehicleTrim.create({
+      data: {
+        code,
+        name: cleanName,
+        nameAr: cleanNameAr,
+        isActive: dto.isActive !== undefined ? dto.isActive : true,
+      },
+      include: {
+        _count: {
+          select: {
+            vehicles: true,
+            originalTrimRequests: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateTrim(id: string, dto: UpdateTrimDto) {
+    const trim = await this.prisma.vehicleTrim.findUnique({
+      where: { id },
+    });
+    if (!trim) {
+      throw new NotFoundException(`Trim with ID "${id}" was not found.`);
+    }
+
+    const data: {
+      name?: string;
+      nameAr?: string | null;
+      code?: string;
+      isActive?: boolean;
+    } = {};
+
+    if (dto.name !== undefined) {
+      const cleanName = dto.name.trim();
+      if (!cleanName) {
+        throw new BadRequestException('Trim name cannot be empty.');
+      }
+      const existing = await this.prisma.vehicleTrim.findFirst({
+        where: {
+          name: { equals: cleanName, mode: 'insensitive' },
+          NOT: { id },
+        },
+      });
+      if (existing) {
+        throw new BadRequestException(
+          `Another trim with name "${cleanName}" already exists.`,
+        );
+      }
+      data.name = cleanName;
+    }
+
+    if (dto.nameAr !== undefined) {
+      data.nameAr = dto.nameAr?.trim() || null;
+    }
+
+    if (dto.code !== undefined && dto.code.trim()) {
+      const cleanCode = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      const existingCode = await this.prisma.vehicleTrim.findUnique({
+        where: { code: cleanCode },
+      });
+      if (existingCode && existingCode.id !== id) {
+        throw new BadRequestException(
+          `Trim code "${cleanCode}" is already in use.`,
+        );
+      }
+      data.code = cleanCode;
+    }
+
+    if (dto.isActive !== undefined) {
+      data.isActive = dto.isActive;
+    }
+
+    return this.prisma.vehicleTrim.update({
+      where: { id },
+      data,
+      include: {
+        _count: {
+          select: {
+            vehicles: true,
+            originalTrimRequests: true,
+          },
+        },
+      },
+    });
+  }
+
+  async toggleTrimStatus(id: string) {
+    const trim = await this.prisma.vehicleTrim.findUnique({
+      where: { id },
+    });
+    if (!trim) {
+      throw new NotFoundException(`Trim with ID "${id}" was not found.`);
+    }
+
+    return this.prisma.vehicleTrim.update({
+      where: { id },
+      data: { isActive: !trim.isActive },
+      include: {
+        _count: {
+          select: {
+            vehicles: true,
+            originalTrimRequests: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteTrim(id: string) {
+    const trim = await this.prisma.vehicleTrim.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            vehicles: true,
+            originalTrimRequests: true,
+          },
+        },
+      },
+    });
+    if (!trim) {
+      throw new NotFoundException(`Trim with ID "${id}" was not found.`);
+    }
+
+    const totalRefs =
+      (trim._count?.vehicles || 0) + (trim._count?.originalTrimRequests || 0);
+    if (totalRefs > 0) {
+      throw new BadRequestException(
+        `Cannot delete trim "${trim.name}" because ${totalRefs} vehicle(s)/request(s) reference it. You can deactivate it instead.`,
+      );
+    }
+
+    return this.prisma.vehicleTrim.delete({
       where: { id },
     });
   }

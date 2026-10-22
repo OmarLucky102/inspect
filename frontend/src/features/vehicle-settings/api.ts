@@ -33,10 +33,25 @@ export interface VehicleColorAdmin {
   };
 }
 
+export interface VehicleTrimAdmin {
+  id: string;
+  code: string;
+  name: string;
+  nameAr: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    vehicles: number;
+    originalTrimRequests: number;
+  };
+}
+
 export interface VehicleAdminOverview {
   totalBrands: number;
   totalModels: number;
   totalColors: number;
+  totalTrims?: number;
   totalVehicles: number;
 }
 
@@ -182,4 +197,60 @@ export async function toggleVehicleColorStatus(
 
 export async function deleteVehicleColor(id: string): Promise<void> {
   await api.delete(`/vehicles/colors/${id}`);
+}
+
+// ─── Trims ───────────────────────────────────────────────────────────────────
+export interface CreateTrimPayload {
+  name: string;
+  nameAr?: string;
+  code?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateTrimPayload {
+  name?: string;
+  nameAr?: string;
+  code?: string;
+  isActive?: boolean;
+}
+
+export async function fetchVehicleTrimsAdmin(): Promise<VehicleTrimAdmin[]> {
+  const res = await api.get<{ status: string; data: VehicleTrimAdmin[] }>(
+    '/vehicles/admin/trims',
+  );
+  return (res.data as any).data ?? res.data ?? [];
+}
+
+export async function createVehicleTrim(
+  payload: CreateTrimPayload,
+): Promise<VehicleTrimAdmin> {
+  const res = await api.post<{ status: string; data: VehicleTrimAdmin }>(
+    '/vehicles/trims',
+    payload,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function updateVehicleTrim(
+  id: string,
+  payload: UpdateTrimPayload,
+): Promise<VehicleTrimAdmin> {
+  const res = await api.patch<{ status: string; data: VehicleTrimAdmin }>(
+    `/vehicles/trims/${id}`,
+    payload,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function toggleVehicleTrimStatus(
+  id: string,
+): Promise<VehicleTrimAdmin> {
+  const res = await api.patch<{ status: string; data: VehicleTrimAdmin }>(
+    `/vehicles/trims/${id}/toggle-status`,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function deleteVehicleTrim(id: string): Promise<void> {
+  await api.delete(`/vehicles/trims/${id}`);
 }

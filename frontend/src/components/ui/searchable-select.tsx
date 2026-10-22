@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { CaretUpDown, Check, MagnifyingGlass, X } from '@phosphor-icons/react'
+import { CaretUpDown, Check, MagnifyingGlass, Plus, X } from '@phosphor-icons/react'
 
 export interface SelectOption {
   value: string
@@ -20,6 +20,8 @@ interface SearchableSelectProps {
   required?: boolean
   className?: string
   emptyText?: string
+  onAddNew?: () => void
+  addNewText?: string
 }
 
 export function SearchableSelect({
@@ -33,6 +35,8 @@ export function SearchableSelect({
   required = false,
   className = '',
   emptyText = 'No options found',
+  onAddNew,
+  addNewText,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -187,46 +191,78 @@ export function SearchableSelect({
           {/* Options List */}
           <div className="max-h-52 overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-4 text-center text-xs text-ink-mute">
-                {emptyText}
+              <div className="px-3 py-4 text-center text-xs text-ink-mute space-y-2">
+                <p>{emptyText}</p>
+                {onAddNew && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsOpen(false)
+                      onAddNew()
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white font-medium text-xs shadow-xs hover:bg-accent-deep cursor-pointer"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>{addNewText || 'Add new option'}</span>
+                  </button>
+                )}
               </div>
             ) : (
-              filteredOptions.map((opt) => {
-                const isSelected = opt.value === value
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleSelect(opt.value)}
-                    className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-                      isSelected
-                        ? 'bg-accent/10 font-medium text-accent'
-                        : 'text-ink hover:bg-paper'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {opt.colorDot && (
-                        <span
-                          className="size-3.5 shrink-0 rounded-full border border-slate-300 shadow-2xs"
-                          style={{ backgroundColor: opt.colorDot }}
-                        />
-                      )}
-                      <span className="truncate">{opt.label}</span>
-                      {opt.secondaryLabel && (
-                        <span className="text-xs text-ink-mute">
-                          · {opt.secondaryLabel}
-                        </span>
-                      )}
-                      {opt.badge && (
-                        <span className="rounded bg-paper px-1.5 py-0.5 font-mono text-[10px] text-ink-mute">
-                          {opt.badge}
-                        </span>
-                      )}
-                    </div>
-                    {isSelected && <Check className="size-4 shrink-0 text-accent" />}
-                  </button>
-                )
-              })
+              <>
+                {filteredOptions.map((opt) => {
+                  const isSelected = opt.value === value
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleSelect(opt.value)}
+                      className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
+                        isSelected
+                          ? 'bg-accent/10 font-medium text-accent'
+                          : 'text-ink hover:bg-paper'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {opt.colorDot && (
+                          <span
+                            className="size-3.5 shrink-0 rounded-full border border-slate-300 shadow-2xs"
+                            style={{ backgroundColor: opt.colorDot }}
+                          />
+                        )}
+                        <span className="truncate">{opt.label}</span>
+                        {opt.secondaryLabel && (
+                          <span className="text-xs text-ink-mute">
+                            · {opt.secondaryLabel}
+                          </span>
+                        )}
+                        {opt.badge && (
+                          <span className="rounded bg-paper px-1.5 py-0.5 font-mono text-[10px] text-ink-mute">
+                            {opt.badge}
+                          </span>
+                        )}
+                      </div>
+                      {isSelected && <Check className="size-4 shrink-0 text-accent" />}
+                    </button>
+                  )
+                })}
+                {onAddNew && (
+                  <div className="border-t border-hairline p-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsOpen(false)
+                        onAddNew()
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>{addNewText || 'Add new option'}</span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

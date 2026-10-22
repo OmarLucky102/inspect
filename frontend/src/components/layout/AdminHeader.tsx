@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/use-logout'
 import { BankWorkspaceDropdown } from './BankWorkspaceDropdown'
 import { UserProfileDropdown } from './UserProfileDropdown'
+import { ThemeToggle } from './ThemeToggle'
 
 interface AdminHeaderProps {
   onMenu: () => void
@@ -40,6 +41,9 @@ export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
           <BankWorkspaceDropdown />
 
           <div className="h-5 w-[1px] bg-hairline hidden sm:block" />
+
+          {/* Quick 1-Click Dark/Light Mode Toggle */}
+          <ThemeToggle />
 
           {/* Interactive Profile Circle Avatar Dropdown */}
           <UserProfileDropdown />

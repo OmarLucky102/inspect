@@ -1,17 +1,26 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   ParseUUIDPipe,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { PrismaService } from '../../../database/prisma.service';
+import { VehicleAdminService } from '../../application/services/vehicle-admin.service';
+import { CreateTrimDto } from '../dto/create-trim.dto';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)
 export class VehicleLookupController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly vehicleAdminService: VehicleAdminService,
+  ) {}
 
   @Get('lookups')
   async getAllLookups() {
@@ -174,6 +183,17 @@ export class VehicleLookupController {
     return {
       status: 'success',
       data: trims,
+    };
+  }
+
+  @Post('trims')
+  @HttpCode(HttpStatus.CREATED)
+  async createTrim(@Body() dto: CreateTrimDto) {
+    const data = await this.vehicleAdminService.createTrim(dto);
+    return {
+      status: 'success',
+      message: 'Trim created successfully',
+      data,
     };
   }
 }

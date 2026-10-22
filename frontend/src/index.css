@@ -7,15 +7,41 @@
   --font-display: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
-  --color-bone: #faf9f7;
-  --color-paper: #f3f1ec;
-  --color-ink: #14171a;
-  --color-ink-soft: #3f444b;
-  --color-ink-mute: #6e7480;
-  --color-hairline: #e4e1da;
-  --color-accent: #0e6b4e;
-  --color-accent-deep: #0a4f3a;
-  --color-accent-soft: #e2efe8;
+  --color-bone: var(--theme-bone);
+  --color-paper: var(--theme-paper);
+  --color-ink: var(--theme-ink);
+  --color-ink-soft: var(--theme-ink-soft);
+  --color-ink-mute: var(--theme-ink-mute);
+  --color-hairline: var(--theme-hairline);
+  --color-accent: var(--theme-accent);
+  --color-accent-deep: var(--theme-accent-deep);
+  --color-accent-soft: var(--theme-accent-soft);
+}
+
+:root {
+  --theme-bone: #faf9f7;
+  --theme-paper: #f3f1ec;
+  --theme-ink: #14171a;
+  --theme-ink-soft: #3f444b;
+  --theme-ink-mute: #6e7480;
+  --theme-hairline: #e4e1da;
+  --theme-accent: #0e6b4e;
+  --theme-accent-deep: #0a4f3a;
+  --theme-accent-soft: #e2efe8;
+  color-scheme: light;
+}
+
+.dark {
+  --theme-bone: #0a0d14;
+  --theme-paper: #161c28;
+  --theme-ink: #f9fafb;
+  --theme-ink-soft: #cbd5e1;
+  --theme-ink-mute: #94a3b8;
+  --theme-hairline: #22293a;
+  --theme-accent: #10b981;
+  --theme-accent-deep: #059669;
+  --theme-accent-soft: #064e3b;
+  color-scheme: dark;
 }
 
 html,
@@ -29,6 +55,116 @@ body {
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Surface inversion for dark mode */
+.dark .bg-white {
+  background-color: #121620;
+}
+
+.dark .bg-white\/40 {
+  background-color: rgba(18, 22, 32, 0.4);
+}
+
+.dark .bg-white\/70 {
+  background-color: rgba(18, 22, 32, 0.7);
+}
+
+.dark .bg-white\/80 {
+  background-color: rgba(18, 22, 32, 0.8);
+}
+
+.dark .bg-white\/90 {
+  background-color: rgba(18, 22, 32, 0.9);
+}
+
+.dark .bg-bone {
+  background-color: #0a0d14;
+}
+
+.dark .bg-bone\/85 {
+  background-color: rgba(10, 13, 20, 0.85);
+}
+
+.dark .bg-paper\/30 {
+  background-color: rgba(22, 28, 40, 0.3);
+}
+
+.dark .bg-paper\/40 {
+  background-color: rgba(22, 28, 40, 0.4);
+}
+
+.dark .bg-paper\/60 {
+  background-color: rgba(22, 28, 40, 0.6);
+}
+
+.dark .border-hairline {
+  border-color: #22293a;
+}
+
+.dark .divide-hairline > * + * {
+  border-color: #22293a;
+}
+
+/* Modal and drawer overlay backdrops: ensure deep dimming */
+.dark .bg-ink\/50,
+.dark .bg-ink\/45,
+.dark .bg-ink\/90 {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.dark .bg-ink\/10,
+.dark .bg-ink\/5 {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* High-contrast solid elements in dark mode (avatars, active items, solid buttons) */
+.dark .bg-ink {
+  background-color: #1e2535;
+}
+
+.dark button.bg-ink:not(.bg-accent),
+.dark a.bg-ink:not(.bg-accent) {
+  background-color: #1e2535;
+  color: #f9fafb;
+}
+
+.dark button.bg-ink:hover,
+.dark a.bg-ink:hover {
+  background-color: #2a3349;
+}
+
+/* Soft status badge tints in dark mode */
+.dark .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.14) !important;
+  color: #d8b4fe !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  color: #fcd34d !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark .bg-emerald-50,
+.dark .bg-emerald-50\/80 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.14) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .bg-zinc-100 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 /* Technical grid for the editorial panel — pure CSS, no image asset. */
@@ -45,6 +181,12 @@ body {
     linear-gradient(to right, rgb(20 23 26 / 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgb(20 23 26 / 0.05) 1px, transparent 1px);
   background-size: 32px 32px;
+}
+
+.dark .tech-grid-light {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
 }
 
 /* Soft vignette + tactile grain for premium depth (fixed, non-scrolling). */
@@ -72,3 +214,12 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s !important;
 }
 
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #121620 inset !important;
+  -webkit-text-fill-color: #f9fafb !important;
+  caret-color: #f9fafb !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}

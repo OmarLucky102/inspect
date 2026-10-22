@@ -11,6 +11,9 @@ import {
   IdentificationCard,
   ListChecks,
   MapPin,
+  Plus,
+  SlidersHorizontal,
+  X,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -18,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { getApiErrorMessage } from '@/lib/api';
+import { createVehicleTrim } from '@/features/vehicle-settings/api';
 import {
   fetchGovernorates,
   createInspectionRequest,
@@ -96,6 +100,12 @@ export function CreateRequestPage() {
     insuranceValue: '',
     specialInstructions: '',
   });
+
+  // State for adding a vehicle trim on the fly
+  const [isAddTrimModalOpen, setIsAddTrimModalOpen] = useState(false);
+  const [quickTrimName, setQuickTrimName] = useState('');
+  const [quickTrimNameAr, setQuickTrimNameAr] = useState('');
+  const [quickTrimCode, setQuickTrimCode] = useState('');
 
   // ----------------------------------------------------
   // Queries
@@ -339,6 +349,25 @@ export function CreateRequestPage() {
       toast.error(
         getApiErrorMessage(err, 'Failed to submit inspection request'),
       ),
+  });
+
+  const addTrimMutation = useMutation({
+    mutationFn: createVehicleTrim,
+    onSuccess: (newTrim) => {
+      toast.success(`Trim "${newTrim.name}" added to list and selected!`);
+      void queryClient.invalidateQueries({ queryKey: ['vehicle', 'lookups'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['vehicle', 'trims', 'admin'],
+      });
+      setVehicleForm((prev) => ({ ...prev, trimId: newTrim.id }));
+      setIsAddTrimModalOpen(false);
+      setQuickTrimName('');
+      setQuickTrimNameAr('');
+      setQuickTrimCode('');
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, 'Failed to add trim'));
+    },
   });
 
   // ----------------------------------------------------
@@ -1037,9 +1066,24 @@ export function CreateRequestPage() {
 
               {/* 10. Trim */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  Trim
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink-soft">
+                    Trim / الفئة
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickTrimName('');
+                      setQuickTrimNameAr('');
+                      setQuickTrimCode('');
+                      setIsAddTrimModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:underline cursor-pointer"
+                  >
+                    <Plus className="size-3" />
+                    <span>Add New Trim</span>
+                  </button>
+                </div>
                 <SearchableSelect
                   options={trimOptions}
                   value={vehicleForm.trimId}
@@ -1048,6 +1092,13 @@ export function CreateRequestPage() {
                   }
                   placeholder="Select trim..."
                   searchPlaceholder="Search trim..."
+                  onAddNew={() => {
+                    setQuickTrimName('');
+                    setQuickTrimNameAr('');
+                    setQuickTrimCode('');
+                    setIsAddTrimModalOpen(true);
+                  }}
+                  addNewText="Add new vehicle trim..."
                 />
               </div>
 
@@ -1167,6 +1218,116 @@ export function CreateRequestPage() {
             onSubmitFinal={() => submitFinalMutation.mutate()}
             isSubmittingFinal={submitFinalMutation.isPending}
           />
+        </div>
+      )}
+
+      {/* Quick Add Trim Modal */}
+      {isAddTrimModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-hairline bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5 bg-paper/50">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-white">
+                  <SlidersHorizontal className="size-4" />
+                </span>
+                <h3 className="font-semibold text-ink text-sm">
+                  Add Vehicle Trim to List
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddTrimModalOpen(false)}
+                className="rounded-lg p-1 text-ink-mute hover:bg-paper hover:text-ink cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!quickTrimName.trim()) {
+                  toast.error('Please enter a trim name');
+                  return;
+                }
+                addTrimMutation.mutate({
+                  name: quickTrimName.trim(),
+                  nameAr: quickTrimNameAr.trim() || undefined,
+                  code: quickTrimCode.trim()
+                    ? quickTrimCode.trim().toUpperCase()
+                    : undefined,
+                  isActive: true,
+                });
+              }}
+              className="p-5 space-y-3.5"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Trim Name (English) *
+                </label>
+                <Input
+                  value={quickTrimName}
+                  onChange={(e) => setQuickTrimName(e.target.value)}
+                  placeholder="e.g. Highline, Sport Line, Premier"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Trim Name in Arabic (الفئة)
+                </label>
+                <Input
+                  value={quickTrimNameAr}
+                  onChange={(e) => setQuickTrimNameAr(e.target.value)}
+                  placeholder="e.g. هاي لاين، سبورت، الفئة الأولى"
+                  dir="rtl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Trim Code (Optional)
+                </label>
+                <Input
+                  value={quickTrimCode}
+                  onChange={(e) => setQuickTrimCode(e.target.value.toUpperCase())}
+                  placeholder="Auto-generated if left empty"
+                  className="font-mono uppercase text-xs"
+                />
+                <p className="text-[10px] text-ink-mute mt-1">
+                  Unique identifier code. If left blank, it will be automatically generated from the name.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddTrimModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={addTrimMutation.isPending}
+                  className="bg-accent text-white"
+                >
+                  {addTrimMutation.isPending ? (
+                    <>
+                      <CircleNotch className="size-3.5 animate-spin mr-1" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add & Select'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

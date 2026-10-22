@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Car,
   Palette,
+  SlidersHorizontal,
   ShieldCheck,
   WarningCircle,
 } from '@phosphor-icons/react';
@@ -9,10 +10,11 @@ import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { VehicleSettingsOverview } from '@/features/vehicle-settings/components/VehicleSettingsOverview';
 import { BrandManagementTab } from '@/features/vehicle-settings/components/BrandManagementTab';
 import { ColorManagementTab } from '@/features/vehicle-settings/components/ColorManagementTab';
+import { TrimManagementTab } from '@/features/vehicle-settings/components/TrimManagementTab';
 
 export function VehicleSettingsPage() {
   const { user } = useWorkspace();
-  const [activeTab, setActiveTab] = useState<'makes' | 'colors'>('makes');
+  const [activeTab, setActiveTab] = useState<'makes' | 'trims' | 'colors'>('makes');
 
   // Strict role check: Superadmin only
   if (user?.role !== 'SUPER_ADMIN') {
@@ -23,7 +25,7 @@ export function VehicleSettingsPage() {
         </div>
         <h2 className="text-lg font-semibold text-ink">Access Restricted</h2>
         <p className="text-sm text-ink-mute mt-1 max-w-sm text-center">
-          Vehicle and color management is restricted to Superadmin accounts only.
+          Vehicle and lookup management is restricted to Superadmin accounts only.
         </p>
       </div>
     );
@@ -44,10 +46,10 @@ export function VehicleSettingsPage() {
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">
-            Vehicle & Color Management
+            Vehicle & Lookup Settings
           </h1>
           <p className="text-sm text-ink-mute mt-0.5">
-            Manage car makes (brands), sub-models, and dynamic color dropdown lists for the inspection pipeline.
+            Manage car makes (brands), sub-models, trims & editions (الفئات), and color palettes for the inspection pipeline.
           </p>
         </div>
 
@@ -55,7 +57,7 @@ export function VehicleSettingsPage() {
         <div className="flex p-1 bg-paper rounded-xl border border-hairline shrink-0">
           <button
             onClick={() => setActiveTab('makes')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               activeTab === 'makes'
                 ? 'bg-white text-ink shadow-xs font-semibold'
                 : 'text-ink-mute hover:text-ink'
@@ -65,8 +67,19 @@ export function VehicleSettingsPage() {
             Makes & Models
           </button>
           <button
+            onClick={() => setActiveTab('trims')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+              activeTab === 'trims'
+                ? 'bg-white text-ink shadow-xs font-semibold'
+                : 'text-ink-mute hover:text-ink'
+            }`}
+          >
+            <SlidersHorizontal className="size-4" />
+            Trims & Editions
+          </button>
+          <button
             onClick={() => setActiveTab('colors')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               activeTab === 'colors'
                 ? 'bg-white text-ink shadow-xs font-semibold'
                 : 'text-ink-mute hover:text-ink'
@@ -84,6 +97,7 @@ export function VehicleSettingsPage() {
       {/* Tab Content */}
       <div className="pt-2">
         {activeTab === 'makes' && <BrandManagementTab />}
+        {activeTab === 'trims' && <TrimManagementTab />}
         {activeTab === 'colors' && <ColorManagementTab />}
       </div>
     </div>

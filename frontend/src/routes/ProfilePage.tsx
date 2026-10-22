@@ -1,5 +1,6 @@
-import { UserCircle } from '@phosphor-icons/react'
+import { UserCircle, Palette } from '@phosphor-icons/react'
 import { UserProfileForm } from '@/features/users/components/UserProfileForm'
+import { ThemeSelector } from '@/components/layout/ThemeToggle'
 
 export function ProfilePage() {
   return (
@@ -18,6 +19,22 @@ export function ProfilePage() {
         <p className="text-sm text-ink-mute mt-1">
           Review your account role, active status, contact details, and update personal information.
         </p>
+      </div>
+
+      {/* Theme / Appearance Preference Card */}
+      <div className="max-w-4xl rounded-2xl border border-hairline bg-white p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-paper text-accent border border-hairline">
+            <Palette className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Interface Theme</h2>
+            <p className="text-xs text-ink-mute">
+              Customize appearance across Inspect. Choose light, dark, or sync with your system.
+            </p>
+          </div>
+        </div>
+        <ThemeSelector className="w-full sm:w-64 shrink-0" />
       </div>
 
       {/* Main Profile Form */}

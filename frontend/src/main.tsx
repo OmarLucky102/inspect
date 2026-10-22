@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/auth-context.tsx'
@@ -17,12 +18,14 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-          <Toaster position="top-center" toastOptions={{ duration: 3200 }} />
-        </AuthProvider>
-      </BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+            <Toaster position="top-center" toastOptions={{ duration: 3200 }} />
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 )
