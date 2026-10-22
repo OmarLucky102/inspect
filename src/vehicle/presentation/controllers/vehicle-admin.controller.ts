@@ -24,6 +24,8 @@ import { UpdateModelDto } from '../dto/update-model.dto';
 import { CreateColorDto } from '../dto/create-color.dto';
 import { UpdateColorDto } from '../dto/update-color.dto';
 import { UpdateTrimDto } from '../dto/update-trim.dto';
+import { UpdateCategoryDto } from '../dto/update-category.dto';
+import { UpdateSunroofTypeDto } from '../dto/update-sunroof-type.dto';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -227,6 +229,80 @@ export class VehicleAdminController {
     return {
       status: 'success',
       message: 'Trim deleted successfully',
+    };
+  }
+
+  // ─── Categories Management ────────────────────────────────────────────────
+  @Get('admin/categories')
+  async getAllCategoriesAdmin() {
+    const data = await this.vehicleAdminService.getAllCategoriesAdmin();
+    return {
+      status: 'success',
+      data,
+    };
+  }
+
+  @Patch('categories/:id')
+  async updateCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCategoryDto,
+  ) {
+    const data = await this.vehicleAdminService.updateCategory(id, dto);
+    return {
+      status: 'success',
+      message: 'Category updated successfully',
+      data,
+    };
+  }
+
+  @Patch('categories/:id/toggle-status')
+  async toggleCategoryStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.vehicleAdminService.toggleCategoryStatus(id);
+    return {
+      status: 'success',
+      message: `Category ${data.isActive ? 'activated' : 'deactivated'} successfully`,
+      data,
+    };
+  }
+
+  @Delete('categories/:id')
+  async deleteCategory(@Param('id', ParseUUIDPipe) id: string) {
+    await this.vehicleAdminService.deleteCategory(id);
+    return {
+      status: 'success',
+      message: 'Category deleted successfully',
+    };
+  }
+
+  // ─── Sunroof Types Management ─────────────────────────────────────────────
+  @Get('admin/sunroof-types')
+  async getAllSunroofTypesAdmin() {
+    const data = await this.vehicleAdminService.getAllSunroofTypesAdmin();
+    return {
+      status: 'success',
+      data,
+    };
+  }
+
+  @Patch('sunroof-types/:id')
+  async updateSunroofType(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateSunroofTypeDto,
+  ) {
+    const data = await this.vehicleAdminService.updateSunroofType(id, dto);
+    return {
+      status: 'success',
+      message: 'Sunroof specification updated successfully',
+      data,
+    };
+  }
+
+  @Delete('sunroof-types/:id')
+  async deleteSunroofType(@Param('id', ParseUUIDPipe) id: string) {
+    await this.vehicleAdminService.deleteSunroofType(id);
+    return {
+      status: 'success',
+      message: 'Sunroof specification deleted successfully',
     };
   }
 }

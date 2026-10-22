@@ -47,11 +47,34 @@ export interface VehicleTrimAdmin {
   };
 }
 
+export interface VehicleCategoryAdmin {
+  id: string;
+  name: string;
+  nameAr: string | null;
+  code: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    vehicles: number;
+    checklists: number;
+  };
+}
+
+export interface SunroofTypeAdmin {
+  id: string;
+  code: string;
+  name: string;
+  nameAr: string | null;
+}
+
 export interface VehicleAdminOverview {
   totalBrands: number;
   totalModels: number;
   totalColors: number;
   totalTrims?: number;
+  totalCategories?: number;
+  totalSunroofTypes?: number;
   totalVehicles: number;
 }
 
@@ -253,4 +276,105 @@ export async function toggleVehicleTrimStatus(
 
 export async function deleteVehicleTrim(id: string): Promise<void> {
   await api.delete(`/vehicles/trims/${id}`);
+}
+
+// ─── Categories ──────────────────────────────────────────────────────────────
+export interface CreateCategoryPayload {
+  name: string;
+  nameAr?: string;
+  code?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateCategoryPayload {
+  name?: string;
+  nameAr?: string;
+  code?: string;
+  isActive?: boolean;
+}
+
+export async function fetchVehicleCategoriesAdmin(): Promise<VehicleCategoryAdmin[]> {
+  const res = await api.get<{ status: string; data: VehicleCategoryAdmin[] }>(
+    '/vehicles/admin/categories',
+  );
+  return (res.data as any).data ?? res.data ?? [];
+}
+
+export async function createVehicleCategory(
+  payload: CreateCategoryPayload,
+): Promise<VehicleCategoryAdmin> {
+  const res = await api.post<{ status: string; data: VehicleCategoryAdmin }>(
+    '/vehicles/categories',
+    payload,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function updateVehicleCategory(
+  id: string,
+  payload: UpdateCategoryPayload,
+): Promise<VehicleCategoryAdmin> {
+  const res = await api.patch<{ status: string; data: VehicleCategoryAdmin }>(
+    `/vehicles/categories/${id}`,
+    payload,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function toggleVehicleCategoryStatus(
+  id: string,
+): Promise<VehicleCategoryAdmin> {
+  const res = await api.patch<{ status: string; data: VehicleCategoryAdmin }>(
+    `/vehicles/categories/${id}/toggle-status`,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function deleteVehicleCategory(id: string): Promise<void> {
+  await api.delete(`/vehicles/categories/${id}`);
+}
+
+// ─── Sunroof Types ────────────────────────────────────────────────────────────
+export interface CreateSunroofTypePayload {
+  name: string;
+  nameAr?: string;
+  code?: string;
+}
+
+export interface UpdateSunroofTypePayload {
+  name?: string;
+  nameAr?: string;
+  code?: string;
+}
+
+export async function fetchSunroofTypesAdmin(): Promise<SunroofTypeAdmin[]> {
+  const res = await api.get<{ status: string; data: SunroofTypeAdmin[] }>(
+    '/vehicles/admin/sunroof-types',
+  );
+  return (res.data as any).data ?? res.data ?? [];
+}
+
+export async function createSunroofType(
+  payload: CreateSunroofTypePayload,
+): Promise<SunroofTypeAdmin> {
+  const res = await api.post<{ status: string; data: SunroofTypeAdmin }>(
+    '/vehicles/sunroof-types',
+    payload,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function updateSunroofType(
+  id: string,
+  payload: UpdateSunroofTypePayload,
+): Promise<SunroofTypeAdmin> {
+  const res = await api.patch<{ status: string; data: SunroofTypeAdmin }>(
+    `/vehicles/sunroof-types/${id}`,
+    payload,
+  );
+  return (res.data as any).data ?? res.data;
+}
+
+export async function deleteSunroofType(id: string): Promise<void> {
+  await api.delete(`/vehicles/sunroof-types/${id}`);
 }

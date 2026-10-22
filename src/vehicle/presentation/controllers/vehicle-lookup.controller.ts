@@ -13,6 +13,8 @@ import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.gua
 import { PrismaService } from '../../../database/prisma.service';
 import { VehicleAdminService } from '../../application/services/vehicle-admin.service';
 import { CreateTrimDto } from '../dto/create-trim.dto';
+import { CreateCategoryDto } from '../dto/create-category.dto';
+import { CreateSunroofTypeDto } from '../dto/create-sunroof-type.dto';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)
@@ -193,6 +195,28 @@ export class VehicleLookupController {
     return {
       status: 'success',
       message: 'Trim created successfully',
+      data,
+    };
+  }
+
+  @Post('categories')
+  @HttpCode(HttpStatus.CREATED)
+  async createCategory(@Body() dto: CreateCategoryDto) {
+    const data = await this.vehicleAdminService.createCategory(dto);
+    return {
+      status: 'success',
+      message: 'Category created successfully',
+      data,
+    };
+  }
+
+  @Post('sunroof-types')
+  @HttpCode(HttpStatus.CREATED)
+  async createSunroofType(@Body() dto: CreateSunroofTypeDto) {
+    const data = await this.vehicleAdminService.createSunroofType(dto);
+    return {
+      status: 'success',
+      message: 'Sunroof specification created successfully',
       data,
     };
   }

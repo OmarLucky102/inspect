@@ -13,6 +13,8 @@ import {
   MapPin,
   Plus,
   SlidersHorizontal,
+  Shapes,
+  Sun,
   X,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -21,7 +23,11 @@ import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { getApiErrorMessage } from '@/lib/api';
-import { createVehicleTrim } from '@/features/vehicle-settings/api';
+import {
+  createVehicleTrim,
+  createVehicleCategory,
+  createSunroofType,
+} from '@/features/vehicle-settings/api';
 import {
   fetchGovernorates,
   createInspectionRequest,
@@ -96,16 +102,29 @@ export function CreateRequestPage() {
     colorId: '',
     categoryId: '',
     trimId: '',
+    sunroofSpecification: '',
     engineCc: 1600,
     insuranceValue: '',
     specialInstructions: '',
   });
 
-  // State for adding a vehicle trim on the fly
+  // State for adding vehicle trim on the fly
   const [isAddTrimModalOpen, setIsAddTrimModalOpen] = useState(false);
   const [quickTrimName, setQuickTrimName] = useState('');
   const [quickTrimNameAr, setQuickTrimNameAr] = useState('');
   const [quickTrimCode, setQuickTrimCode] = useState('');
+
+  // State for adding vehicle category on the fly
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+  const [quickCategoryName, setQuickCategoryName] = useState('');
+  const [quickCategoryNameAr, setQuickCategoryNameAr] = useState('');
+  const [quickCategoryCode, setQuickCategoryCode] = useState('');
+
+  // State for adding sunroof specification on the fly
+  const [isAddSunroofModalOpen, setIsAddSunroofModalOpen] = useState(false);
+  const [quickSunroofName, setQuickSunroofName] = useState('');
+  const [quickSunroofNameAr, setQuickSunroofNameAr] = useState('');
+  const [quickSunroofCode, setQuickSunroofCode] = useState('');
 
   // ----------------------------------------------------
   // Queries
@@ -161,6 +180,7 @@ export function CreateRequestPage() {
           colorId: v.color?.id || '',
           categoryId: v.category?.id || '',
           trimId: v.trim?.id || '',
+          sunroofSpecification: v.sunroofSpecification || '',
           engineCc: v.engineCc || 1600,
           insuranceValue:
             v.insuranceValue != null ? String(v.insuranceValue) : '',
@@ -251,6 +271,15 @@ export function CreateRequestPage() {
       value: t.id,
       label: t.name,
       secondaryLabel: t.nameAr ?? undefined,
+    }));
+  }, [lookups]);
+
+  const sunroofOptions = useMemo(() => {
+    if (!lookups?.sunroofTypes) return [];
+    return lookups.sunroofTypes.map((s) => ({
+      value: s.name,
+      label: s.name,
+      secondaryLabel: s.nameAr ?? undefined,
     }));
   }, [lookups]);
 
@@ -370,6 +399,53 @@ export function CreateRequestPage() {
     },
   });
 
+  const addCategoryMutation = useMutation({
+    mutationFn: createVehicleCategory,
+    onSuccess: (newCategory) => {
+      toast.success(
+        `Category "${newCategory.name}" added to list and selected!`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['vehicle', 'lookups'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['vehicle', 'categories', 'admin'],
+      });
+      setVehicleForm((prev) => ({ ...prev, categoryId: newCategory.id }));
+      setIsAddCategoryModalOpen(false);
+      setQuickCategoryName('');
+      setQuickCategoryNameAr('');
+      setQuickCategoryCode('');
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, 'Failed to add vehicle category'));
+    },
+  });
+
+  const addSunroofMutation = useMutation({
+    mutationFn: createSunroofType,
+    onSuccess: (newSunroof) => {
+      toast.success(
+        `Sunroof specification "${newSunroof.name}" added to list and selected!`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['vehicle', 'lookups'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['vehicle', 'sunroofs', 'admin'],
+      });
+      setVehicleForm((prev) => ({
+        ...prev,
+        sunroofSpecification: newSunroof.name,
+      }));
+      setIsAddSunroofModalOpen(false);
+      setQuickSunroofName('');
+      setQuickSunroofNameAr('');
+      setQuickSunroofCode('');
+    },
+    onError: (err) => {
+      toast.error(
+        getApiErrorMessage(err, 'Failed to add sunroof specification'),
+      );
+    },
+  });
+
   // ----------------------------------------------------
   // Handlers
   // ----------------------------------------------------
@@ -433,6 +509,8 @@ export function CreateRequestPage() {
     colorId: vehicleForm.colorId || undefined,
     categoryId: vehicleForm.categoryId,
     trimId: vehicleForm.trimId || undefined,
+    sunroofSpecification:
+      vehicleForm.sunroofSpecification.trim() || undefined,
     engineCc: Number(vehicleForm.engineCc),
     insuranceValue: vehicleForm.insuranceValue
       ? Number(vehicleForm.insuranceValue)
@@ -1050,9 +1128,24 @@ export function CreateRequestPage() {
 
               {/* 9. Category */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  Category <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink-soft">
+                    Category / نوع الهيكل <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickCategoryName('');
+                      setQuickCategoryNameAr('');
+                      setQuickCategoryCode('');
+                      setIsAddCategoryModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:underline cursor-pointer"
+                  >
+                    <Plus className="size-3" />
+                    <span>Add New Category</span>
+                  </button>
+                </div>
                 <SearchableSelect
                   options={categoryOptions}
                   value={vehicleForm.categoryId}
@@ -1061,6 +1154,13 @@ export function CreateRequestPage() {
                   }
                   placeholder="Select category (e.g. Sedan, SUV)..."
                   searchPlaceholder="Search category..."
+                  onAddNew={() => {
+                    setQuickCategoryName('');
+                    setQuickCategoryNameAr('');
+                    setQuickCategoryCode('');
+                    setIsAddCategoryModalOpen(true);
+                  }}
+                  addNewText="Add new vehicle category..."
                 />
               </div>
 
@@ -1099,6 +1199,44 @@ export function CreateRequestPage() {
                     setIsAddTrimModalOpen(true);
                   }}
                   addNewText="Add new vehicle trim..."
+                />
+              </div>
+
+              {/* 11. Sunroof Specification */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink-soft">
+                    Sunroof / فتحة السقف
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickSunroofName('');
+                      setQuickSunroofNameAr('');
+                      setQuickSunroofCode('');
+                      setIsAddSunroofModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:underline cursor-pointer"
+                  >
+                    <Plus className="size-3" />
+                    <span>Add New Spec</span>
+                  </button>
+                </div>
+                <SearchableSelect
+                  options={sunroofOptions}
+                  value={vehicleForm.sunroofSpecification}
+                  onChange={(sunroofSpecification) =>
+                    setVehicleForm({ ...vehicleForm, sunroofSpecification })
+                  }
+                  placeholder="Select sunroof spec..."
+                  searchPlaceholder="Search sunroof (e.g. Panoramic, Sunroof)..."
+                  onAddNew={() => {
+                    setQuickSunroofName('');
+                    setQuickSunroofNameAr('');
+                    setQuickSunroofCode('');
+                    setIsAddSunroofModalOpen(true);
+                  }}
+                  addNewText="Add new sunroof specification..."
                 />
               </div>
 
@@ -1317,6 +1455,229 @@ export function CreateRequestPage() {
                   className="bg-accent text-white"
                 >
                   {addTrimMutation.isPending ? (
+                    <>
+                      <CircleNotch className="size-3.5 animate-spin mr-1" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add & Select'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add Category Modal */}
+      {isAddCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-hairline bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5 bg-paper/50">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-white">
+                  <Shapes className="size-4" />
+                </span>
+                <h3 className="font-semibold text-ink text-sm">
+                  Add Vehicle Category to List
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddCategoryModalOpen(false)}
+                className="rounded-lg p-1 text-ink-mute hover:bg-paper hover:text-ink cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!quickCategoryName.trim()) {
+                  toast.error('Please enter a category name');
+                  return;
+                }
+                addCategoryMutation.mutate({
+                  name: quickCategoryName.trim(),
+                  nameAr: quickCategoryNameAr.trim() || undefined,
+                  code: quickCategoryCode.trim()
+                    ? quickCategoryCode.trim().toUpperCase()
+                    : undefined,
+                  isActive: true,
+                });
+              }}
+              className="p-5 space-y-3.5"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Category Name (English) *
+                </label>
+                <Input
+                  value={quickCategoryName}
+                  onChange={(e) => setQuickCategoryName(e.target.value)}
+                  placeholder="e.g. Coupe, Crossover, Sedan"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Category Name in Arabic (نوع الهيكل)
+                </label>
+                <Input
+                  value={quickCategoryNameAr}
+                  onChange={(e) => setQuickCategoryNameAr(e.target.value)}
+                  placeholder="e.g. كوبيه، كروس أوفر، سيدان"
+                  dir="rtl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Category Code (Optional)
+                </label>
+                <Input
+                  value={quickCategoryCode}
+                  onChange={(e) =>
+                    setQuickCategoryCode(e.target.value.toUpperCase())
+                  }
+                  placeholder="Auto-generated if left empty"
+                  className="font-mono uppercase text-xs"
+                />
+                <p className="text-[10px] text-ink-mute mt-1">
+                  Unique identifier code. If left blank, it will be automatically generated from the name.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddCategoryModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={addCategoryMutation.isPending}
+                  className="bg-accent text-white"
+                >
+                  {addCategoryMutation.isPending ? (
+                    <>
+                      <CircleNotch className="size-3.5 animate-spin mr-1" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add & Select'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add Sunroof Modal */}
+      {isAddSunroofModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-hairline bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5 bg-paper/50">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-white">
+                  <Sun className="size-4" />
+                </span>
+                <h3 className="font-semibold text-ink text-sm">
+                  Add Sunroof Specification to List (فتحة السقف)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddSunroofModalOpen(false)}
+                className="rounded-lg p-1 text-ink-mute hover:bg-paper hover:text-ink cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!quickSunroofName.trim()) {
+                  toast.error('Please enter a sunroof specification');
+                  return;
+                }
+                addSunroofMutation.mutate({
+                  name: quickSunroofName.trim(),
+                  nameAr: quickSunroofNameAr.trim() || undefined,
+                  code: quickSunroofCode.trim()
+                    ? quickSunroofCode.trim().toUpperCase()
+                    : undefined,
+                });
+              }}
+              className="p-5 space-y-3.5"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Sunroof Specification (English) *
+                </label>
+                <Input
+                  value={quickSunroofName}
+                  onChange={(e) => setQuickSunroofName(e.target.value)}
+                  placeholder="e.g. Panoramic Glass Roof, Electric Tilt & Slide"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Sunroof Specification in Arabic (فتحة السقف)
+                </label>
+                <Input
+                  value={quickSunroofNameAr}
+                  onChange={(e) => setQuickSunroofNameAr(e.target.value)}
+                  placeholder="e.g. سقف بانوراما زجاجي، فتحة سقف كهربائية"
+                  dir="rtl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">
+                  Specification Code (Optional)
+                </label>
+                <Input
+                  value={quickSunroofCode}
+                  onChange={(e) =>
+                    setQuickSunroofCode(e.target.value.toUpperCase())
+                  }
+                  placeholder="Auto-generated if left empty"
+                  className="font-mono uppercase text-xs"
+                />
+                <p className="text-[10px] text-ink-mute mt-1">
+                  Unique identifier code. If left blank, it will be automatically generated from the name.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddSunroofModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={addSunroofMutation.isPending}
+                  className="bg-accent text-white"
+                >
+                  {addSunroofMutation.isPending ? (
                     <>
                       <CircleNotch className="size-3.5 animate-spin mr-1" />
                       Adding...

@@ -68,21 +68,21 @@ export function LoginForm() {
       {serverError && (
         <div
           role="alert"
-          className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-500/30 bg-red-950/60 p-3.5 text-sm leading-snug text-red-200 backdrop-blur-md shadow-lg"
+          className="mb-3 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-950/60 p-2.5 text-xs leading-snug text-red-200 backdrop-blur-md shadow-lg"
         >
-          <WarningCircle className="mt-0.5 size-4 shrink-0 text-red-400" aria-hidden />
+          <WarningCircle className="mt-0.5 size-3.5 shrink-0 text-red-400" aria-hidden />
           <p>{serverError}</p>
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-3 sm:space-y-3.5">
         <div>
-          <Label htmlFor="email" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/90">
+          <Label htmlFor="email" className="mb-1 text-[11px] font-mono uppercase tracking-wider text-white/90">
             Work email
           </Label>
           <div className="relative flex items-center">
             <Envelope
-              className="pointer-events-none absolute left-3.5 z-10 size-4.5 text-zinc-500 transition-colors peer-focus:text-emerald-600"
+              className="pointer-events-none absolute left-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
               aria-hidden
             />
             <Input
@@ -92,12 +92,12 @@ export function LoginForm() {
               placeholder="admin@euroassist.com"
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'email-error' : undefined}
-              className="peer h-11 w-full rounded-xl border border-zinc-200 bg-white pl-11 text-[15px] font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
               {...register('email')}
             />
           </div>
           {errors.email && (
-            <p id="email-error" role="alert" className="mt-1.5 text-[13px] font-medium text-rose-400">
+            <p id="email-error" role="alert" className="mt-1 text-xs font-medium text-rose-400">
               {errors.email.message}
             </p>
           )}
@@ -105,13 +105,13 @@ export function LoginForm() {
 
         <div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="mb-2 text-xs font-mono uppercase tracking-wider text-white/90">
+            <Label htmlFor="password" className="mb-1 text-[11px] font-mono uppercase tracking-wider text-white/90">
               Password
             </Label>
           </div>
           <div className="relative flex items-center">
             <LockKey
-              className="pointer-events-none absolute left-3.5 z-10 size-4.5 text-zinc-500 transition-colors peer-focus:text-emerald-600"
+              className="pointer-events-none absolute left-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
               aria-hidden
             />
             <Input
@@ -121,7 +121,7 @@ export function LoginForm() {
               placeholder="Minimum 8 characters"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
-              className="peer h-11 w-full rounded-xl border border-zinc-200 bg-white pr-11 pl-11 text-[15px] font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white pr-9.5 pl-9.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
               {...register('password')}
             />
             <button
@@ -129,7 +129,7 @@ export function LoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute right-2.5 z-10 cursor-pointer rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              className="absolute right-2 z-10 cursor-pointer rounded-lg p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
             >
               {showPassword ? (
                 <EyeSlash className="size-4" aria-hidden />
@@ -139,7 +139,7 @@ export function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p id="password-error" role="alert" className="mt-1.5 text-[13px] font-medium text-rose-400">
+            <p id="password-error" role="alert" className="mt-1 text-xs font-medium text-rose-400">
               {errors.password.message}
             </p>
           )}
@@ -148,10 +148,10 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        size="lg"
+        size="md"
         disabled={mutation.isPending}
         className={cn(
-          'mt-6 h-12 w-full cursor-pointer rounded-xl border border-emerald-400/30 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-[15px] font-medium text-white shadow-[0_12px_28px_-6px_rgba(16,185,129,0.45)] transition-all hover:from-emerald-500 hover:to-teal-400 hover:shadow-[0_14px_32px_-6px_rgba(16,185,129,0.6)] active:scale-[0.99]',
+          'mt-3.5 sm:mt-4 h-10 w-full cursor-pointer rounded-xl border border-emerald-400/30 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-sm font-medium text-white shadow-[0_10px_24px_-6px_rgba(16,185,129,0.4)] transition-all hover:from-emerald-500 hover:to-teal-400 hover:shadow-[0_12px_28px_-6px_rgba(16,185,129,0.55)] active:scale-[0.99]',
           mutation.isPending && 'opacity-80'
         )}
       >
@@ -163,12 +163,12 @@ export function LoginForm() {
         ) : (
           <>
             Sign in to Console
-            <ArrowRight className="size-4.5" aria-hidden />
+            <ArrowRight className="size-4" aria-hidden />
           </>
         )}
       </Button>
 
-      <div className="mt-5 flex items-center justify-center gap-2 font-mono text-[11px] tracking-wide text-white/45">
+      <div className="mt-2.5 sm:mt-3 flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wide text-white/45">
         <span className="size-1.5 rounded-full bg-emerald-400/80 animate-pulse" />
         <span>SECURE SESSION · HTTPONLY REFRESH ROTATION</span>
       </div>
