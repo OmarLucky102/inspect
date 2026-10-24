@@ -1,6 +1,6 @@
 import { UsersThree, CircleNotch, WarningCircle, X, Buildings, Check, Star } from '@phosphor-icons/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
 import { fetchUsers, fetchUserById, updateUserBanks } from '@/features/users/api'
@@ -192,20 +192,30 @@ function UserDetailsPanel({
   user: UserProfile
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { data: allBanks = [], isLoading: isBanksLoading } = useQuery<Bank[]>({
     queryKey: ['banks'],
     queryFn: fetchBanks,
   })
 
-  // Selected bank IDs initialized directly from user prop
-  const [selectedBankIds, setSelectedBankIds] = useState<string[]>(
-    () => user.banks?.map((b) => b.id) || [],
-  )
-  const [primaryBankId, setPrimaryBankId] = useState<string | null>(() => {
+  // Initial bank assignments from user prop
+  const initialBankIds = useMemo(() => user.banks?.map((b) => b.id) || [], [user.banks])
+  const initialPrimaryBankId = useMemo(() => {
     const primary = user.banks?.find((b) => b.isPrimary)
     return primary ? primary.id : user.banks?.[0]?.id || null
-  })
+  }, [user.banks])
+
+  const [selectedBankIds, setSelectedBankIds] = useState<string[]>(initialBankIds)
+  const [primaryBankId, setPrimaryBankId] = useState<string | null>(initialPrimaryBankId)
+
+  // Determine if there are actual assignment changes
+  const hasChanges = useMemo(() => {
+    const sameCount = selectedBankIds.length === initialBankIds.length
+    const sameItems = sameCount && selectedBankIds.every((id) => initialBankIds.includes(id))
+    const samePrimary = (primaryBankId || null) === (initialPrimaryBankId || null)
+    return !(sameItems && samePrimary)
+  }, [selectedBankIds, initialBankIds, primaryBankId, initialPrimaryBankId])
 
   const toggleBank = (bankId: string) => {
     setSelectedBankIds((prev) => {
@@ -229,36 +239,44 @@ function UserDetailsPanel({
   const saveMutation = useMutation({
     mutationFn: () => updateUserBanks(userId, selectedBankIds, primaryBankId || undefined),
     onSuccess: () => {
-      toast.success('Assigned banks updated successfully')
+      toast.success(t('users.assignedBanksUpdated', 'Assigned banks updated successfully'))
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['users', userId] })
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, 'Failed to update user banks'))
+      toast.error(getApiErrorMessage(err, t('users.alreadyAssignedError', 'This user is already assigned to this bank.')))
     },
   })
+
+  const handleSave = () => {
+    if (!hasChanges) {
+      toast.error(t('users.alreadyAssignedError', 'This user is already assigned to this bank.'))
+      return
+    }
+    saveMutation.mutate()
+  }
 
   return (
     <div className="space-y-6">
       {/* User Info Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg bg-paper/60 border border-hairline text-sm">
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">NAME</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thName', 'NAME')}</p>
           <p className="text-ink font-medium">{user.firstName} {user.lastName}</p>
         </div>
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">EMAIL</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thEmail', 'EMAIL')}</p>
           <p className="text-ink">{user.email}</p>
         </div>
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">ROLE</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thRole', 'ROLE')}</p>
           <span className="inline-flex rounded-md bg-ink-mute/10 px-2 py-0.5 text-xs font-mono font-medium text-ink">
             {user.role}
           </span>
         </div>
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">PHONE</p>
-          <p className="text-ink">{user.phone || 'N/A'}</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">{t('banks.thPhone', 'PHONE')}</p>
+          <p className="text-ink">{user.phone || t('common.na', '—')}</p>
         </div>
       </div>
 
@@ -268,10 +286,10 @@ function UserDetailsPanel({
           <div>
             <h4 className="font-medium text-sm text-ink flex items-center gap-1.5">
               <Buildings className="size-4 text-ink-mute" />
-              Assigned Banks ({selectedBankIds.length})
+              {t('users.assignedBanksTitle', 'Assigned Banks')} ({selectedBankIds.length})
             </h4>
             <p className="text-xs text-ink-mute">
-              Select all banks this user belongs to. A user can be assigned to multiple banks at the same time.
+              {t('users.assignedBanksDesc', 'Select all banks this user belongs to. A user can be assigned to multiple banks at the same time.')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -280,14 +298,14 @@ function UserDetailsPanel({
               size="sm"
               onClick={onClose}
             >
-              Done
+              {t('common.done', 'Done')}
             </Button>
             <Button
               size="sm"
-              onClick={() => saveMutation.mutate()}
+              onClick={handleSave}
               disabled={saveMutation.isPending}
             >
-              {saveMutation.isPending ? 'Saving...' : 'Save Bank Assignments'}
+              {saveMutation.isPending ? t('common.saving', 'Saving...') : t('users.saveBankAssignments', 'Save Bank Assignments')}
             </Button>
           </div>
         </div>
@@ -297,12 +315,13 @@ function UserDetailsPanel({
             <CircleNotch className="size-5 animate-spin text-ink-mute" />
           </div>
         ) : allBanks.length === 0 ? (
-          <p className="text-xs text-ink-mute italic">No banks available in the system.</p>
+          <p className="text-xs text-ink-mute italic">{t('users.noBanksAvailable', 'No banks available in the system.')}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
             {allBanks.map((b) => {
               const isChecked = selectedBankIds.includes(b.id)
               const isPrimary = primaryBankId === b.id
+              const isAlreadyAssigned = initialBankIds.includes(b.id)
 
               return (
                 <div
@@ -326,9 +345,16 @@ function UserDetailsPanel({
                         {isChecked && <Check weight="bold" className="size-3" />}
                       </div>
                       <div>
-                        <span className="font-semibold text-xs font-mono text-ink mr-1">
-                          {b.code}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-xs font-mono text-ink">
+                            {b.code}
+                          </span>
+                          {isAlreadyAssigned && (
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-medium border border-emerald-200">
+                              {t('users.currentlyAssignedBadge', 'Assigned')}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-ink-soft leading-tight line-clamp-1">{b.name}</p>
                       </div>
                     </div>
@@ -349,7 +375,7 @@ function UserDetailsPanel({
                         }`}
                       >
                         <Star weight={isPrimary ? 'fill' : 'regular'} className={`size-3 ${isPrimary ? 'text-amber-500' : ''}`} />
-                        {isPrimary ? 'Primary Bank' : 'Set as Primary'}
+                        {isPrimary ? t('users.primaryBank', 'Primary Bank') : t('users.setPrimary', 'Set as Primary')}
                       </button>
                     </div>
                   )}

@@ -20,6 +20,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { User } from '../../domain/entities/user.entity';
 import { PrismaService } from '../../../database/prisma.service';
+import { BankMembershipAlreadyExistsException } from '../../../shared/exceptions/organization.exceptions';
 
 interface RequestUser {
   sub?: string;
@@ -205,12 +206,47 @@ export class UserController {
 
     const { bankIds = [], primaryBankId } = body;
 
-    // 1. Delete all current bank memberships for this user
+    // Check for duplicate bank IDs in the payload
+    const uniqueBankIds = Array.from(new Set(bankIds));
+    if (uniqueBankIds.length !== bankIds.length) {
+      throw new BankMembershipAlreadyExistsException(
+        id,
+        undefined,
+        'Duplicate bank assignment detected. This user cannot be assigned to the same bank multiple times.',
+      );
+    }
+
+    // 1. Fetch current bank memberships
+    const currentMemberships = await this.prisma.bankMembership.findMany({
+      where: { userId: id },
+      include: { bank: { select: { id: true, name: true, code: true } } },
+    });
+
+    const currentBankIds = currentMemberships.map((m) => m.bankId);
+    const currentPrimary = currentMemberships.find((m) => m.isPrimary)?.bankId;
+
+    // 2. If user is already assigned to the requested bank(s) with no actual change
+    const sameCount = currentBankIds.length === bankIds.length;
+    const sameBanks =
+      sameCount && bankIds.every((bid) => currentBankIds.includes(bid));
+    const samePrimary =
+      (primaryBankId || undefined) === (currentPrimary || undefined);
+
+    if (currentBankIds.length > 0 && sameBanks && samePrimary) {
+      const bankNames = currentMemberships.map((m) => m.bank.name).join(', ');
+      throw new BankMembershipAlreadyExistsException(
+        id,
+        bankIds[0],
+        `This user is already assigned to ${bankNames ? `the selected bank (${bankNames})` : 'this bank'}.`,
+      );
+    }
+
+    // 3. Delete all current bank memberships for this user
     await this.prisma.bankMembership.deleteMany({
       where: { userId: id },
     });
 
-    // 2. Insert new memberships for each selected bank
+    // 4. Insert new memberships for each selected bank
     if (bankIds.length > 0) {
       await this.prisma.bankMembership.createMany({
         data: bankIds.map((bankId) => ({

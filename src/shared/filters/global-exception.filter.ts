@@ -79,7 +79,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (err?.code === 'P2002') {
       const target = Array.isArray(err?.meta?.target)
         ? err.meta.target.join(', ')
-        : 'field';
+        : String(err?.meta?.target || 'field');
+
+      if (
+        (target.includes('bankId') && target.includes('userId')) ||
+        err?.meta?.modelName === 'BankMembership'
+      ) {
+        return new BaseException(
+          'This user is already assigned to this bank.',
+          HttpStatus.CONFLICT,
+        );
+      }
+
       return new BaseException(
         `Duplicate field value for ${target}. Please use another value.`,
         HttpStatus.BAD_REQUEST,

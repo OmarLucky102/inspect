@@ -17,9 +17,9 @@ export class BankCodeAlreadyExistsException extends BaseException {
 }
 
 export class BankMembershipAlreadyExistsException extends BaseException {
-  constructor(userId: string, bankId: string) {
+  constructor(userId?: string, bankId?: string, customMessage?: string) {
     super(
-      `User '${userId}' is already a member of bank '${bankId}'`,
+      customMessage || 'This user is already assigned to this bank.',
       HttpStatus.CONFLICT,
     );
   }

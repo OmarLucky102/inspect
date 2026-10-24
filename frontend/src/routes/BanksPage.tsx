@@ -63,14 +63,14 @@ export function BanksPage() {
   const createMutation = useMutation({
     mutationFn: createBank,
     onSuccess: () => {
-      toast.success(t('common.success', 'Bank created successfully'))
+      toast.success(t('banks.createSuccess', 'Bank created successfully'))
       queryClient.invalidateQueries({ queryKey: ['banks'] })
       setIsCreating(false)
       setFormData({ name: '', code: '', email: '', phone: '' })
       setIsCodeManual(false)
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, 'Failed to create bank'))
+      toast.error(getApiErrorMessage(err, t('banks.createError', 'Failed to create bank')))
     }
   })
 
@@ -102,7 +102,7 @@ export function BanksPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-red-500 mb-4">{t('common.error', 'Failed to load banks.')}</p>
+        <p className="text-red-500 mb-4">{t('banks.banksLoadError', 'Failed to load banks.')}</p>
         <button onClick={() => refetch()} className="text-sm font-medium underline cursor-pointer">
           {t('common.retry', 'Try again')}
         </button>
@@ -145,7 +145,7 @@ export function BanksPage() {
               <tr>
                 <th className="px-5 py-3 text-start">{t('banks.thCode', 'Code')}</th>
                 <th className="px-5 py-3 text-start">{t('banks.thName', 'Name')}</th>
-                <th className="px-5 py-3 text-start">{t('banks.thEmail', 'Contact')}</th>
+                <th className="px-5 py-3 text-start">{t('banks.thContact', 'Contact')}</th>
                 <th className="px-5 py-3 text-end">{t('banks.thActions', 'Actions')}</th>
               </tr>
             </thead>
@@ -216,7 +216,7 @@ export function BanksPage() {
                   setIsCodeManual(true)
                   setFormData({ ...formData, code: e.target.value.toUpperCase() })
                 }}
-                placeholder={t('banks.codePlaceholder', 'Auto-generated (e.g. CIB / BNK-001)')}
+                placeholder={t('banks.codePlaceholderAuto', 'Auto-generated (e.g. CIB / BNK-001)')}
               />
             </div>
             <div>
