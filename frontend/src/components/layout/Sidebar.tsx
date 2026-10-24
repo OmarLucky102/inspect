@@ -1,5 +1,6 @@
 import { Compass, X } from '@phosphor-icons/react'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { NAV_SECTIONS } from './nav'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
@@ -11,11 +12,44 @@ interface SidebarProps {
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useWorkspace()
+  const { t } = useTranslation()
   
   // Filter sections based on role. SUPER_ADMIN sees everything.
   const isSuperAdmin =
     user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN'
   const canManageRepresentatives = isSuperAdmin
+
+  const getSectionTitle = (title: string) => {
+    switch (title.toLowerCase()) {
+      case 'operate':
+        return t('nav.operate', 'Operate')
+      case 'configure':
+        return t('nav.configure', 'Configure')
+      case 'system':
+        return t('nav.system', 'System')
+      default:
+        return title
+    }
+  }
+
+  const getItemLabel = (label: string) => {
+    switch (label) {
+      case 'Dashboard':
+        return t('nav.dashboard', 'Dashboard')
+      case 'Requests':
+        return t('nav.requests', 'Requests')
+      case 'Representatives':
+        return t('nav.representatives', 'Representatives')
+      case 'Banks':
+        return t('nav.banks', 'Banks')
+      case 'Vehicle Settings':
+        return t('nav.vehicleSettings', 'Vehicle Settings')
+      case 'Users':
+        return t('nav.users', 'Users')
+      default:
+        return label
+    }
+  }
 
   const filteredSections = NAV_SECTIONS.map((section) => {
     if (section.title === 'System' && !isSuperAdmin) return null
@@ -38,9 +72,11 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           <Compass className="size-4.5" aria-hidden />
         </span>
         <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-[0.18em]">INSPECT</p>
+          <p className="text-sm font-semibold tracking-[0.18em]">
+            {t('common.inspect', 'INSPECT')}
+          </p>
           <p className="font-mono text-[10px] tracking-[0.22em] text-ink-mute">
-            ADMIN CONSOLE
+            {t('common.adminConsole', 'ADMIN CONSOLE')}
           </p>
         </div>
       </div>
@@ -49,7 +85,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         {filteredSections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             <p className="px-2.5 pb-2 font-mono text-[10px] tracking-[0.22em] text-ink-mute">
-              {section.title.toUpperCase()}
+              {getSectionTitle(section.title).toUpperCase()}
             </p>
             <ul className="space-y-1">
               {section.items.map((item) => (
@@ -78,7 +114,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                           )}
                           aria-hidden
                         />
-                        {item.label}
+                        {getItemLabel(item.label)}
                       </>
                     )}
                   </NavLink>
@@ -91,9 +127,9 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-hairline p-4">
         <div className="rounded-xl bg-paper px-3.5 py-3 font-mono text-[10px] leading-relaxed tracking-[0.14em] text-ink-mute">
-          STAGE 01 · AUTH LIVE
+          {t('common.systemNotice', 'STAGE 01 · AUTH LIVE')}
           <br />
-          STAGE 02 · MODULES
+          {t('common.stageModules', 'STAGE 02 · MODULES')}
         </div>
       </div>
     </div>
@@ -104,7 +140,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop: fixed column */}
-      <aside className="hidden border-r border-hairline bg-white lg:block">
+      <aside className="hidden border-r rtl:border-r-0 rtl:border-l border-hairline bg-white lg:block">
         <div className="sticky top-0 h-[100dvh]">
           <SidebarBody />
         </div>
@@ -127,8 +163,8 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         />
         <aside
           className={cn(
-            'absolute top-0 left-0 h-full w-[280px] bg-white shadow-2xl transition-transform duration-200',
-            mobileOpen ? 'translate-x-0' : '-translate-x-full',
+            'absolute top-0 left-0 rtl:left-auto rtl:right-0 h-full w-[280px] bg-white shadow-2xl transition-transform duration-200',
+            mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full',
           )}
           role="dialog"
           aria-label="Admin navigation"
@@ -137,7 +173,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="absolute top-5 right-4 cursor-pointer rounded-lg p-1.5 text-ink-mute hover:bg-paper hover:text-ink"
+            className="absolute top-5 right-4 rtl:right-auto rtl:left-4 cursor-pointer rounded-lg p-1.5 text-ink-mute hover:bg-paper hover:text-ink"
           >
             <X className="size-4" aria-hidden />
           </button>

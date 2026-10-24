@@ -6,6 +6,7 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/auth-context.tsx'
+import './lib/i18n'
 import './index.css'
 
 const queryClient = new QueryClient({

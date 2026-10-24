@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   MagnifyingGlass,
@@ -44,6 +45,8 @@ const PRESET_TRIMS = [
 ];
 
 export function TrimManagementTab() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -208,17 +211,17 @@ export function TrimManagementTab() {
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-white p-4 rounded-xl border border-hairline shadow-2xs">
         <div className="relative flex-1 max-w-md">
-          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute" />
+          <MagnifyingGlass className="absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute pointer-events-none" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search trims by name, Arabic (الفئة), or code..."
-            className="pl-10 h-10"
+            placeholder={isArabic ? 'بحث في الفئات بالاسم أو الاسم بالعربية أو الكود...' : 'Search trims by name, Arabic (الفئة), or code...'}
+            className="ps-10 pe-9 h-10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
             >
               <X className="size-3.5" />
             </button>
@@ -227,15 +230,15 @@ export function TrimManagementTab() {
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-ink-mute bg-bone px-2.5 py-1 rounded border border-hairline">
-            {trims.filter((t) => t.isActive).length} ACTIVE / {trims.length} TOTAL
+            {trims.filter((t) => t.isActive).length} {t('common.active', 'ACTIVE')} / {trims.length} {t('banks.total', 'TOTAL')}
           </span>
 
           <Button
             size="sm"
             onClick={openAddModal}
-            className="bg-accent text-white"
+            className="bg-accent text-white cursor-pointer gap-1"
           >
-            <Plus className="size-4 mr-1" /> Add New Trim
+            <Plus className="size-4" /> {t('vehicleSettings.addNewTrim', 'Add New Trim')}
           </Button>
         </div>
       </div>
@@ -244,15 +247,17 @@ export function TrimManagementTab() {
       {filteredTrims.length === 0 ? (
         <div className="rounded-xl border border-dashed border-hairline bg-paper/40 p-12 text-center">
           <SlidersHorizontal className="size-10 mx-auto text-ink-mute/70 mb-3" />
-          <h3 className="text-base font-semibold text-ink">No vehicle trims found</h3>
+          <h3 className="text-base font-semibold text-ink">
+            {isArabic ? 'لا توجد فئات مركبات مطابقة' : 'No vehicle trims found'}
+          </h3>
           <p className="text-sm text-ink-mute mt-1 max-w-sm mx-auto">
             {searchTerm
-              ? 'No trims match your search query.'
-              : 'Add your first vehicle trim to populate the inspection trim dropdown list.'}
+              ? (isArabic ? 'لا توجد فئات تطابق عبارة البحث الحالية.' : 'No trims match your search query.')
+              : (isArabic ? 'أضف أول فئة لتظهر في قائمة خيارات الفحص.' : 'Add your first vehicle trim to populate the inspection trim dropdown list.')}
           </p>
           {!searchTerm && (
-            <Button size="sm" className="mt-4" onClick={openAddModal}>
-              <Plus className="size-4 mr-1" /> Add First Trim
+            <Button size="sm" className="mt-4 gap-1 cursor-pointer" onClick={openAddModal}>
+              <Plus className="size-4" /> {t('vehicleSettings.addNewTrim', 'Add First Trim')}
             </Button>
           )}
         </div>

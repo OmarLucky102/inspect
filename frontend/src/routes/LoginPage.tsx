@@ -4,27 +4,31 @@ import {
   Compass,
   ShieldCheck,
 } from '@phosphor-icons/react'
+import { useTranslation } from 'react-i18next'
 import { LoginForm } from '@/features/auth/components/LoginForm'
-
-const DOSSIER_BADGES = [
-  {
-    icon: ClipboardText,
-    label: 'Pipeline',
-    desc: 'Intake to review',
-  },
-  {
-    icon: ShieldCheck,
-    label: 'Calibrated',
-    desc: 'Role-scoped audit',
-  },
-  {
-    icon: Bank,
-    label: 'Bank Scopes',
-    desc: 'Multi-tenant scopes',
-  },
-]
+import { LanguageToggle } from '@/components/layout/LanguageToggle'
 
 export function LoginPage() {
+  const { t } = useTranslation()
+
+  const DOSSIER_BADGES = [
+    {
+      icon: ClipboardText,
+      label: t('auth.pipelineBadge', 'Pipeline'),
+      desc: t('auth.pipelineBadgeDesc', 'Intake to review'),
+    },
+    {
+      icon: ShieldCheck,
+      label: t('auth.calibratedBadge', 'Calibrated'),
+      desc: t('auth.calibratedBadgeDesc', 'Role-scoped audit'),
+    },
+    {
+      icon: Bank,
+      label: t('auth.bankScopesBadge', 'Bank Scopes'),
+      desc: t('auth.bankScopesBadgeDesc', 'Multi-tenant scopes'),
+    },
+  ]
+
   return (
     <main className="relative h-screen h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#07090e] text-white">
       {/* Cinematic Background Layer with euro.png */}
@@ -65,25 +69,30 @@ export function LoginPage() {
             <div className="leading-tight">
               <div className="flex items-center gap-2">
                 <span className="text-[15px] font-semibold tracking-[0.2em] text-white">
-                  INSPECT
+                  {t('common.inspect', 'INSPECT')}
                 </span>
                 <span className="inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />
               </div>
               <p className="font-mono text-[9px] tracking-[0.22em] text-white/55">
-                ADMIN CONSOLE · EURO ASSIST
+                {t('common.adminConsole', 'ADMIN CONSOLE')} · {t('common.euroAssist', 'EURO ASSIST')}
               </p>
             </div>
           </div>
 
-          {/* Desktop Live Telemetry Badge */}
-          <div className="hidden items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3.5 py-1 backdrop-blur-md lg:flex">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-            </span>
-            <span className="font-mono text-[10px] tracking-wider text-white/80">
-              TELEMETRY NODE 360° · STAGE 01
-            </span>
+          <div className="flex items-center gap-3">
+            {/* Quick Language Toggle */}
+            <LanguageToggle className="bg-white/10 text-white border-white/20" />
+
+            {/* Desktop Live Telemetry Badge */}
+            <div className="hidden items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3.5 py-1 backdrop-blur-md lg:flex">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="font-mono text-[10px] tracking-wider text-white/80">
+                {t('auth.telemetryNode', 'TELEMETRY NODE 360° · STAGE 01')}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -93,15 +102,14 @@ export function LoginPage() {
           <div className="flex flex-col justify-center lg:col-span-6 xl:col-span-5">
             <div className="mb-2 inline-flex items-center gap-1.5 self-start rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-0.5 font-mono text-[10px] tracking-wider text-emerald-300 backdrop-blur-md">
               <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>VEHICLE INSPECTION & AUDIT PLATFORM</span>
+              <span>{t('auth.heroBadge', 'VEHICLE INSPECTION & AUDIT PLATFORM')}</span>
             </div>
 
             <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl xl:text-4xl text-balance leading-tight">
-              Every inspection, under control.
+              {t('auth.heroTitle', 'Every inspection, under control.')}
             </h1>
             <p className="mt-1.5 max-w-[44ch] text-xs sm:text-[13px] leading-relaxed text-white/70">
-              Sign in to triage requests, verify 360° checklist evidence, and keep
-              bank workspaces audit-ready.
+              {t('auth.heroSubtitle', 'Sign in to triage requests, verify 360° checklist evidence, and keep bank workspaces audit-ready.')}
             </p>
 
             {/* Frosted Obsidian Glass Login Card */}
@@ -109,14 +117,14 @@ export function LoginPage() {
               <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2.5">
                 <div>
                   <p className="font-mono text-[10px] tracking-[0.24em] text-white/50 uppercase">
-                    AUTHENTICATION
+                    {t('auth.authentication', 'AUTHENTICATION')}
                   </p>
                   <p className="mt-0.5 text-sm sm:text-base font-medium text-white">
-                    Sign in to your account
+                    {t('auth.signInTitle', 'Sign in to your account')}
                   </p>
                 </div>
                 <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] text-white/60">
-                  ADMIN ONLY
+                  {t('auth.adminOnly', 'ADMIN ONLY')}
                 </span>
               </div>
 

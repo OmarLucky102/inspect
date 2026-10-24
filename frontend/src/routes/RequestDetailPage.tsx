@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, House } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, ArrowRight, House } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { RequestDetailModal } from '@/features/inspection-requests/components/RequestDetailModal';
 
 export function RequestDetailPage() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -22,15 +25,19 @@ export function RequestDetailPage() {
 
   const effectiveBankId = bankIdFromUrl || activeBankId;
 
+  const BackIcon = isArabic ? ArrowRight : ArrowLeft;
+
   if (!id) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <p className="text-sm font-medium text-ink-mute">
-          No inspection request ID specified.
+          {isArabic
+            ? 'لم يتم تحديد معرّف طلب فحص.'
+            : 'No inspection request ID specified.'}
         </p>
-        <Button className="mt-4" onClick={() => navigate('/requests')}>
-          <ArrowLeft className="mr-1.5 size-4" />
-          Back to Inspection Pipeline
+        <Button className="mt-4 cursor-pointer gap-1.5" onClick={() => navigate('/requests')}>
+          <BackIcon className="size-4" />
+          {isArabic ? 'العودة لمسار طلبات الفحص' : 'Back to Inspection Pipeline'}
         </Button>
       </div>
     );
@@ -47,7 +54,7 @@ export function RequestDetailPage() {
             className="flex items-center gap-1 text-ink-mute hover:text-ink transition-colors cursor-pointer"
           >
             <House className="size-3.5" />
-            <span>Dashboard</span>
+            <span>{t('nav.dashboard', 'Dashboard')}</span>
           </button>
           <span className="text-ink-mute/50">/</span>
           <button
@@ -55,10 +62,10 @@ export function RequestDetailPage() {
             onClick={() => navigate('/requests')}
             className="text-ink-mute hover:text-ink transition-colors cursor-pointer"
           >
-            Inspection Requests
+            {t('nav.requests', 'Inspection Requests')}
           </button>
           <span className="text-ink-mute/50">/</span>
-          <span className="font-mono font-semibold text-ink">{id}</span>
+          <span className="font-mono font-semibold text-ink" dir="ltr">{id}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -66,10 +73,10 @@ export function RequestDetailPage() {
             variant="outline"
             size="sm"
             onClick={() => navigate('/requests')}
-            className="h-8 px-2.5 text-xs text-ink-soft hover:text-ink"
+            className="h-8 px-2.5 text-xs text-ink-soft hover:text-ink cursor-pointer gap-1.5"
           >
-            <ArrowLeft className="mr-1.5 size-3.5" />
-            <span>All Requests</span>
+            <BackIcon className="size-3.5" />
+            <span>{t('requests.allRequests', 'All Requests')}</span>
           </Button>
         </div>
       </div>

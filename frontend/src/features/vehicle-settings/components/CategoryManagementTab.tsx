@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   MagnifyingGlass,
@@ -38,6 +39,8 @@ const PRESET_CATEGORIES = [
 ];
 
 export function CategoryManagementTab() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -202,17 +205,17 @@ export function CategoryManagementTab() {
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-white p-4 rounded-xl border border-hairline shadow-2xs">
         <div className="relative flex-1 max-w-md">
-          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute" />
+          <MagnifyingGlass className="absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute pointer-events-none" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search categories by name, Arabic (فئة الهيكل), or code..."
-            className="pl-10 h-10"
+            placeholder={isArabic ? 'بحث في فئات الهيكل بالاسم أو الاسم بالعربية أو الكود...' : 'Search categories by name, Arabic (فئة الهيكل), or code...'}
+            className="ps-10 pe-9 h-10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
             >
               <X className="size-3.5" />
             </button>
@@ -221,15 +224,15 @@ export function CategoryManagementTab() {
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-ink-mute bg-bone px-2.5 py-1 rounded border border-hairline">
-            {categories.filter((c) => c.isActive).length} ACTIVE / {categories.length} TOTAL
+            {categories.filter((c) => c.isActive).length} {t('common.active', 'ACTIVE')} / {categories.length} {t('banks.total', 'TOTAL')}
           </span>
 
           <Button
             size="sm"
             onClick={openAddModal}
-            className="bg-accent text-white"
+            className="bg-accent text-white cursor-pointer gap-1"
           >
-            <Plus className="size-4 mr-1" /> Add New Category
+            <Plus className="size-4" /> {t('vehicleSettings.addNewCategory', 'Add New Category')}
           </Button>
         </div>
       </div>
@@ -238,15 +241,17 @@ export function CategoryManagementTab() {
       {filteredCategories.length === 0 ? (
         <div className="rounded-xl border border-dashed border-hairline bg-paper/40 p-12 text-center">
           <Shapes className="size-10 mx-auto text-ink-mute/70 mb-3" />
-          <h3 className="text-base font-semibold text-ink">No vehicle categories found</h3>
+          <h3 className="text-base font-semibold text-ink">
+            {isArabic ? 'لا توجد فئات هياكل مطابقة' : 'No vehicle categories found'}
+          </h3>
           <p className="text-sm text-ink-mute mt-1 max-w-sm mx-auto">
             {searchTerm
-              ? 'No categories match your search query.'
-              : 'Add your first vehicle category to populate the inspection intake list.'}
+              ? (isArabic ? 'لا توجد فئات هيكل تطابق عبارة البحث الحالية.' : 'No categories match your search query.')
+              : (isArabic ? 'أضف أول فئة هيكل لتظهر في خيارات إدخال بيانات الفحص.' : 'Add your first vehicle category to populate the inspection intake list.')}
           </p>
           {!searchTerm && (
-            <Button size="sm" className="mt-4" onClick={openAddModal}>
-              <Plus className="size-4 mr-1" /> Add First Category
+            <Button size="sm" className="mt-4 gap-1 cursor-pointer" onClick={openAddModal}>
+              <Plus className="size-4" /> {t('vehicleSettings.addNewCategory', 'Add First Category')}
             </Button>
           )}
         </div>

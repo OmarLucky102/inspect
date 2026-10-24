@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Car,
   Palette,
@@ -17,6 +18,7 @@ import { CategoryManagementTab } from '@/features/vehicle-settings/components/Ca
 import { SunroofManagementTab } from '@/features/vehicle-settings/components/SunroofManagementTab';
 
 export function VehicleSettingsPage() {
+  const { t } = useTranslation();
   const { user } = useWorkspace();
   const [activeTab, setActiveTab] = useState<
     'makes' | 'trims' | 'categories' | 'sunroofs' | 'colors'
@@ -29,7 +31,7 @@ export function VehicleSettingsPage() {
         <div className="size-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
           <WarningCircle className="size-8" />
         </div>
-        <h2 className="text-lg font-semibold text-ink">Access Restricted</h2>
+        <h2 className="text-lg font-semibold text-ink">{t('common.error', 'Access Restricted')}</h2>
         <p className="text-sm text-ink-mute mt-1 max-w-sm text-center">
           Vehicle and lookup management is restricted to Superadmin accounts only.
         </p>
@@ -44,7 +46,7 @@ export function VehicleSettingsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent font-semibold">
-              Superadmin Settings
+              {t('vehicleSettings.superadminBadge', 'Superadmin Settings')}
             </span>
             <span className="inline-flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-mono font-medium text-accent">
               <ShieldCheck className="size-3" />
@@ -52,10 +54,10 @@ export function VehicleSettingsPage() {
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">
-            Vehicle & Lookup Settings
+            {t('vehicleSettings.title', 'Vehicle & Lookup Settings')}
           </h1>
           <p className="text-sm text-ink-mute mt-0.5">
-            Manage car makes (brands), models, trims (الفئات), categories (فئات الهيكل), sunroof specifications (فتحة السقف), and colors.
+            {t('vehicleSettings.subtitle', 'Manage car makes (brands), models, trims (الفئات), categories (فئات الهيكل), sunroof specifications (فتحة السقف), and colors.')}
           </p>
         </div>
 
@@ -70,7 +72,7 @@ export function VehicleSettingsPage() {
             }`}
           >
             <Car className="size-4" />
-            Makes & Models
+            {t('vehicleSettings.makesAndModels', 'Makes & Models')}
           </button>
           <button
             onClick={() => setActiveTab('trims')}
@@ -81,7 +83,7 @@ export function VehicleSettingsPage() {
             }`}
           >
             <SlidersHorizontal className="size-4" />
-            Trims
+            {t('vehicleSettings.trims', 'Trims')}
           </button>
           <button
             onClick={() => setActiveTab('categories')}
@@ -92,7 +94,7 @@ export function VehicleSettingsPage() {
             }`}
           >
             <Shapes className="size-4" />
-            Categories
+            {t('vehicleSettings.categories', 'Categories')}
           </button>
           <button
             onClick={() => setActiveTab('sunroofs')}
@@ -103,7 +105,7 @@ export function VehicleSettingsPage() {
             }`}
           >
             <Sun className="size-4" />
-            Sunroof Specs
+            {t('vehicleSettings.sunroofs', 'Sunroof Specs')}
           </button>
           <button
             onClick={() => setActiveTab('colors')}
@@ -114,7 +116,7 @@ export function VehicleSettingsPage() {
             }`}
           >
             <Palette className="size-4" />
-            Color Palette
+            {t('vehicleSettings.colorPalette', 'Color Palette')}
           </button>
         </div>
       </div>

@@ -59,9 +59,9 @@ export interface InspectionRequestWithRelations {
     specialInstructions?: string | null;
     brand?: { id: string; name: string } | null;
     model?: { id: string; name: string } | null;
-    category?: { id: string; name: string } | null;
-    color?: { id: string; name: string; hex?: string | null } | null;
-    fuelType?: { id: string; name: string } | null;
+    category?: { id: string; name: string; nameAr?: string | null } | null;
+    color?: { id: string; name: string; nameAr?: string | null; hex?: string | null } | null;
+    fuelType?: { id: string; name: string; nameAr?: string | null } | null;
     transmissionType?: { id: string; name: string; nameAr?: string | null } | null;
     trim?: { id: string; code?: string; name: string; nameAr?: string | null } | null;
   } | null;
@@ -180,9 +180,9 @@ export class InspectionRequestDetailResponseDto {
     specialInstructions: string | null;
     brand: { id: string; name: string } | null;
     model: { id: string; name: string } | null;
-    category: { id: string; name: string } | null;
-    color: { id: string; name: string; hex?: string | null } | null;
-    fuelType: { id: string; name: string } | null;
+    category: { id: string; name: string; nameAr?: string | null } | null;
+    color: { id: string; name: string; nameAr?: string | null; hex?: string | null } | null;
+    fuelType: { id: string; name: string; nameAr?: string | null } | null;
     transmissionType: { id: string; name: string; nameAr?: string | null } | null;
     trim: { id: string; code?: string; name: string; nameAr?: string | null } | null;
   } | null;
@@ -346,12 +346,14 @@ export class InspectionRequestDetailResponseDto {
               ? {
                   id: record.vehicle.category.id,
                   name: record.vehicle.category.name,
+                  nameAr: (record.vehicle.category as any).nameAr ?? null,
                 }
               : null,
             color: record.vehicle.color
               ? {
                   id: record.vehicle.color.id,
                   name: record.vehicle.color.name,
+                  nameAr: (record.vehicle.color as any).nameAr ?? null,
                   hex: record.vehicle.color.hex,
                 }
               : null,
@@ -359,6 +361,7 @@ export class InspectionRequestDetailResponseDto {
               ? {
                   id: record.vehicle.fuelType.id,
                   name: record.vehicle.fuelType.name,
+                  nameAr: (record.vehicle.fuelType as any).nameAr ?? null,
                 }
               : null,
             transmissionType: record.vehicle.transmissionType

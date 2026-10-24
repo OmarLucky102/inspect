@@ -12,9 +12,16 @@ export interface Bank {
 
 export interface CreateBankDto {
   name: string
-  code: string
+  code?: string
   email?: string
   phone?: string
+}
+
+export async function generateBankCode(name?: string): Promise<string> {
+  const res = await api.get<{ status: string; data: { code: string } }>('/banks/generate-code', {
+    params: { name },
+  })
+  return res.data.data.code
 }
 
 export interface CreateBankUserDto {

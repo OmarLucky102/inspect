@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   IdentificationBadge,
@@ -39,6 +40,8 @@ export function RepresentativeFormModal({
   onClose,
   representative,
 }: RepresentativeFormModalProps) {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const queryClient = useQueryClient();
   const isEdit = !!representative;
 
@@ -247,19 +250,19 @@ export function RepresentativeFormModal({
             </span>
             <div>
               <h3 className="text-base font-semibold text-ink">
-                {isEdit ? 'Edit Representative' : 'Add New Representative'}
+                {isEdit ? t('representatives.editModalTitle', 'Edit Representative') : t('representatives.addModalTitle', 'Add New Representative')}
               </h3>
               <p className="text-xs text-ink-mute">
                 {isEdit
                   ? `Update field details for ${representative?.representativeId}`
-                  : 'Register a new field inspection representative'}
+                  : (isArabic ? 'تسجيل وإضافة مندوب فحص ميداني جديد' : 'Register a new field inspection representative')}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-lg p-1.5 text-ink-mute hover:bg-paper hover:text-ink transition-colors"
+            className="cursor-pointer rounded-lg p-1.5 text-ink-mute hover:bg-paper hover:text-ink transition-colors modal-close"
           >
             <X className="size-4.5" />
           </button>
@@ -278,12 +281,12 @@ export function RepresentativeFormModal({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-ink">
-                  Representative Code <span className="text-rose-500">*</span>
+                  {t('representatives.repCode', 'Representative Code')} <span className="text-rose-500">*</span>
                 </label>
                 {selectedGov && !isEdit && (
                   <span className="inline-flex items-center gap-1 font-mono text-[10px] text-accent font-semibold">
                     <Sparkle className="size-3" />
-                    Region-aware
+                    {isArabic ? 'حسب المحافظة' : 'Region-aware'}
                   </span>
                 )}
               </div>
@@ -296,18 +299,19 @@ export function RepresentativeFormModal({
                   }}
                   placeholder="REP-001 or REP-CAI-001"
                   required
-                  className="font-mono text-sm uppercase tracking-wider"
+                  dir="ltr"
+                  className="font-mono text-sm uppercase tracking-wider ltr-force text-start"
                   disabled={isSubmitting}
                 />
               </div>
               <span className="text-[10px] text-ink-mute mt-1 block">
-                Auto-suggests by region (e.g. REP-CAI-001) or type your custom code
+                {isArabic ? 'اقتراح تلقائي حسب المحافظة أو كتابة كود مخصص' : 'Auto-suggests by region (e.g. REP-CAI-001) or type your custom code'}
               </span>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5">
-                Operational Status
+                {t('representatives.operationalStatus', 'Operational Status')}
               </label>
               <button
                 type="button"
@@ -325,14 +329,14 @@ export function RepresentativeFormModal({
                       isActive ? 'bg-emerald-500 ring-4 ring-emerald-200' : 'bg-zinc-400'
                     }`}
                   />
-                  {isActive ? 'Active (Ready for Field)' : 'Inactive (Suspended)'}
+                  {isActive ? t('representatives.activeField', 'Active (Ready for Field)') : t('representatives.inactiveField', 'Inactive (Suspended)')}
                 </span>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-ink-mute">
-                  Toggle
+                  {isArabic ? 'تبديل' : 'Toggle'}
                 </span>
               </button>
               <span className="text-[10px] text-ink-mute mt-1 block">
-                Determines availability for request assignment
+                {isArabic ? 'يحدد جاهزية المندوب لتلقي طلبات الفحص' : 'Determines availability for request assignment'}
               </span>
             </div>
           </div>
@@ -340,16 +344,16 @@ export function RepresentativeFormModal({
           {/* Row 2: Full Name */}
           <div>
             <label className="block text-xs font-medium text-ink mb-1.5">
-              Full Name (اسم المندوب) <span className="text-rose-500">*</span>
+              {t('representatives.nameLabel', 'Full Name')} <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+              <User className="absolute start-3 top-2.5 size-4 text-ink-mute pointer-events-none" />
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Ahmed Mahmoud / أحمد محمود"
+                placeholder={t('representatives.namePlaceholder', 'e.g. Ahmed Mahmoud / أحمد محمود')}
                 required
-                className="pl-9"
+                className="ps-9"
                 disabled={isSubmitting}
               />
             </div>
@@ -361,11 +365,11 @@ export function RepresentativeFormModal({
               <div className="flex items-center gap-2">
                 <MapPin className="size-4 text-accent" />
                 <span className="text-xs font-semibold text-ink">
-                  Operating Region & Branch (اختياري / Optional)
+                  {t('representatives.operatingRegion', 'Operating Region & Branch (Optional)')}
                 </span>
               </div>
               <span className="text-[10px] font-mono text-ink-mute uppercase tracking-wider">
-                All 3 fields optional
+                {isArabic ? '3 حقول اختيارية' : 'All 3 fields optional'}
               </span>
             </div>
 
@@ -374,16 +378,16 @@ export function RepresentativeFormModal({
               {/* Part 1: Governorate Dropdown */}
               <div>
                 <label className="block text-xs font-medium text-ink mb-1.5">
-                  Governorate (المحافظة)
+                  {t('representatives.govLabel', 'Governorate')}
                 </label>
                 <SearchableSelect
                   options={governorateOptions}
                   value={governorateId}
                   onChange={handleGovernorateChange}
                   placeholder={
-                    isLoadingLocations ? 'Loading governorates...' : 'Select governorate (Optional)...'
+                    isLoadingLocations ? t('createRequest.loadingGovernorates', 'Loading governorates...') : (isArabic ? 'اختر المحافظة (اختياري)...' : 'Select governorate (Optional)...')
                   }
-                  searchPlaceholder="Search governorate..."
+                  searchPlaceholder={t('createRequest.governorateSearch', 'Search governorate...')}
                   disabled={isSubmitting || isLoadingLocations}
                 />
               </div>
@@ -391,16 +395,16 @@ export function RepresentativeFormModal({
               {/* Part 2: City / Region Dropdown */}
               <div>
                 <label className="block text-xs font-medium text-ink mb-1.5">
-                  City / State (المدينة / المركز)
+                  {t('representatives.cityLabel', 'City / State')}
                 </label>
                 <SearchableSelect
                   options={cityOptions}
                   value={cityId}
                   onChange={setCityId}
-                  placeholder="Select city (Optional)..."
-                  searchPlaceholder="Search city in selected governorate..."
+                  placeholder={isArabic ? 'اختر المدينة (اختياري)...' : 'Select city (Optional)...'}
+                  searchPlaceholder={t('createRequest.citySearch', 'Search city...')}
                   disabled={isSubmitting || !governorateId}
-                  disabledMessage="Select a governorate first"
+                  disabledMessage={t('createRequest.selectGovFirst', 'Select a governorate first')}
                 />
               </div>
             </div>
@@ -408,20 +412,20 @@ export function RepresentativeFormModal({
             {/* Part 3: Branch Field (Optional) */}
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5">
-                Branch / Office Hub (الفرع)
+                {t('representatives.branchLabel', 'Branch / Office Hub')}
               </label>
               <div className="relative">
-                <Buildings className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <Buildings className="absolute start-3 top-2.5 size-4 text-ink-mute pointer-events-none" />
                 <Input
                   value={branchName}
                   onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="e.g. Nasr City Branch, Dokki Hub, Alexandria Main (اختياري)"
-                  className="pl-9 text-xs"
+                  placeholder={isArabic ? 'مثال: فرع مدينة نصر، فرع الدقي، فرع الإسكندرية الرئيسي (اختياري)' : 'e.g. Nasr City Branch, Dokki Hub, Alexandria Main (Optional)'}
+                  className="ps-9 text-xs"
                   disabled={isSubmitting}
                 />
               </div>
               <span className="text-[10px] text-ink-mute mt-1 block">
-                Specific branch office or operating station for dispatch
+                {isArabic ? 'الفرع أو المركز الميداني لتوزيع مهام الفحص' : 'Specific branch office or operating station for dispatch'}
               </span>
             </div>
           </div>
@@ -430,16 +434,17 @@ export function RepresentativeFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5">
-                Phone Number (الموبايل)
+                {t('representatives.phoneLabel', 'Phone Number')}
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <Phone className="absolute start-3 top-2.5 size-4 text-ink-mute pointer-events-none" />
                 <Input
                   type="tel"
+                  dir="ltr"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 01012345678"
-                  className="pl-9"
+                  placeholder="01012345678"
+                  className="ps-9 ltr-force text-start"
                   disabled={isSubmitting}
                 />
               </div>
@@ -447,16 +452,17 @@ export function RepresentativeFormModal({
 
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5">
-                Email Address (الإيميل)
+                {t('representatives.emailLabel', 'Email Address')}
               </label>
               <div className="relative">
-                <EnvelopeSimple className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <EnvelopeSimple className="absolute start-3 top-2.5 size-4 text-ink-mute pointer-events-none" />
                 <Input
                   type="email"
+                  dir="ltr"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. rep@inspect.com"
-                  className="pl-9"
+                  placeholder="rep@inspect.com"
+                  className="ps-9 ltr-force text-start"
                   disabled={isSubmitting}
                 />
               </div>
@@ -469,7 +475,7 @@ export function RepresentativeFormModal({
               <div className="flex items-center gap-2">
                 <span className="size-2 rounded-full bg-accent/70" />
                 <span className="text-xs font-semibold text-ink">
-                  Mobile App Account Link (Optional)
+                  {isArabic ? 'ربط بحساب تطبيق المندوب (اختياري)' : 'Mobile App Account Link (Optional)'}
                 </span>
               </div>
               <button
@@ -477,13 +483,14 @@ export function RepresentativeFormModal({
                 onClick={() => setShowAccountLink(!showAccountLink)}
                 className="text-[11px] font-medium text-accent hover:underline cursor-pointer"
               >
-                {showAccountLink ? 'Hide' : 'Configure Account Link'}
+                {showAccountLink ? (isArabic ? 'إخفاء' : 'Hide') : (isArabic ? 'تهيئة ربط الحساب' : 'Configure Account Link')}
               </button>
             </div>
 
             <p className="text-[11px] text-ink-mute leading-relaxed">
-              Representatives do not need user logins to be created or assigned. When
-              an inspector is ready to log into the Mobile App, you can attach their User UUID.
+              {isArabic 
+                ? 'لا يشترط وجود حساب مستخدم لتسجيل المندوب أو تكليفه بطلبات الفحص. وعندما يكون المندوب جاهزاً لتسجيل الدخول في تطبيق الموبايل، يمكنك إرفاق المعرف الخاص به (UUID).'
+                : 'Representatives do not need user logins to be created or assigned. When an inspector is ready to log into the Mobile App, you can attach their User UUID.'}
             </p>
 
             {showAccountLink && (
@@ -506,19 +513,20 @@ export function RepresentativeFormModal({
                       className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs h-7 gap-1"
                     >
                       <LinkBreak className="size-3.5" />
-                      Unlink
+                      {isArabic ? 'إلغاء الربط' : 'Unlink'}
                     </Button>
                   </div>
                 ) : (
                   <div>
                     <label className="block text-[11px] font-medium text-ink mb-1">
-                      User Account UUID (Identity domain)
+                      {isArabic ? 'معرف حساب المستخدم (UUID)' : 'User Account UUID (Identity domain)'}
                     </label>
                     <Input
                       value={userId ?? ''}
                       onChange={(e) => setUserId(e.target.value.trim() || null)}
                       placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
-                      className="font-mono text-xs"
+                      dir="ltr"
+                      className="font-mono text-xs ltr-force text-start"
                       disabled={isSubmitting}
                     />
                   </div>
@@ -535,27 +543,27 @@ export function RepresentativeFormModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="min-w-[130px] gap-2 bg-ink text-white hover:bg-ink/90"
+              className="min-w-[130px] gap-2 bg-ink text-white hover:bg-ink/90 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
                   <CircleNotch className="size-4 animate-spin" />
-                  Saving...
+                  {t('common.saving', 'Saving...')}
                 </>
               ) : isEdit ? (
                 <>
                   <Check className="size-4" />
-                  Save Changes
+                  {t('common.saveChanges', 'Save Changes')}
                 </>
               ) : (
                 <>
                   <IdentificationBadge className="size-4" />
-                  Create Agent
+                  {t('representatives.createRep', 'Create Agent')}
                 </>
               )}
             </Button>

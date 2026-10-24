@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { UserCircle, ArrowSquareOut, X } from '@phosphor-icons/react'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { UserProfileForm } from '@/features/users/components/UserProfileForm'
 import { ThemeSelector } from './ThemeToggle'
+import { LanguageSelector } from './LanguageToggle'
 
 export function UserProfileDropdown() {
+  const { t } = useTranslation()
   const { user } = useWorkspace()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -75,7 +78,7 @@ export function UserProfileDropdown() {
         <div
           role="dialog"
           aria-label="User profile settings"
-          className="fixed inset-x-3 top-18 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2.5 z-50 w-auto sm:w-[500px] md:w-[540px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-hairline bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 max-h-[calc(100dvh-5.5rem)] flex flex-col"
+          className="fixed inset-x-3 top-18 sm:absolute sm:inset-auto sm:end-0 sm:top-full sm:mt-2.5 z-50 w-auto sm:w-[500px] md:w-[540px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-hairline bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 max-h-[calc(100dvh-5.5rem)] flex flex-col"
         >
           {/* Dropdown Header */}
           <div className="flex items-center justify-between border-b border-hairline px-4 sm:px-5 py-3 bg-paper/60 shrink-0">
@@ -85,10 +88,10 @@ export function UserProfileDropdown() {
               </span>
               <div>
                 <h3 className="text-xs sm:text-sm font-semibold text-ink leading-tight">
-                  Account Profile
+                  {t('profile.accountProfile', 'Account Profile')}
                 </h3>
                 <p className="text-[10px] text-ink-mute">
-                  Signed in as {user?.email}
+                  {t('profile.signedInAs', 'Signed in as')} {user?.email}
                 </p>
               </div>
             </div>
@@ -101,7 +104,7 @@ export function UserProfileDropdown() {
                 title="Open full profile page"
               >
                 <ArrowSquareOut className="size-3" />
-                <span className="hidden sm:inline">Full Page</span>
+                <span className="hidden sm:inline">{t('common.fullPage', 'Full Page')}</span>
               </Link>
               <button
                 type="button"
@@ -115,12 +118,27 @@ export function UserProfileDropdown() {
           </div>
 
           {/* Theme Appearance Selector */}
-          <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/40 px-4 sm:px-5 py-2.5 shrink-0">
+          <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/40 px-4 sm:px-5 py-2 shrink-0">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-ink leading-tight">Theme</p>
-              <p className="text-[10px] text-ink-mute truncate">Light, dark, or system preference</p>
+              <p className="text-xs font-semibold text-ink leading-tight">
+                {t('common.theme', 'Theme')}
+              </p>
+              <p className="text-[10px] text-ink-mute truncate">
+                {t('profile.themeSystem', 'Light, dark, or system preference')}
+              </p>
             </div>
-            <ThemeSelector className="w-48 shrink-0" />
+            <ThemeSelector className="w-44 shrink-0" />
+          </div>
+
+          {/* Language Selector */}
+          <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/40 px-4 sm:px-5 py-2 shrink-0">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-ink leading-tight">
+                {t('common.language', 'Language')}
+              </p>
+              <p className="text-[10px] text-ink-mute truncate">English · العربية</p>
+            </div>
+            <LanguageSelector variant="segmented" />
           </div>
 
           {/* Scrollable Form Body */}

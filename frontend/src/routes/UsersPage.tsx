@@ -1,6 +1,7 @@
 import { UsersThree, CircleNotch, WarningCircle, X, Buildings, Check, Star } from '@phosphor-icons/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
 import { fetchUsers, fetchUserById, updateUserBanks } from '@/features/users/api'
 import { fetchBanks, type Bank } from '@/features/banks/api'
@@ -11,6 +12,7 @@ import { getApiErrorMessage } from '@/lib/api'
 import type { UserProfile } from '@/features/workspaces/api'
 
 export function UsersPage() {
+  const { t } = useTranslation()
   const { user } = useWorkspace()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
@@ -30,7 +32,7 @@ export function UsersPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
         <WarningCircle className="size-12 mb-4 text-red-500" />
-        <p>You do not have permission to view this page.</p>
+        <p>{t('common.error', 'You do not have permission to view this page.')}</p>
       </div>
     )
   }
@@ -46,9 +48,9 @@ export function UsersPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-red-500 mb-4">Failed to load users.</p>
-        <button onClick={() => refetch()} className="text-sm font-medium underline">
-          Try again
+        <p className="text-red-500 mb-4">{t('common.error', 'Failed to load users.')}</p>
+        <button onClick={() => refetch()} className="text-sm font-medium underline cursor-pointer">
+          {t('common.retry', 'Try again')}
         </button>
       </div>
     )
@@ -57,11 +59,11 @@ export function UsersPage() {
   if (!data || data.length === 0) {
     return (
       <ModuleEmptyState
-        kicker="IDENTITY · ACCESS"
-        title="Users, roles and account status."
-        body="Role-scoped accounts across super-admin to viewer will be administered here once the identity user endpoints are exposed."
+        kicker={t('titles.usersMeta', 'IDENTITY · ACCESS')}
+        title={t('users.title', 'Users, roles and account status.')}
+        body={t('users.subtitle', 'Role-scoped accounts across super-admin to viewer will be administered here once the identity user endpoints are exposed.')}
         icon={UsersThree}
-        actionLabel="Invite user"
+        actionLabel={t('common.addNew', 'Invite user')}
       />
     )
   }
@@ -71,23 +73,23 @@ export function UsersPage() {
       <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-hairline bg-paper/50 flex justify-between items-center">
           <div>
-            <h2 className="font-semibold text-ink">System Users</h2>
-            <p className="text-xs text-ink-mute mt-0.5">Manage user access and bank affiliations across EuroInspect 360.</p>
+            <h2 className="font-semibold text-ink">{t('users.title', 'System Users')}</h2>
+            <p className="text-xs text-ink-mute mt-0.5">{t('users.subtitle', 'Manage user access and bank affiliations across EuroInspect 360.')}</p>
           </div>
           <span className="text-xs font-mono text-ink-mute bg-bone px-2 py-1 rounded">
-            {data.length} TOTAL
+            {data.length} {t('users.total', 'TOTAL')}
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-start text-sm">
             <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">
               <tr>
-                <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">Email</th>
-                <th className="px-5 py-3">Role</th>
-                <th className="px-5 py-3">Assigned Banks</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="px-5 py-3 text-start">{t('users.thName', 'Name')}</th>
+                <th className="px-5 py-3 text-start">{t('users.thEmail', 'Email')}</th>
+                <th className="px-5 py-3 text-start">{t('users.thRole', 'Role')}</th>
+                <th className="px-5 py-3 text-start">{t('users.thAssignedBanks', 'Assigned Banks')}</th>
+                <th className="px-5 py-3 text-start">{t('users.thStatus', 'Status')}</th>
+                <th className="px-5 py-3 text-end">{t('users.thActions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
@@ -96,7 +98,7 @@ export function UsersPage() {
                   <td className="px-5 py-3 font-medium text-ink">
                     {u.firstName} {u.lastName}
                   </td>
-                  <td className="px-5 py-3 text-ink-soft">{u.email}</td>
+                  <td className="px-5 py-3 text-ink-soft ltr-force text-start" dir="ltr">{u.email}</td>
                   <td className="px-5 py-3">
                     <span className="inline-flex rounded-md bg-ink-mute/10 px-2 py-1 text-[11px] font-mono font-medium text-ink">
                       {u.role}
@@ -117,7 +119,7 @@ export function UsersPage() {
                           >
                             {b.code || b.name}
                             {b.isPrimary && (
-                              <span title="Primary Bank">
+                              <span title={t('users.primaryBank', 'Primary Bank')}>
                                 <Star weight="fill" className="size-3 text-amber-500" />
                               </span>
                             )}
@@ -125,22 +127,23 @@ export function UsersPage() {
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs text-ink-mute italic">No banks</span>
+                      <span className="text-xs text-ink-mute italic">{t('users.noBanks', 'No banks assigned')}</span>
                     )}
                   </td>
                   <td className="px-5 py-3">
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700">
                       <span className="size-1.5 rounded-full bg-green-500" />
-                      Active
+                      {t('common.active', 'Active')}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-5 py-3 text-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setSelectedUserId(u.id || null)}
+                      className="cursor-pointer text-xs"
                     >
-                      Manage
+                      {t('users.manage', 'Manage')}
                     </Button>
                   </td>
                 </tr>
@@ -153,13 +156,13 @@ export function UsersPage() {
       {selectedUserId && (
         <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden relative p-6">
           <button 
-            className="absolute top-4 right-4 text-ink-mute hover:text-ink transition-colors"
+            className="absolute top-4 end-4 text-ink-mute hover:text-ink transition-colors cursor-pointer modal-close"
             onClick={() => setSelectedUserId(null)}
           >
             <X className="size-5" />
           </button>
           
-          <h3 className="font-semibold text-lg mb-4 text-ink">User Details & Bank Affiliations</h3>
+          <h3 className="font-semibold text-lg mb-4 text-ink">{t('users.userDetailsTitle', 'User Details & Bank Affiliations')}</h3>
           {isUserLoading ? (
             <div className="flex justify-center py-10">
               <CircleNotch className="size-6 animate-spin text-ink-mute" />
@@ -172,7 +175,7 @@ export function UsersPage() {
               onClose={() => setSelectedUserId(null)}
             />
           ) : (
-            <p className="text-red-500 text-sm">Failed to load user details.</p>
+            <p className="text-red-500 text-sm">{t('common.error', 'Failed to load user details.')}</p>
           )}
         </div>
       )}

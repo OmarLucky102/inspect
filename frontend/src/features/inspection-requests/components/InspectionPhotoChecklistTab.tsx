@@ -14,6 +14,7 @@ import {
   Warning,
   XCircle,
 } from '@phosphor-icons/react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +48,8 @@ export function InspectionPhotoChecklistTab({
   onSubmitFinal,
   isSubmittingFinal = false,
 }: InspectionPhotoChecklistTabProps) {
+  const { t, i18n } = useTranslation()
+  const isArabic = i18n.language.startsWith('ar')
   const { user } = useWorkspace()
   const queryClient = useQueryClient()
 
@@ -318,13 +321,13 @@ export function InspectionPhotoChecklistTab({
         <Info className="mt-0.5 size-5 shrink-0 text-accent" />
         <div className="text-xs">
           <p className="font-semibold text-ink">
-            Bank Reviewer Checklist Configuration
+            {t('checklist.instructionsTitle', 'Bank Reviewer Checklist Configuration')}
           </p>
           <p className="mt-0.5 leading-relaxed text-ink-soft">
-            All photo requirements default to <strong>"Yes"</strong>. As a reviewer,
-            toggle any requirement to <strong>"No"</strong> if it is rejected or
-            deemed unnecessary for this inspection request. The field inspector will
-            be constrained by these criteria.
+            {t(
+              'checklist.instructionsDesc',
+              'All photo requirements default to "Yes". As a reviewer, toggle any requirement to "No" if it is rejected or deemed unnecessary for this inspection request. The field inspector will be constrained by these criteria.',
+            )}
           </p>
         </div>
       </div>
@@ -334,8 +337,10 @@ export function InspectionPhotoChecklistTab({
         <div className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-800">
           <Warning className="size-4 shrink-0 text-amber-600" />
           <span>
-            This inspection request is <strong>{status}</strong>. Checklist
-            requirements are locked and cannot be modified.
+            {t('checklist.lockedBanner', {
+              status: t(`statuses.${status.toLowerCase()}`, status),
+              defaultValue: `This inspection request is ${status}. Checklist requirements are locked and cannot be modified.`,
+            })}
           </span>
         </div>
       )}
@@ -345,8 +350,10 @@ export function InspectionPhotoChecklistTab({
         <div className="flex items-center gap-2 rounded-xl border border-hairline bg-paper/60 px-4 py-2.5 text-xs text-ink-mute">
           <Info className="size-4 shrink-0" />
           <span>
-            You are viewing this checklist in read-only mode. Only Bank Admins and
-            Reviewers can toggle criteria.
+            {t(
+              'checklist.readOnlyBanner',
+              'You are viewing this checklist in read-only mode. Only Bank Admins and Reviewers can toggle criteria.',
+            )}
           </span>
         </div>
       )}
@@ -365,11 +372,11 @@ export function InspectionPhotoChecklistTab({
           <div className="flex items-center gap-2">
             <Camera className="size-4 text-accent" />
             <h3 className="text-sm font-semibold text-ink">
-              Standard Required Photo Categories
+              {t('checklist.standardTitle', 'Standard Required Photo Categories')}
             </h3>
           </div>
           <span className="font-mono text-[11px] text-ink-mute">
-            5 Mandatory Criteria
+            {t('checklist.standardSubtitle', '5 Mandatory Criteria')}
           </span>
         </div>
 
@@ -381,9 +388,11 @@ export function InspectionPhotoChecklistTab({
                 <IdentificationCard className="size-5" />
               </span>
               <div>
-                <p className="text-xs font-semibold text-ink">License Photo</p>
+                <p className="text-xs font-semibold text-ink">
+                  {t('checklist.licenseTitle', 'License Photo')}
+                </p>
                 <p className="text-[11px] text-ink-mute">
-                  Vehicle traffic license card (front and back validation)
+                  {t('checklist.licenseDesc', 'Vehicle traffic license card (front and back validation)')}
                 </p>
               </div>
             </div>
@@ -403,9 +412,11 @@ export function InspectionPhotoChecklistTab({
                 <ShieldCheck className="size-5" />
               </span>
               <div>
-                <p className="text-xs font-semibold text-ink">Airbag Photo</p>
+                <p className="text-xs font-semibold text-ink">
+                  {t('checklist.airbagTitle', 'Airbag Photo')}
+                </p>
                 <p className="text-[11px] text-ink-mute">
-                  Steering wheel, passenger dash, and side curtain airbag integrity
+                  {t('checklist.airbagDesc', 'Steering wheel, passenger dash, and side curtain airbag integrity')}
                 </p>
               </div>
             </div>
@@ -425,9 +436,11 @@ export function InspectionPhotoChecklistTab({
                 <Camera className="size-5" />
               </span>
               <div>
-                <p className="text-xs font-semibold text-ink">Roof Photo</p>
+                <p className="text-xs font-semibold text-ink">
+                  {t('checklist.roofTitle', 'Roof Photo')}
+                </p>
                 <p className="text-[11px] text-ink-mute">
-                  Roof panel surface, paint thickness, and panoramic glass assessment
+                  {t('checklist.roofDesc', 'Roof panel surface, paint thickness, and panoramic glass assessment')}
                 </p>
               </div>
             </div>
@@ -447,9 +460,11 @@ export function InspectionPhotoChecklistTab({
                 <Camera className="size-5" />
               </span>
               <div>
-                <p className="text-xs font-semibold text-ink">Odometer Photo</p>
+                <p className="text-xs font-semibold text-ink">
+                  {t('checklist.odometerTitle', 'Odometer Photo')}
+                </p>
                 <p className="text-[11px] text-ink-mute">
-                  Instrument cluster display showing verified kilometer reading
+                  {t('checklist.odometerDesc', 'Instrument cluster display showing verified kilometer reading')}
                 </p>
               </div>
             </div>
@@ -469,9 +484,11 @@ export function InspectionPhotoChecklistTab({
                 <Camera className="size-5" />
               </span>
               <div>
-                <p className="text-xs font-semibold text-ink">Chassis Photo</p>
+                <p className="text-xs font-semibold text-ink">
+                  {t('checklist.chassisTitle', 'Chassis Photo')}
+                </p>
                 <p className="text-[11px] text-ink-mute">
-                  Stamped VIN chassis number plate on metal frame
+                  {t('checklist.chassisDesc', 'Stamped VIN chassis number plate on metal frame')}
                 </p>
               </div>
             </div>
@@ -491,22 +508,21 @@ export function InspectionPhotoChecklistTab({
         <div className="flex items-center justify-between border-b border-hairline bg-paper/30 px-5 py-3.5">
           <div>
             <h3 className="text-sm font-semibold text-ink">
-              Dynamic Custom Photo Requirements
+              {t('checklist.customTitle', 'Dynamic Custom Photo Requirements')}
             </h3>
             <p className="text-[11px] text-ink-mute">
-              Bank-defined custom inspection targets (e.g. Trunk interior, Underbody)
+              {t('checklist.customSubtitle', 'Bank-defined custom inspection targets (e.g. Trunk interior, Underbody)')}
             </p>
           </div>
           <span className="font-mono text-[11px] text-ink-mute">
-            {customFields.length} Custom {customFields.length === 1 ? 'Item' : 'Items'}
+            {customFields.length} {isArabic ? 'عناصر' : 'Items'}
           </span>
         </div>
 
         {/* Existing Custom Items List */}
         {customFields.length === 0 ? (
           <div className="p-6 text-center text-xs text-ink-mute">
-            No custom photo categories configured yet. Add one below if specific
-            evidence is needed.
+            {t('checklist.noCustomCategories', 'No custom photo categories configured yet.')}
           </div>
         ) : (
           <div className="divide-y divide-hairline">
@@ -522,7 +538,7 @@ export function InspectionPhotoChecklistTab({
                   <div>
                     <p className="text-xs font-semibold text-ink">{field.name}</p>
                     <p className="font-mono text-[10px] text-ink-mute">
-                      Custom Bank Requirement
+                      {t('checklist.customBankRequirement', 'Custom Bank Requirement')}
                     </p>
                   </div>
                 </div>
@@ -537,7 +553,7 @@ export function InspectionPhotoChecklistTab({
                   {isReviewerOrAdmin && !isLocked && (
                     <button
                       type="button"
-                      title="Remove custom category"
+                      title={t('checklist.remove', 'Remove')}
                       className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-ink-mute transition-colors hover:bg-rose-50 hover:text-rose-600"
                       onClick={() => handleRemoveCustomCategory(idx)}
                     >
@@ -557,15 +573,15 @@ export function InspectionPhotoChecklistTab({
             className="flex items-center gap-3 border-t border-hairline bg-bone/60 p-4"
           >
             <Input
-              placeholder="Add custom category (e.g. Trunk interior, Sunroof seals)..."
+              placeholder={t('checklist.addCategoryPlaceholder', 'Add custom category (e.g. Trunk interior, Sunroof seals)...')}
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               className="h-9 text-xs"
               maxLength={100}
             />
             <Button type="submit" size="sm" className="shrink-0">
-              <Plus className="mr-1 size-3.5" />
-              Add Category
+              <Plus className="me-1 size-3.5" />
+              {t('checklist.addCategoryButton', 'Add Category')}
             </Button>
           </form>
         )}
@@ -579,8 +595,8 @@ export function InspectionPhotoChecklistTab({
             variant="outline"
             onClick={onBack}
           >
-            <ArrowLeft className="mr-1.5 size-4" />
-            Back to Vehicle Info
+            <ArrowLeft className="me-1.5 size-4 rtl:rotate-180" />
+            {t('createRequest.backToVehicle', 'Back to Vehicle Info')}
           </Button>
 
           <div className="flex items-center gap-3">
@@ -590,16 +606,16 @@ export function InspectionPhotoChecklistTab({
               disabled={updateMutation.isPending}
               onClick={() =>
                 handleSaveChecklist(undefined, () =>
-                  toast.success('Inspection checklist saved as draft'),
+                  toast.success(t('createRequest.savingDraft', 'Checklist saved')),
                 )
               }
             >
               {updateMutation.isPending ? (
-                <CircleNotch className="mr-1.5 size-4 animate-spin" />
+                <CircleNotch className="me-1.5 size-4 animate-spin" />
               ) : (
-                <FloppyDisk className="mr-1.5 size-4" />
+                <FloppyDisk className="me-1.5 size-4" />
               )}
-              Save Checklist Draft
+              {t('createRequest.saveAsDraft', 'Save Checklist Draft')}
             </Button>
 
             <Button
@@ -612,11 +628,11 @@ export function InspectionPhotoChecklistTab({
               }}
             >
               {isSubmittingFinal ? (
-                <CircleNotch className="mr-1.5 size-4 animate-spin" />
+                <CircleNotch className="me-1.5 size-4 animate-spin" />
               ) : (
-                <ShieldCheck className="mr-1.5 size-4" />
+                <ShieldCheck className="me-1.5 size-4" />
               )}
-              Submit Inspection Request
+              {t('createRequest.submitForReview', 'Submit Inspection Request')}
             </Button>
           </div>
         </div>
@@ -627,15 +643,15 @@ export function InspectionPhotoChecklistTab({
             {updateMutation.isPending ? (
               <>
                 <CircleNotch className="size-3.5 animate-spin text-accent" />
-                <span>Saving criteria...</span>
+                <span>{t('common.saving', 'Saving criteria...')}</span>
               </>
             ) : updateMutation.isSuccess ? (
               <>
                 <CheckCircle className="size-3.5 text-emerald-600" />
-                <span className="text-emerald-700">All changes saved live</span>
+                <span className="text-emerald-700">{t('common.success', 'All changes saved live')}</span>
               </>
             ) : (
-              <span>Toggles save automatically on review.</span>
+              <span>{t('common.saveChanges', 'Toggles save automatically on review.')}</span>
             )}
           </div>
 
@@ -646,8 +662,8 @@ export function InspectionPhotoChecklistTab({
               disabled={updateMutation.isPending}
               onClick={() => handleSaveChecklist()}
             >
-              <FloppyDisk className="mr-1 size-3.5" />
-              Save Checklist
+              <FloppyDisk className="me-1 size-3.5" />
+              {t('common.save', 'Save Checklist')}
             </Button>
           )}
         </div>
@@ -670,6 +686,7 @@ function ToggleButtons({
   onChange,
   disabled = false,
 }: ToggleButtonsProps) {
+  const { t } = useTranslation()
   return (
     <div className="inline-flex rounded-lg border border-hairline bg-paper/60 p-0.5 text-xs font-semibold">
       <button
@@ -678,14 +695,14 @@ function ToggleButtons({
         onClick={() => {
           if (!value) onChange(true)
         }}
-        className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs transition-all ${
+        className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs transition-all cursor-pointer ${
           value
             ? 'bg-emerald-600 text-white shadow-2xs font-bold'
             : 'text-ink-mute hover:text-ink disabled:opacity-50'
         }`}
       >
         <CheckCircle className="size-3" weight={value ? 'bold' : 'regular'} />
-        Yes
+        {t('checklist.yes', 'Yes')}
       </button>
 
       <button
@@ -694,14 +711,14 @@ function ToggleButtons({
         onClick={() => {
           if (value) onChange(false)
         }}
-        className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs transition-all ${
+        className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs transition-all cursor-pointer ${
           !value
             ? 'bg-rose-600 text-white shadow-2xs font-bold'
             : 'text-ink-mute hover:text-ink disabled:opacity-50'
         }`}
       >
         <XCircle className="size-3" weight={!value ? 'bold' : 'regular'} />
-        No
+        {t('checklist.no', 'No')}
       </button>
     </div>
   )

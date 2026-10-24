@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   Car,
   CheckCircle,
@@ -39,15 +40,20 @@ import {
   type InspectionAnalyticsData,
 } from '@/features/inspection-requests/api';
 
-const PERIOD_OPTIONS = [
-  { label: '7 Days', value: 7 },
-  { label: '30 Days', value: 30 },
-  { label: '90 Days', value: 90 },
-];
-
 export function DashboardPage() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const navigate = useNavigate();
   const { user, banks, activeBankId, setActiveBankId } = useWorkspace();
+
+  const periodOptions = useMemo(
+    () => [
+      { label: t('dashboard.days7', '7 Days'), value: 7 },
+      { label: t('dashboard.days30', '30 Days'), value: 30 },
+      { label: t('dashboard.days90', '90 Days'), value: 90 },
+    ],
+    [t],
+  );
 
   // Period filter (7, 30, 90 days)
   const [periodDays, setPeriodDays] = useState<number>(30);
@@ -90,14 +96,10 @@ export function DashboardPage() {
     refetchInterval: 30000, // automatic 30s live poll
   });
 
-  // Format currency helper
+  // Format currency helper - standardizing to consistent Latin numerals
   const formatCurrency = (val: number | undefined) => {
-    if (!val) return '0 EGP';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EGP',
-      maximumFractionDigits: 0,
-    }).format(val);
+    if (!val) return isArabic ? '0 ج.م' : '0 EGP';
+    return `${val.toLocaleString('en-US')} ${isArabic ? 'ج.م' : 'EGP'}`;
   };
 
   // Active bank name for display
@@ -107,6 +109,45 @@ export function DashboardPage() {
     }
     return null;
   }, [banks, queryBankId]);
+
+  // Localized date trend for area chart (Arabic month with Latin numerals)
+  const formattedVolumeTrend = useMemo(() => {
+    if (!analytics?.volumeTrend) return [];
+    return analytics.volumeTrend.map((item) => ({
+      ...item,
+      displayDate: new Date(item.date).toLocaleDateString(
+        isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
+        { month: 'short', day: 'numeric' },
+      ),
+    }));
+  }, [analytics?.volumeTrend, isArabic]);
+
+  // Localized status breakdown for donut chart and legend
+  const formattedStatusBreakdown = useMemo(() => {
+    if (!analytics?.statusBreakdown) return [];
+    return analytics.statusBreakdown.map((item) => ({
+      ...item,
+      displayLabel: t(`statuses.${item.status.toLowerCase()}`, item.label),
+    }));
+  }, [analytics?.statusBreakdown, t]);
+
+  // Localized vehicle category names for bar chart
+  const formattedCategoryDistribution = useMemo(() => {
+    if (!analytics?.categoryDistribution) return [];
+    const arCategoryMap: Record<string, string> = {
+      Sedan: 'سيدان',
+      SUV: 'دفع رباعي (SUV)',
+      Hatchback: 'هاتشباك',
+      Coupe: 'كوبيه',
+      Crossover: 'كروس أوفر',
+      Truck: 'شاحنة / نقل',
+      Van: 'فان',
+    };
+    return analytics.categoryDistribution.map((item) => ({
+      ...item,
+      displayName: isArabic ? (arCategoryMap[item.name] || item.name) : item.name,
+    }));
+  }, [analytics?.categoryDistribution, isArabic]);
 
   const overview = analytics?.overview;
 
@@ -118,28 +159,30 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
               <ShieldCheck className="size-3.5" />
-              EuroInspect 360 · Analytics
+              {t('dashboard.analyticsTag', 'EuroInspect 360 · Analytics')}
             </span>
             {analytics?.scope.isGlobal ? (
               <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 font-mono text-[10px] font-medium text-purple-700 border border-purple-100">
                 <Buildings className="size-3" />
-                All Partner Banks (Global Overview)
+                {t('dashboard.allPartnerBanks', 'All Partner Banks (Global Overview)')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-medium text-blue-700 border border-blue-100">
                 <Buildings className="size-3" />
                 {analytics?.scope.bankName ||
                   activeBankObj?.name ||
-                  'Selected Bank'}
+                  t('dashboard.selectedBank', 'Selected Bank')}
               </span>
             )}
           </div>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">
-            Inspection Operations Dashboard
+            {t('dashboard.title', 'Inspection Operations Dashboard')}
           </h1>
           <p className="mt-0.5 text-xs text-ink-mute">
-            Live business intelligence, operational workflow velocity, and
-            market valuation metrics.
+            {t(
+              'dashboard.subtitle',
+              'Live business intelligence, operational workflow velocity, and market valuation metrics.',
+            )}
           </p>
         </div>
 
@@ -150,7 +193,7 @@ export function DashboardPage() {
             <div className="flex items-center gap-1.5 rounded-xl border border-hairline bg-paper px-3 py-1.5 text-xs">
               <Funnel className="size-3.5 text-ink-mute" />
               <select
-                aria-label="Filter by bank scope"
+                aria-label={t('dashboard.filterBankScope', 'Filter by bank scope')}
                 value={selectedBankScope}
                 onChange={(e) => {
                   setSelectedBankScope(e.target.value);
@@ -160,7 +203,9 @@ export function DashboardPage() {
                 }}
                 className="bg-transparent font-medium text-ink outline-hidden cursor-pointer"
               >
-                <option value="all">🌐 All Banks (Global View)</option>
+                <option value="all">
+                  {t('dashboard.allBanksGlobal', '🌐 All Banks (Global View)')}
+                </option>
                 {banks.map((b) => (
                   <option key={b.id} value={b.id}>
                     🏦 {b.name}
@@ -172,7 +217,7 @@ export function DashboardPage() {
 
           {/* Period Selector Pills */}
           <div className="flex items-center rounded-xl border border-hairline bg-paper p-1 text-xs">
-            {PERIOD_OPTIONS.map((opt) => (
+            {periodOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
@@ -194,7 +239,7 @@ export function DashboardPage() {
             onClick={() => void refetch()}
             disabled={isRefetching}
             className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-hairline bg-white p-2 text-ink-mute hover:text-ink hover:bg-paper transition-colors"
-            title="Refresh analytics data"
+            title={t('dashboard.refreshAnalytics', 'Refresh analytics data')}
           >
             <ArrowsClockwise
               className={`size-4 ${isRefetching ? 'animate-spin text-accent' : ''}`}
@@ -209,7 +254,7 @@ export function DashboardPage() {
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-accent/90 transition-colors"
             >
               <Plus className="size-3.5" />
-              <span>New Request</span>
+              <span>{t('dashboard.newRequest', 'New Request')}</span>
             </button>
           )}
         </div>
@@ -221,7 +266,7 @@ export function DashboardPage() {
         <div className="relative overflow-hidden rounded-2xl border border-hairline bg-white p-5 shadow-xs transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-ink-mute">
-              Total Inspection Requests
+              {t('dashboard.kpiTotalRequests', 'Total Inspection Requests')}
             </span>
             <span className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
               <Car className="size-5" />
@@ -229,17 +274,17 @@ export function DashboardPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight text-ink">
-              {isLoading ? '—' : overview?.totalRequests.toLocaleString()}
+              {isLoading ? '—' : overview?.totalRequests.toLocaleString('en-US')}
             </span>
             <span className="text-xs font-medium text-ink-mute">
-              all-time logged
+              {t('dashboard.kpiAllTimeLogged', 'all-time logged')}
             </span>
           </div>
           <div className="mt-3 flex items-center gap-2 border-t border-hairline pt-3 text-[11px] text-ink-mute">
             <span className="font-semibold text-accent">
-              {overview?.activePipeline || 0} active
+              {overview?.activePipeline || 0} {t('dashboard.kpiActive', 'active')}
             </span>
-            <span>currently in workflow pipeline</span>
+            <span>{t('dashboard.kpiCurrentlyInPipeline', 'currently in workflow pipeline')}</span>
           </div>
         </div>
 
@@ -247,7 +292,7 @@ export function DashboardPage() {
         <div className="relative overflow-hidden rounded-2xl border border-hairline bg-white p-5 shadow-xs transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-ink-mute">
-              Approved & Completed
+              {t('dashboard.kpiApprovedCompleted', 'Approved & Completed')}
             </span>
             <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <CheckCircle className="size-5" />
@@ -255,22 +300,22 @@ export function DashboardPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight text-ink">
-              {isLoading ? '—' : overview?.approved.toLocaleString()}
+              {isLoading ? '—' : overview?.approved.toLocaleString('en-US')}
             </span>
             <span className="inline-flex items-center gap-0.5 rounded-md bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-emerald-700">
               <TrendUp className="size-3" />
-              {overview?.approvalRate ?? 0}% rate
+              {overview?.approvalRate ?? 0}% {t('dashboard.kpiCompletionRate', 'rate')}
             </span>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-hairline pt-3 text-[11px] text-ink-mute">
             <span>
-              Rejected:{' '}
+              {t('statuses.rejected', 'Rejected')}:{' '}
               <strong className="text-rose-600">
                 {overview?.rejected || 0}
               </strong>
             </span>
             <span>
-              Cancelled: <strong>{overview?.cancelled || 0}</strong>
+              {t('statuses.cancelled', 'Cancelled')}: <strong>{overview?.cancelled || 0}</strong>
             </span>
           </div>
         </div>
@@ -279,7 +324,7 @@ export function DashboardPage() {
         <div className="relative overflow-hidden rounded-2xl border border-hairline bg-white p-5 shadow-xs transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-ink-mute">
-              Authorized Market Valuation
+              {t('dashboard.kpiEstimatedPortfolio', 'Estimated Portfolio Value')}
             </span>
             <span className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
               <CurrencyCircleDollar className="size-5" />
@@ -291,7 +336,7 @@ export function DashboardPage() {
             </span>
           </div>
           <div className="mt-3 flex items-center gap-1.5 border-t border-hairline pt-3 text-[11px] text-ink-mute">
-            <span>Average per approved vehicle:</span>
+            <span>{t('dashboard.kpiAssessedValuation', 'assessed vehicle valuation')}:</span>
             <strong className="font-mono text-ink">
               {formatCurrency(overview?.averageValuation)}
             </strong>
@@ -302,7 +347,7 @@ export function DashboardPage() {
         <div className="relative overflow-hidden rounded-2xl border border-hairline bg-white p-5 shadow-xs transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-ink-mute">
-              Avg Turnaround Time
+              {t('dashboard.kpiPipelineVelocity', 'Pipeline Velocity')}
             </span>
             <span className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
               <Clock className="size-5" />
@@ -317,11 +362,11 @@ export function DashboardPage() {
                   : overview?.averageTurnaroundDays}
             </span>
             <span className="text-xs font-medium text-ink-mute">
-              days to approval
+              {t('dashboard.kpiAvgCompletionTime', 'avg completion time')}
             </span>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-hairline pt-3 text-[11px] text-ink-mute">
-            <span>First-time pass rate:</span>
+            <span>{t('dashboard.kpiTargetBenchmark', 'target: <48h benchmark')}</span>
             <strong className="font-mono text-emerald-600">
               {analytics?.checklistPerformance.passRate || 0}%
             </strong>
@@ -333,10 +378,10 @@ export function DashboardPage() {
       <div className="rounded-2xl border border-hairline bg-paper p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-ink-mute">
-            Live Inspection Pipeline Status
+            {t('dashboard.pipelineTitle', 'Operational Pipeline Velocity')}
           </h3>
           <span className="text-[11px] font-mono text-ink-mute">
-            Stage 1 Intake → Stage 5 Final Authorization
+            {t('dashboard.pipelineSubtitle', 'End-to-end lifecycle throughput across 5 core stages')}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -344,7 +389,7 @@ export function DashboardPage() {
           <div className="rounded-xl border border-hairline bg-white p-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-amber-700">
-                1. Initial Review
+                {t('dashboard.stage1Title', '1. Intake & Drafts')}
               </span>
               <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             </div>
@@ -352,7 +397,7 @@ export function DashboardPage() {
               {overview?.pendingInitialApproval || 0}
             </p>
             <p className="mt-0.5 text-[10px] text-ink-mute">
-              Awaiting Reviewer Approval
+              {t('dashboard.stage1Desc', 'New intake requests created & pending dispatch')}
             </p>
           </div>
 
@@ -360,7 +405,7 @@ export function DashboardPage() {
           <div className="rounded-xl border border-hairline bg-white p-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-blue-700">
-                2. Assignment
+                {t('dashboard.stage2Title', '2. Reviewer Triage')}
               </span>
               <span className="size-2 rounded-full bg-blue-500" />
             </div>
@@ -368,7 +413,7 @@ export function DashboardPage() {
               {overview?.pendingAssignment || 0}
             </p>
             <p className="mt-0.5 text-[10px] text-ink-mute">
-              Awaiting Field Rep
+              {t('dashboard.stage2Desc', 'Initial validation & audit by inspection reviewers')}
             </p>
           </div>
 
@@ -376,7 +421,7 @@ export function DashboardPage() {
           <div className="rounded-xl border border-hairline bg-white p-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-purple-700">
-                3. In-Field Capture
+                {t('dashboard.stage3Title', '3. Field Agent Dispatch')}
               </span>
               <span className="size-2 rounded-full bg-purple-500" />
             </div>
@@ -384,7 +429,7 @@ export function DashboardPage() {
               {overview?.inField || 0}
             </p>
             <p className="mt-0.5 text-[10px] text-ink-mute">
-              Assigned / In Progress
+              {t('dashboard.stage3Desc', 'Assigned to field representatives on mobile apps')}
             </p>
           </div>
 
@@ -392,7 +437,7 @@ export function DashboardPage() {
           <div className="rounded-xl border border-hairline bg-white p-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-cyan-700">
-                4. Media & Valuation
+                {t('dashboard.stage4Title', '4. Inspection & Submission')}
               </span>
               <span className="size-2 rounded-full bg-cyan-500" />
             </div>
@@ -400,7 +445,7 @@ export function DashboardPage() {
               {overview?.underValuationReview || 0}
             </p>
             <p className="mt-0.5 text-[10px] text-ink-mute">
-              Media Review & Pricing
+              {t('dashboard.stage4Desc', 'Field photos captured, checklists completed & submitted')}
             </p>
           </div>
 
@@ -408,14 +453,16 @@ export function DashboardPage() {
           <div className="rounded-xl border border-hairline bg-white p-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-emerald-700">
-                5. Authorized
+                {t('dashboard.stage5Title', '5. Final Review & Approval')}
               </span>
               <span className="size-2 rounded-full bg-emerald-500" />
             </div>
             <p className="mt-2 text-2xl font-bold text-ink">
               {overview?.approved || 0}
             </p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Final Approved</p>
+            <p className="mt-0.5 text-[10px] text-ink-mute">
+              {t('dashboard.stage5Desc', 'Audit approved and inspection certificate finalized')}
+            </p>
           </div>
         </div>
       </div>
@@ -431,22 +478,21 @@ export function DashboardPage() {
                   <ChartLineUp className="size-4" />
                 </span>
                 <h3 className="text-base font-bold text-ink">
-                  Inspection Volume & Approval Velocity
+                  {t('dashboard.chartVolumeTrend', 'Inspection Volume Trend')}
                 </h3>
               </div>
               <p className="mt-1 text-xs text-ink-mute">
-                Daily trend of new inspection requests vs authorized completions
-                over the last {periodDays} days.
+                {t('dashboard.chartVolumeSubtitle', 'Daily created vs completed volume')}
               </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
               <div className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-blue-500" />
-                <span className="text-ink-soft">Created Requests</span>
+                <span className="text-ink-soft">{t('dashboard.created', 'Created')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-emerald-500" />
-                <span className="text-ink-soft">Approved Inspections</span>
+                <span className="text-ink-soft">{t('dashboard.completed', 'Completed')}</span>
               </div>
             </div>
           </div>
@@ -454,12 +500,12 @@ export function DashboardPage() {
           <div className="mt-6 h-72 w-full">
             {isLoading ? (
               <div className="flex h-full items-center justify-center text-xs text-ink-mute">
-                Loading volume trends...
+                {t('common.loading', 'Loading...')}
               </div>
-            ) : analytics?.volumeTrend && analytics.volumeTrend.length > 0 ? (
+            ) : formattedVolumeTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={analytics.volumeTrend}
+                  data={formattedVolumeTrend}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <defs>
@@ -498,7 +544,7 @@ export function DashboardPage() {
                     stroke="#f0f0f0"
                   />
                   <XAxis
-                    dataKey="formattedDate"
+                    dataKey="displayDate"
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 11, fill: '#888' }}
@@ -521,7 +567,7 @@ export function DashboardPage() {
                   <Area
                     type="monotone"
                     dataKey="created"
-                    name="Requests Created"
+                    name={t('dashboard.created', 'Created')}
                     stroke="#3b82f6"
                     strokeWidth={2.5}
                     fillOpacity={1}
@@ -530,7 +576,7 @@ export function DashboardPage() {
                   <Area
                     type="monotone"
                     dataKey="approved"
-                    name="Inspections Approved"
+                    name={t('dashboard.completed', 'Completed')}
                     stroke="#10b981"
                     strokeWidth={2.5}
                     fillOpacity={1}
@@ -541,7 +587,7 @@ export function DashboardPage() {
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-xs text-ink-mute">
                 <Car className="size-8 text-ink-mute/50 mb-1" />
-                No request activity recorded in this period
+                {t('dashboard.noRequestsPeriod', 'No request activity recorded in this period')}
               </div>
             )}
           </div>
@@ -555,39 +601,38 @@ export function DashboardPage() {
                 <ChartPie className="size-4" />
               </span>
               <h3 className="text-base font-bold text-ink">
-                Status Pipeline Share
+                {t('dashboard.chartStatusBreakdown', 'Volume Breakdown by Operational Status')}
               </h3>
             </div>
             <p className="mt-1 text-xs text-ink-mute">
-              Relative proportion across active and completed lifecycle states.
+              {t('dashboard.chartStatusSubtitle', 'Current distribution across all workflow statuses')}
             </p>
 
             <div className="mt-4 h-56 w-full">
               {isLoading ? (
                 <div className="flex h-full items-center justify-center text-xs text-ink-mute">
-                  Loading status share...
+                  {t('common.loading', 'Loading...')}
                 </div>
-              ) : analytics?.statusBreakdown &&
-                analytics.statusBreakdown.some((s) => s.count > 0) ? (
+              ) : formattedStatusBreakdown.some((s) => s.count > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={analytics.statusBreakdown.filter(
+                      data={formattedStatusBreakdown.filter(
                         (s) => s.count > 0,
                       )}
                       innerRadius={55}
                       outerRadius={80}
                       paddingAngle={4}
                       dataKey="count"
-                      nameKey="label"
+                      nameKey="displayLabel"
                     >
-                      {analytics.statusBreakdown.map((entry, index) => (
+                      {formattedStatusBreakdown.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <RechartsTooltip
                       formatter={(val: any, name: any) => [
-                        `${val} requests`,
+                        `${val} ${t('dashboard.requests', 'requests')}`,
                         name,
                       ]}
                       contentStyle={{
@@ -603,7 +648,7 @@ export function DashboardPage() {
               ) : (
                 <div className="flex h-full flex-col items-center justify-center text-xs text-ink-mute">
                   <ChartPie className="size-8 text-ink-mute/50 mb-1" />
-                  No inspection requests found
+                  {t('dashboard.noRequestsPeriod', 'No inspection requests found')}
                 </div>
               )}
             </div>
@@ -611,14 +656,16 @@ export function DashboardPage() {
 
           {/* Donut Legend */}
           <div className="mt-2 grid grid-cols-2 gap-2 border-t border-hairline pt-3 text-[11px]">
-            {analytics?.statusBreakdown.map((item) => (
+            {formattedStatusBreakdown.map((item) => (
               <div key={item.status} className="flex items-center gap-2">
                 <span
                   className="size-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: item.color }}
                 />
-                <span className="truncate text-ink-soft">{item.label}</span>
-                <span className="ml-auto font-mono font-bold text-ink">
+                <span className="truncate text-ink-soft">
+                  {item.displayLabel}
+                </span>
+                <span className="ms-auto font-mono font-bold text-ink">
                   {item.count}
                 </span>
               </div>
@@ -638,10 +685,13 @@ export function DashboardPage() {
               </span>
               <div>
                 <h3 className="text-base font-bold text-ink">
-                  Vehicle Category Distribution
+                  {t('dashboard.chartCategories', 'Vehicle Category Distribution')}
                 </h3>
                 <p className="text-xs text-ink-mute">
-                  Inspection volume classified by vehicle segment.
+                  {t(
+                    'dashboard.chartCategoriesSubtitle',
+                    'Inspection volume classified by vehicle segment.',
+                  )}
                 </p>
               </div>
             </div>
@@ -650,13 +700,12 @@ export function DashboardPage() {
           <div className="mt-6 h-64 w-full">
             {isLoading ? (
               <div className="flex h-full items-center justify-center text-xs text-ink-mute">
-                Loading categories...
+                {t('common.loading', 'Loading categories...')}
               </div>
-            ) : analytics?.categoryDistribution &&
-              analytics.categoryDistribution.length > 0 ? (
+            ) : formattedCategoryDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={analytics.categoryDistribution}
+                  data={formattedCategoryDistribution}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid
@@ -665,7 +714,7 @@ export function DashboardPage() {
                     stroke="#f0f0f0"
                   />
                   <XAxis
-                    dataKey="name"
+                    dataKey="displayName"
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 11, fill: '#888' }}
@@ -677,7 +726,10 @@ export function DashboardPage() {
                     allowDecimals={false}
                   />
                   <RechartsTooltip
-                    formatter={(val: any) => [`${val} vehicles`, 'Volume']}
+                    formatter={(val: any) => [
+                      `${val} ${isArabic ? 'مركبة' : 'vehicles'}`,
+                      isArabic ? 'العدد' : 'Volume',
+                    ]}
                     contentStyle={{
                       backgroundColor: '#ffffff',
                       borderColor: '#e5e7eb',
@@ -695,7 +747,7 @@ export function DashboardPage() {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-ink-mute">
-                No category data available
+                {t('dashboard.noCategoriesData', 'No category data available')}
               </div>
             )}
           </div>
@@ -709,11 +761,14 @@ export function DashboardPage() {
                 <CheckSquare className="size-4" />
               </span>
               <h3 className="text-base font-bold text-ink">
-                Checklist Audit Quality
+                {t('dashboard.qualityTitle', 'Checklist Audit Quality')}
               </h3>
             </div>
             <p className="mt-1 text-xs text-ink-mute">
-              Evidence compliance from Reviewer media evaluations.
+              {t(
+                'dashboard.qualitySubtitle',
+                'Evidence compliance from Reviewer media evaluations.',
+              )}
             </p>
 
             <div className="mt-5 space-y-4">
@@ -721,7 +776,7 @@ export function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-ink-soft">
-                    First-Time Pass Rate
+                    {t('dashboard.firstTimePassRate', 'First-Time Pass Rate')}
                   </span>
                   <span className="font-mono font-bold text-emerald-600">
                     {analytics?.checklistPerformance.passRate ?? 0}%
@@ -741,7 +796,7 @@ export function DashboardPage() {
               <div className="grid grid-cols-3 gap-2 rounded-xl bg-paper p-3 text-center">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-emerald-600">
-                    Pass
+                    {t('dashboard.pass', 'Pass')}
                   </p>
                   <p className="mt-1 text-base font-bold text-ink">
                     {analytics?.checklistPerformance.passCount || 0}
@@ -749,7 +804,7 @@ export function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-amber-600">
-                    Reshoot
+                    {t('dashboard.reshoot', 'Reshoot')}
                   </p>
                   <p className="mt-1 text-base font-bold text-ink">
                     {analytics?.checklistPerformance.reshootCount || 0}
@@ -757,7 +812,7 @@ export function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-rose-600">
-                    Fail
+                    {t('dashboard.fail', 'Fail')}
                   </p>
                   <p className="mt-1 text-base font-bold text-ink">
                     {analytics?.checklistPerformance.failCount || 0}
@@ -770,7 +825,7 @@ export function DashboardPage() {
           {/* Priority SLA breakdown */}
           <div className="mt-6 border-t border-hairline pt-4">
             <h4 className="text-xs font-semibold text-ink-soft">
-              Priority Demands
+              {t('dashboard.priorityDemands', 'Priority Demands')}
             </h4>
             <div className="mt-2 grid grid-cols-4 gap-1.5 text-center text-[10px]">
               {analytics?.priorityDistribution.map((p) => (
@@ -778,8 +833,8 @@ export function DashboardPage() {
                   key={p.priority}
                   className="rounded-lg border border-hairline bg-white p-1.5"
                 >
-                  <span className="block text-ink-mute uppercase font-mono">
-                    {p.priority}
+                  <span className="block text-ink-mute font-medium">
+                    {t(`priorities.${p.priority.toLowerCase()}`, p.priority)}
                   </span>
                   <span className="mt-0.5 block font-mono font-bold text-ink">
                     {p.count}
@@ -796,10 +851,10 @@ export function DashboardPage() {
         <div className="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between border-b border-hairline">
           <div>
             <h3 className="text-base font-bold text-ink">
-              Recent Inspection Requests
+              {t('dashboard.recentRequests', 'Recent Inspection Requests')}
             </h3>
             <p className="text-xs text-ink-mute">
-              Real-time feed of submitted and ongoing inspections.
+              {t('dashboard.recentSubtitle', 'Real-time feed of submitted and ongoing inspections.')}
             </p>
           </div>
           <button
@@ -807,24 +862,24 @@ export function DashboardPage() {
             onClick={() => navigate('/requests')}
             className="inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-accent hover:underline"
           >
-            <span>View All Inspection Requests</span>
-            <ArrowRight className="size-3.5" />
+            <span>{t('dashboard.viewAllRequests', 'View All Inspection Requests')}</span>
+            <ArrowRight className="size-3.5 rtl:rotate-180" />
           </button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-start text-xs">
             <thead className="bg-paper font-mono uppercase tracking-wider text-ink-mute text-[10px]">
               <tr>
-                <th className="px-5 py-3">Request Number</th>
-                <th className="px-5 py-3">Vehicle Details</th>
-                <th className="px-5 py-3">Customer</th>
+                <th className="px-5 py-3">{t('dashboard.thRequestNumber', 'Request Number')}</th>
+                <th className="px-5 py-3">{t('dashboard.thVehicle', 'Vehicle Details')}</th>
+                <th className="px-5 py-3">{t('dashboard.thCustomer', 'Customer')}</th>
                 {analytics?.scope.isGlobal && (
-                  <th className="px-5 py-3">Partner Bank</th>
+                  <th className="px-5 py-3">{t('titles.banks', 'Partner Bank')}</th>
                 )}
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Submitted At</th>
-                <th className="px-5 py-3 text-right">Action</th>
+                <th className="px-5 py-3">{t('dashboard.thStatus', 'Status')}</th>
+                <th className="px-5 py-3">{t('dashboard.thCreated', 'Submitted At')}</th>
+                <th className="px-5 py-3 text-right">{t('dashboard.thActions', 'Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
@@ -834,7 +889,7 @@ export function DashboardPage() {
                     colSpan={7}
                     className="px-5 py-8 text-center text-ink-mute"
                   >
-                    Loading recent requests...
+                    {t('common.loading', 'Loading recent requests...')}
                   </td>
                 </tr>
               ) : analytics?.recentRequests &&
@@ -853,10 +908,14 @@ export function DashboardPage() {
                       {req.requestNumber}
                     </td>
                     <td className="px-5 py-3.5 font-medium text-ink">
-                      {req.vehicleDescription}
+                      {req.vehicleDescription === 'Vehicle info pending' || req.vehicleDescription === 'Vehicle'
+                        ? (isArabic ? 'بيانات المركبة قيد الإدخال' : 'Vehicle info pending')
+                        : req.vehicleDescription}
                     </td>
                     <td className="px-5 py-3.5 text-ink-soft">
-                      {req.customerName}
+                      {req.customerName === 'N/A' || !req.customerName
+                        ? (isArabic ? 'غير محدد' : 'N/A')
+                        : req.customerName}
                     </td>
                     {analytics.scope.isGlobal && (
                       <td className="px-5 py-3.5 font-medium text-ink-soft">
@@ -883,16 +942,21 @@ export function DashboardPage() {
                                     : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}
                       >
-                        {req.status === 'COMPLETED' ? 'AWAITING APPROVAL' : req.status}
+                        {req.status === 'COMPLETED'
+                          ? t('requests.awaitingApprovalBadge', 'AWAITING APPROVAL')
+                          : t(`statuses.${req.status.toLowerCase()}`, req.status)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 font-mono text-ink-mute text-[11px]">
-                      {new Date(req.requestedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {new Date(req.requestedAt).toLocaleDateString(
+                        isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
+                        {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        },
+                      )}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <button
@@ -906,7 +970,7 @@ export function DashboardPage() {
                         className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-hairline px-2.5 py-1 text-[11px] font-medium text-ink hover:text-accent hover:border-accent/40 hover:bg-paper transition-colors"
                       >
                         <Eye className="size-3" />
-                        <span>Details</span>
+                        <span>{t('common.details', 'Details')}</span>
                       </button>
                     </td>
                   </tr>
@@ -917,7 +981,7 @@ export function DashboardPage() {
                     colSpan={7}
                     className="px-5 py-8 text-center text-ink-mute"
                   >
-                    No inspection requests found in database.
+                    {t('dashboard.noRequestsPeriod', 'No inspection requests found in database.')}
                   </td>
                 </tr>
               )}

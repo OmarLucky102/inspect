@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   IdentificationBadge,
   Plus,
@@ -34,6 +35,8 @@ import { RepresentativeFormModal } from '@/features/representatives/components/R
 import { RepresentativeDeleteDialog } from '@/features/representatives/components/RepresentativeDeleteDialog';
 
 export function RepresentativesPage() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const { user } = useWorkspace();
   const queryClient = useQueryClient();
 
@@ -160,14 +163,14 @@ export function RepresentativesPage() {
           <div className="flex items-center gap-2 mb-1">
             <span className="inline-flex items-center gap-1.5 rounded-md bg-paper px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider text-ink-mute uppercase border border-hairline">
               <IdentificationBadge className="size-3 text-accent" />
-              Inspection Domain · Field Ops
+              {t('representatives.kicker', 'Inspection Domain · Field Ops')}
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-            Representatives
+            {t('representatives.title', 'Representatives')}
           </h1>
           <p className="text-sm text-ink-mute mt-1">
-            Manage field inspection agents, operational branches, and availability for vehicle evaluations.
+            {t('representatives.subtitle', 'Manage field inspection agents, operational branches, and availability for vehicle evaluations.')}
           </p>
         </div>
 
@@ -178,7 +181,7 @@ export function RepresentativesPage() {
             className="h-9 gap-2 bg-ink text-white hover:bg-ink/90 text-xs font-medium cursor-pointer shadow-xs"
           >
             <Plus className="size-4" />
-            Add Representative
+            {t('representatives.addRep', 'Add Representative')}
           </Button>
         </div>
       </div>
@@ -191,18 +194,18 @@ export function RepresentativesPage() {
         <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
-            <MagnifyingGlass className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+            <MagnifyingGlass className="absolute start-3 top-2.5 size-4 text-ink-mute" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, code, branch, governorate, phone..."
-              className="pl-9 pr-8 text-xs h-9 bg-paper/30"
+              placeholder={t('representatives.searchPlaceholder', 'Search by name, code, branch, governorate, phone...')}
+              className="ps-9 pe-8 text-xs h-9 bg-paper/30"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-2.5 text-ink-mute hover:text-ink cursor-pointer"
+                className="absolute end-2.5 top-2.5 text-ink-mute hover:text-ink cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -222,7 +225,7 @@ export function RepresentativesPage() {
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
-                All
+                {t('representatives.all', 'All')}
               </button>
               <button
                 type="button"
@@ -233,7 +236,7 @@ export function RepresentativesPage() {
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
-                Active
+                {t('representatives.active', 'Active')}
               </button>
               <button
                 type="button"
@@ -244,7 +247,7 @@ export function RepresentativesPage() {
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
-                Inactive
+                {t('representatives.inactive', 'Inactive')}
               </button>
             </div>
 
@@ -255,10 +258,10 @@ export function RepresentativesPage() {
                 onChange={(e) => setSelectedGovernorateId(e.target.value)}
                 className="h-8 rounded-lg border border-hairline bg-white px-2.5 text-xs text-ink-soft cursor-pointer hover:border-ink/20 focus:outline-none focus:ring-1 focus:ring-accent"
               >
-                <option value="all">All Governorates ({governorates.length})</option>
+                <option value="all">{t('representatives.governorates', 'All Governorates')} ({governorates.length})</option>
                 {governorates.map((gov) => (
                   <option key={gov.id} value={gov.id}>
-                    {gov.name} {gov.nameAr ? `(${gov.nameAr})` : ''}
+                    {isArabic && gov.nameAr ? `${gov.nameAr} (${gov.name})` : gov.name}
                   </option>
                 ))}
               </select>
@@ -269,12 +272,11 @@ export function RepresentativesPage() {
         {/* Status Count Indicator */}
         <div className="flex items-center justify-between text-[11px] text-ink-mute pt-1 border-t border-hairline/60">
           <span>
-            Showing{' '}
-            <strong className="text-ink font-semibold">
-              {filteredRepresentatives.length}
-            </strong>{' '}
-            of {representatives.length} representative
-            {representatives.length === 1 ? '' : 's'}
+            {t('representatives.showingCount', {
+              filtered: filteredRepresentatives.length,
+              total: representatives.length,
+              defaultValue: `Showing ${filteredRepresentatives.length} of ${representatives.length} representatives`,
+            })}
           </span>
           {(searchTerm || statusFilter !== 'all' || selectedGovernorateId !== 'all') && (
             <button
@@ -286,7 +288,7 @@ export function RepresentativesPage() {
               }}
               className="text-accent hover:underline cursor-pointer font-medium"
             >
-              Reset all filters
+              {t('representatives.resetFilters', 'Reset all filters')}
             </button>
           )}
         </div>
@@ -297,12 +299,12 @@ export function RepresentativesPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
             <CircleNotch className="size-7 animate-spin text-accent mb-2" />
-            <p className="text-xs">Loading representatives roster...</p>
+            <p className="text-xs">{t('common.loading', 'Loading representatives roster...')}</p>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-rose-600">
             <WarningCircle className="size-8 mb-2" />
-            <p className="text-sm font-medium">Failed to load representatives</p>
+            <p className="text-sm font-medium">{t('common.error', 'Failed to load representatives')}</p>
             <Button
               type="button"
               variant="outline"
@@ -310,7 +312,7 @@ export function RepresentativesPage() {
               onClick={() => refetch()}
               className="mt-3 text-xs"
             >
-              Try Again
+              {t('common.retry', 'Try Again')}
             </Button>
           </div>
         ) : filteredRepresentatives.length === 0 ? (
@@ -321,10 +323,10 @@ export function RepresentativesPage() {
             {searchTerm || statusFilter !== 'all' || selectedGovernorateId !== 'all' ? (
               <>
                 <h3 className="text-sm font-semibold text-ink">
-                  No matching representatives found
+                  {t('representatives.noRepsFound', 'No matching representatives found')}
                 </h3>
                 <p className="text-xs text-ink-mute mt-1 max-w-sm">
-                  We couldn't find any representatives matching your search and filter criteria.
+                  {t('representatives.noRepsFound', "We couldn't find any representatives matching your search and filter criteria.")}
                 </p>
                 <Button
                   type="button"
@@ -337,16 +339,16 @@ export function RepresentativesPage() {
                   }}
                   className="mt-4 text-xs"
                 >
-                  Clear Filters
+                  {t('representatives.clearFilters', 'Clear Filters')}
                 </Button>
               </>
             ) : (
               <>
                 <h3 className="text-sm font-semibold text-ink">
-                  No representatives added yet
+                  {t('representatives.noRepsYet', 'No representatives added yet')}
                 </h3>
                 <p className="text-xs text-ink-mute mt-1 max-w-sm">
-                  Representatives can be registered without credentials right now and will be available for inspection assignment.
+                  {t('representatives.noRepsYetDesc', 'Representatives can be registered without credentials right now and will be available for inspection assignment.')}
                 </p>
                 <Button
                   type="button"
@@ -354,22 +356,22 @@ export function RepresentativesPage() {
                   className="mt-4 text-xs bg-ink text-white hover:bg-ink/90 gap-1.5"
                 >
                   <Plus className="size-4" />
-                  Add First Representative
+                  {t('representatives.addFirstRep', 'Add First Representative')}
                 </Button>
               </>
             )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-start text-xs">
               <thead className="border-b border-hairline bg-paper/60 text-ink-mute font-mono text-[10px] tracking-wider uppercase">
                 <tr>
-                  <th className="px-5 py-3.5">Code</th>
-                  <th className="px-5 py-3.5">Representative Name</th>
-                  <th className="px-5 py-3.5">Branch / Region</th>
-                  <th className="px-5 py-3.5">Contact Details</th>
-                  <th className="px-5 py-3.5 text-center">Field Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
+                  <th className="px-5 py-3.5 text-start">{t('representatives.thId', 'Code')}</th>
+                  <th className="px-5 py-3.5 text-start">{t('representatives.thName', 'Representative Name')}</th>
+                  <th className="px-5 py-3.5 text-start">{t('representatives.thLocation', 'Branch / Region')}</th>
+                  <th className="px-5 py-3.5 text-start">{t('representatives.thContact', 'Contact Details')}</th>
+                  <th className="px-5 py-3.5 text-center">{t('representatives.thStatus', 'Field Status')}</th>
+                  <th className="px-5 py-3.5 text-end">{t('representatives.thActions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
@@ -414,12 +416,12 @@ export function RepresentativesPage() {
                             {hasUserLink ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                                 <UserCheck className="size-3 text-emerald-600" />
-                                Linked: {rep.user?.firstName} ({rep.user?.role})
+                                {rep.user?.firstName} ({rep.user?.role})
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[10px] font-normal text-ink-mute bg-paper px-2 py-0.5 rounded-full border border-hairline">
                                 <UserMinus className="size-3" />
-                                Standalone Agent
+                                {isArabic ? 'مندوب مستقل' : 'Standalone Agent'}
                               </span>
                             )}
                           </div>
@@ -439,8 +441,8 @@ export function RepresentativesPage() {
                             <span className="text-[11px] text-ink-mute flex items-center gap-1.5 mt-0.5">
                               <MapPin className="size-3 text-accent shrink-0" />
                               {[
-                                rep.city?.name || rep.city?.nameAr,
-                                rep.governorate?.name || rep.governorate?.nameAr,
+                                isArabic ? (rep.city?.nameAr || rep.city?.name) : (rep.city?.name || rep.city?.nameAr),
+                                isArabic ? (rep.governorate?.nameAr || rep.governorate?.name) : (rep.governorate?.name || rep.governorate?.nameAr),
                               ]
                                 .filter(Boolean)
                                 .join(', ') || rep.locationName}
@@ -448,7 +450,7 @@ export function RepresentativesPage() {
                           </div>
                         ) : (
                           <span className="text-ink-mute/70 italic text-[11px]">
-                            All Regions (Unassigned)
+                            {t('representatives.allRegions', 'All Regions (Unassigned)')}
                           </span>
                         )}
                       </td>
@@ -459,7 +461,8 @@ export function RepresentativesPage() {
                           {rep.phone ? (
                             <a
                               href={`tel:${rep.phone}`}
-                              className="flex items-center gap-1.5 text-ink-soft hover:text-accent transition-colors"
+                              className="flex items-center gap-1.5 text-ink-soft hover:text-accent transition-colors ltr-force"
+                              dir="ltr"
                             >
                               <Phone className="size-3 text-ink-mute" />
                               <span className="font-mono text-[11px]">{rep.phone}</span>
@@ -468,7 +471,8 @@ export function RepresentativesPage() {
                           {rep.email ? (
                             <a
                               href={`mailto:${rep.email}`}
-                              className="flex items-center gap-1.5 text-ink-soft hover:text-accent transition-colors"
+                              className="flex items-center gap-1.5 text-ink-soft hover:text-accent transition-colors ltr-force"
+                              dir="ltr"
                             >
                               <EnvelopeSimple className="size-3 text-ink-mute" />
                               <span>{rep.email}</span>
@@ -476,7 +480,7 @@ export function RepresentativesPage() {
                           ) : null}
                           {!rep.phone && !rep.email && (
                             <span className="text-ink-mute/70 italic text-[11px]">
-                              No contact details
+                              {isArabic ? 'لا توجد بيانات اتصال' : 'No contact details'}
                             </span>
                           )}
                         </div>
@@ -502,12 +506,12 @@ export function RepresentativesPage() {
                                 : 'bg-zinc-400'
                             }`}
                           />
-                          {rep.isActive ? 'Active' : 'Inactive'}
+                          {rep.isActive ? t('representatives.active', 'Active') : t('representatives.inactive', 'Inactive')}
                         </button>
                       </td>
 
                       {/* Actions */}
-                      <td className="px-5 py-4 text-right whitespace-nowrap">
+                      <td className="px-5 py-4 text-end whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             type="button"
@@ -517,7 +521,7 @@ export function RepresentativesPage() {
                             className="h-8 px-2.5 text-ink-soft hover:text-ink gap-1 text-xs"
                           >
                             <PencilSimple className="size-3.5" />
-                            <span className="hidden sm:inline">Edit</span>
+                            <span className="hidden sm:inline">{t('common.edit', 'Edit')}</span>
                           </Button>
                           <Button
                             type="button"
@@ -525,7 +529,7 @@ export function RepresentativesPage() {
                             size="sm"
                             onClick={() => setDeletingRepresentative(rep)}
                             className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-hairline text-xs"
-                            title="Delete representative"
+                            title={t('common.delete', 'Delete')}
                           >
                             <Trash className="size-3.5" />
                           </Button>

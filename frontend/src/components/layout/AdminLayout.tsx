@@ -1,37 +1,80 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AdminHeader } from './AdminHeader'
 import { Sidebar } from './Sidebar'
-
-const TITLES: Record<string, { title: string; meta: string }> = {
-  '/': { title: 'Dashboard', meta: 'INSPECT · OVERVIEW' },
-  '/requests': { title: 'Requests', meta: 'INSPECTION · PIPELINE' },
-  '/requests/new': { title: 'New Request', meta: 'INSPECTION · INTAKE' },
-  '/representatives': { title: 'Representatives', meta: 'FIELD OPERATIONS · AGENTS' },
-  '/checklists': { title: 'Checklists', meta: 'INSPECTION · EVIDENCE' },
-  '/banks': { title: 'Banks', meta: 'ORGANIZATION · WORKSPACES' },
-  '/vehicle-settings': { title: 'Vehicle Settings', meta: 'SYSTEM · VEHICLE LOOKUPS' },
-  '/users': { title: 'Users', meta: 'IDENTITY · ACCESS' },
-  '/profile': { title: 'My Profile', meta: 'IDENTITY · ACCOUNT' },
-}
 
 /** Protected shell: sidebar + sticky header + routed content. */
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
-  let active = TITLES[location.pathname]
-  if (!active && location.pathname.startsWith('/requests/')) {
-    active = {
-      title: 'Inspection Request',
-      meta: 'INSPECTION · DETAILS & WORKFLOW',
+  const { t } = useTranslation()
+
+  const getRouteInfo = (path: string): { title: string; meta: string } => {
+    switch (path) {
+      case '/':
+        return {
+          title: t('titles.dashboard', 'Dashboard'),
+          meta: t('titles.dashboardMeta', 'INSPECT · OVERVIEW'),
+        }
+      case '/requests':
+        return {
+          title: t('titles.requests', 'Requests'),
+          meta: t('titles.requestsMeta', 'INSPECTION · PIPELINE'),
+        }
+      case '/requests/new':
+        return {
+          title: t('titles.newRequest', 'New Request'),
+          meta: t('titles.newRequestMeta', 'INSPECTION · INTAKE'),
+        }
+      case '/representatives':
+        return {
+          title: t('titles.representatives', 'Representatives'),
+          meta: t('titles.representativesMeta', 'FIELD OPERATIONS · AGENTS'),
+        }
+      case '/checklists':
+        return {
+          title: t('titles.checklists', 'Checklists'),
+          meta: t('titles.checklistsMeta', 'INSPECTION · EVIDENCE'),
+        }
+      case '/banks':
+        return {
+          title: t('titles.banks', 'Banks'),
+          meta: t('titles.banksMeta', 'ORGANIZATION · WORKSPACES'),
+        }
+      case '/vehicle-settings':
+        return {
+          title: t('titles.vehicleSettings', 'Vehicle Settings'),
+          meta: t('titles.vehicleSettingsMeta', 'SYSTEM · VEHICLE LOOKUPS'),
+        }
+      case '/users':
+        return {
+          title: t('titles.users', 'Users'),
+          meta: t('titles.usersMeta', 'IDENTITY · ACCESS'),
+        }
+      case '/profile':
+        return {
+          title: t('titles.profile', 'My Profile'),
+          meta: t('titles.profileMeta', 'IDENTITY · ACCOUNT'),
+        }
+      default:
+        if (path.startsWith('/requests/')) {
+          return {
+            title: t('titles.requestDetails', 'Inspection Request'),
+            meta: t(
+              'titles.requestDetailsMeta',
+              'INSPECTION · DETAILS & WORKFLOW',
+            ),
+          }
+        }
+        return {
+          title: t('titles.admin', 'Admin'),
+          meta: t('titles.adminMeta', 'INSPECT'),
+        }
     }
   }
-  if (!active) {
-    active = {
-      title: 'Admin',
-      meta: 'INSPECT',
-    }
-  }
+
+  const active = getRouteInfo(location.pathname)
 
   // Close the drawer on Escape. Route-change closing is handled by
   // SidebarBody onNavigate (link click) + overlay click.

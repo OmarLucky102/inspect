@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { CaretUpDown, Check, MagnifyingGlass, Plus, X } from '@phosphor-icons/react'
+import { useTranslation } from 'react-i18next'
 
 export interface SelectOption {
   value: string
@@ -28,16 +29,21 @@ export function SearchableSelect({
   options,
   value,
   onChange,
-  placeholder = 'Select an option...',
-  searchPlaceholder = 'Type to search...',
+  placeholder,
+  searchPlaceholder,
   disabled = false,
   disabledMessage,
   required = false,
   className = '',
-  emptyText = 'No options found',
+  emptyText,
   onAddNew,
   addNewText,
 }: SearchableSelectProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('common.selectOption', 'Select an option...')
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('common.typeToSearch', 'Type to search...')
+  const resolvedEmptyText = emptyText ?? t('common.noOptions', 'No options found')
+
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -112,7 +118,7 @@ export function SearchableSelect({
             setSearchTerm('')
           }
         }}
-        className={`group flex w-full items-center justify-between rounded-xl border border-hairline bg-white px-3.5 py-2 text-left text-sm transition-colors outline-none focus:border-accent ${
+        className={`group flex w-full items-center justify-between rounded-xl border border-hairline bg-white px-3.5 py-2 text-start text-sm transition-colors outline-none focus:border-accent ${
           disabled
             ? 'cursor-not-allowed bg-paper/60 text-ink-mute'
             : 'cursor-pointer hover:border-ink-soft'
@@ -142,12 +148,12 @@ export function SearchableSelect({
             </span>
           ) : (
             <span className="text-ink-mute">
-              {disabled && disabledMessage ? disabledMessage : placeholder}
+              {disabled && disabledMessage ? disabledMessage : resolvedPlaceholder}
             </span>
           )}
         </span>
 
-        <div className="flex shrink-0 items-center gap-1 pl-2 text-ink-mute group-hover:text-ink">
+        <div className="flex shrink-0 items-center gap-1 ms-2 text-ink-mute group-hover:text-ink">
           {value && !disabled && (
             <span
               role="button"
@@ -174,7 +180,7 @@ export function SearchableSelect({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-mute"
             />
             {searchTerm && (
@@ -192,7 +198,7 @@ export function SearchableSelect({
           <div className="max-h-52 overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-ink-mute space-y-2">
-                <p>{emptyText}</p>
+                <p>{resolvedEmptyText}</p>
                 {onAddNew && (
                   <button
                     type="button"
@@ -217,7 +223,7 @@ export function SearchableSelect({
                       key={opt.value}
                       type="button"
                       onClick={() => handleSelect(opt.value)}
-                      className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
+                      className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-start text-sm transition-colors ${
                         isSelected
                           ? 'bg-accent/10 font-medium text-accent'
                           : 'text-ink hover:bg-paper'

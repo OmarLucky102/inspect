@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   MagnifyingGlass,
@@ -34,6 +35,8 @@ const PRESET_SUNROOFS = [
 ];
 
 export function SunroofManagementTab() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -180,17 +183,21 @@ export function SunroofManagementTab() {
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-white p-4 rounded-xl border border-hairline shadow-2xs">
         <div className="relative flex-1 max-w-md">
-          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute" />
+          <MagnifyingGlass className="absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute pointer-events-none" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search sunroofs by name, Arabic (فتحة السقف), or code..."
-            className="pl-10 h-10"
+            placeholder={
+              isArabic
+                ? 'بحث في مواصفات فتحات السقف بالاسم أو بالعربية أو الكود...'
+                : 'Search sunroofs by name, Arabic (فتحة السقف), or code...'
+            }
+            className="ps-10 pe-9 h-10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
             >
               <X className="size-3.5" />
             </button>
@@ -199,15 +206,15 @@ export function SunroofManagementTab() {
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-ink-mute bg-bone px-2.5 py-1 rounded border border-hairline">
-            {sunroofs.length} SPECIFICATIONS
+            {sunroofs.length} {isArabic ? 'مواصفة' : 'SPECIFICATIONS'}
           </span>
 
           <Button
             size="sm"
             onClick={openAddModal}
-            className="bg-accent text-white"
+            className="bg-accent text-white cursor-pointer gap-1"
           >
-            <Plus className="size-4 mr-1" /> Add New Sunroof Spec
+            <Plus className="size-4" /> {t('vehicleSettings.addNewSunroof', 'Add New Sunroof Spec')}
           </Button>
         </div>
       </div>
@@ -216,15 +223,17 @@ export function SunroofManagementTab() {
       {filteredSunroofs.length === 0 ? (
         <div className="rounded-xl border border-dashed border-hairline bg-paper/40 p-12 text-center">
           <Sun className="size-10 mx-auto text-ink-mute/70 mb-3" />
-          <h3 className="text-base font-semibold text-ink">No sunroof specifications found</h3>
+          <h3 className="text-base font-semibold text-ink">
+            {isArabic ? 'لا توجد مواصفات فتحات سقف مطابقة' : 'No sunroof specifications found'}
+          </h3>
           <p className="text-sm text-ink-mute mt-1 max-w-sm mx-auto">
             {searchTerm
-              ? 'No sunroof specifications match your search query.'
-              : 'Add your first sunroof specification to populate the vehicle inspection options.'}
+              ? (isArabic ? 'لا توجد مواصفات فتحة سقف تطابق عبارة البحث الحالية.' : 'No sunroof specifications match your search query.')
+              : (isArabic ? 'أضف أول مواصفة فتحة سقف لتظهر في خيارات فحص المركبات.' : 'Add your first sunroof specification to populate the vehicle inspection options.')}
           </p>
           {!searchTerm && (
-            <Button size="sm" className="mt-4" onClick={openAddModal}>
-              <Plus className="size-4 mr-1" /> Add First Sunroof Spec
+            <Button size="sm" className="mt-4 cursor-pointer gap-1" onClick={openAddModal}>
+              <Plus className="size-4" /> {t('vehicleSettings.addNewSunroof', 'Add First Sunroof Spec')}
             </Button>
           )}
         </div>
@@ -263,7 +272,7 @@ export function SunroofManagementTab() {
                   type="button"
                   onClick={() => openEditModal(sunroof)}
                   className="p-1.5 rounded-lg text-ink-soft hover:bg-paper hover:text-ink transition-colors cursor-pointer"
-                  title="Edit sunroof specification"
+                  title={isArabic ? 'تعديل مواصفة فتحة السقف' : 'Edit sunroof specification'}
                 >
                   <PencilSimple className="size-4" />
                 </button>
@@ -271,7 +280,7 @@ export function SunroofManagementTab() {
                   type="button"
                   onClick={() => setSunroofToDelete(sunroof)}
                   className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
-                  title="Delete sunroof specification"
+                  title={isArabic ? 'حذف مواصفة فتحة السقف' : 'Delete sunroof specification'}
                 >
                   <Trash className="size-4" />
                 </button>
@@ -291,7 +300,9 @@ export function SunroofManagementTab() {
                   <Sun className="size-4.5" />
                 </span>
                 <h3 className="font-semibold text-ink text-base">
-                  {editingSunroof ? 'Edit Sunroof Specification' : 'Add New Sunroof Specification'}
+                  {editingSunroof
+                    ? (isArabic ? 'تعديل مواصفة فتحة السقف' : 'Edit Sunroof Specification')
+                    : (isArabic ? 'إضافة مواصفة فتحة سقف جديدة' : 'Add New Sunroof Specification')}
                 </h3>
               </div>
               <button
@@ -312,7 +323,7 @@ export function SunroofManagementTab() {
               {!editingSunroof && (
                 <div>
                   <label className="block text-xs font-semibold text-ink-mute mb-1.5">
-                    Quick Presets (Common Sunroof Specs)
+                    {isArabic ? 'نماذج جاهزة سريعة (أنواع فتحات السقف الشائعة)' : 'Quick Presets (Common Sunroof Specs)'}
                   </label>
                   <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 rounded-lg bg-bone border border-hairline">
                     {PRESET_SUNROOFS.map((p) => (
@@ -326,7 +337,7 @@ export function SunroofManagementTab() {
                             : 'bg-white hover:bg-paper text-ink-soft border border-hairline'
                         }`}
                       >
-                        {p.name}
+                        {isArabic && p.nameAr ? p.nameAr : p.name}
                       </button>
                     ))}
                   </div>
@@ -335,7 +346,7 @@ export function SunroofManagementTab() {
 
               <div>
                 <label className="block text-xs font-semibold text-ink mb-1">
-                  Sunroof Specification (English) *
+                  {isArabic ? 'مواصفة فتحة السقف (بالإنجليزية) *' : 'Sunroof Specification (English) *'}
                 </label>
                 <Input
                   value={formName}
@@ -347,7 +358,7 @@ export function SunroofManagementTab() {
 
               <div>
                 <label className="block text-xs font-semibold text-ink mb-1">
-                  Sunroof Specification (Arabic / فتحة السقف)
+                  {isArabic ? 'مواصفة فتحة السقف (بالعربية / فتحة السقف)' : 'Sunroof Specification (Arabic / فتحة السقف)'}
                 </label>
                 <Input
                   value={formNameAr}
@@ -359,13 +370,14 @@ export function SunroofManagementTab() {
 
               <div>
                 <label className="block text-xs font-semibold text-ink mb-1">
-                  Code (Optional)
+                  {isArabic ? 'الكود التعريفي (اختياري)' : 'Code (Optional)'}
                 </label>
                 <Input
                   value={formCode}
                   onChange={(e) => setFormCode(e.target.value.toUpperCase())}
                   placeholder="e.g. PANORAMIC (auto-generated if empty)"
                   className="font-mono uppercase"
+                  dir="ltr"
                 />
               </div>
 
@@ -378,23 +390,24 @@ export function SunroofManagementTab() {
                     setEditingSunroof(null);
                     resetForm();
                   }}
+                  className="cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </Button>
                 <Button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="bg-accent text-white"
+                  className="bg-accent text-white cursor-pointer"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <>
                       <CircleNotch className="size-4 animate-spin mr-1.5" />
-                      Saving...
+                      {t('common.saving', 'Saving...')}
                     </>
                   ) : editingSunroof ? (
-                    'Save Changes'
+                    t('common.saveChanges', 'Save Changes')
                   ) : (
-                    'Create Specification'
+                    isArabic ? 'إنشاء المواصفة' : 'Create Specification'
                   )}
                 </Button>
               </div>
@@ -407,10 +420,15 @@ export function SunroofManagementTab() {
       {sunroofToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-2xl border border-hairline bg-white shadow-2xl p-6 animate-in fade-in-0 zoom-in-95 duration-150">
-            <h3 className="text-base font-semibold text-ink">Delete Sunroof Specification</h3>
+            <h3 className="text-base font-semibold text-ink">
+              {isArabic ? 'حذف مواصفة فتحة السقف' : 'Delete Sunroof Specification'}
+            </h3>
             <p className="text-sm text-ink-mute mt-2">
-              Are you sure you want to delete the sunroof specification{' '}
-              <strong className="text-ink">"{sunroofToDelete.name}"</strong>?
+              {isArabic ? (
+                <>هل أنت متأكد من حذف مواصفة فتحة السقف <strong className="text-ink">"{sunroofToDelete.nameAr || sunroofToDelete.name}"</strong>؟</>
+              ) : (
+                <>Are you sure you want to delete the sunroof specification <strong className="text-ink">"{sunroofToDelete.name}"</strong>?</>
+              )}
             </p>
 
             <div className="flex justify-end gap-2 mt-6">
@@ -418,22 +436,23 @@ export function SunroofManagementTab() {
                 variant="outline"
                 size="sm"
                 onClick={() => setSunroofToDelete(null)}
+                className="cursor-pointer"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => deleteMutation.mutate(sunroofToDelete.id)}
                 disabled={deleteMutation.isPending}
-                className="bg-red-600 text-white hover:bg-red-700 border-red-600"
+                className="bg-red-600 text-white hover:bg-red-700 border-red-600 cursor-pointer"
               >
                 {deleteMutation.isPending ? (
                   <CircleNotch className="size-4 animate-spin mr-1" />
                 ) : (
                   <Trash className="size-4 mr-1" />
                 )}
-                Confirm Delete
+                {isArabic ? 'تأكيد الحذف' : 'Confirm Delete'}
               </Button>
             </div>
           </div>

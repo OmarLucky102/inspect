@@ -16,12 +16,15 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
 
+import { useTranslation } from 'react-i18next'
+
 interface BankDetailsProps {
   bankId: string
   onClose: () => void
 }
 
 export function BankDetails({ bankId, onClose }: BankDetailsProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'details' | 'members' | 'newUser' | 'existingUser'>('details')
 
   const { data: bank, isLoading, isError } = useQuery({
@@ -32,29 +35,29 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
   return (
     <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden relative">
       <div className="flex border-b border-hairline bg-paper/50 px-5 pt-4">
-        <h3 className="font-semibold text-lg pb-4 mr-6">Manage Bank</h3>
+        <h3 className="font-semibold text-lg pb-4 me-6">{t('banks.manageBank', 'Manage Bank')}</h3>
         <nav className="flex gap-4">
           {(['details', 'members', 'newUser', 'existingUser'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-4 text-sm font-medium border-b-2 transition-colors ${
+              className={`pb-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                 activeTab === tab
-                  ? 'border-ink text-ink'
+                  ? 'border-ink text-ink font-semibold'
                   : 'border-transparent text-ink-mute hover:text-ink'
               }`}
             >
-              {tab === 'details' && 'Details'}
-              {tab === 'members' && 'Members'}
-              {tab === 'newUser' && 'Create User'}
-              {tab === 'existingUser' && 'Assign User'}
+              {tab === 'details' && t('banks.tabDetails', 'Details')}
+              {tab === 'members' && t('banks.tabMembers', 'Members')}
+              {tab === 'newUser' && t('banks.tabNewUser', 'Create User')}
+              {tab === 'existingUser' && t('banks.tabExistingUser', 'Assign User')}
             </button>
           ))}
         </nav>
       </div>
       
       <button 
-        className="absolute top-4 right-4 text-ink-mute hover:text-ink"
+        className="absolute top-4 end-4 text-ink-mute hover:text-ink cursor-pointer modal-close"
         onClick={onClose}
       >
         <X className="size-5" />

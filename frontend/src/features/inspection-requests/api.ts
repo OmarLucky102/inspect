@@ -169,11 +169,11 @@ export interface InspectionRequestDetail {
     power: number | null
     insuranceValue: number | null
     registrationDate: string | null
-    brand: { id: string; name: string } | null
-    model: { id: string; name: string } | null
-    category: { id: string; name: string } | null
-    color: { id: string; name: string; hex?: string | null } | null
-    fuelType: { id: string; name: string } | null
+    brand: { id: string; name: string; nameAr?: string | null } | null
+    model: { id: string; name: string; nameAr?: string | null } | null
+    category: { id: string; name: string; nameAr?: string | null } | null
+    color: { id: string; name: string; nameAr?: string | null; hex?: string | null } | null
+    fuelType: { id: string; name: string; nameAr?: string | null } | null
     transmissionType: { id: string; name: string; nameAr?: string | null } | null
     trim: { id: string; code?: string; name: string; nameAr?: string | null } | null
     sunroofSpecification?: string | null

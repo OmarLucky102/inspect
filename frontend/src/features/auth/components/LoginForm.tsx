@@ -12,6 +12,7 @@ import {
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ import { useAuth } from '../auth-context'
 import { loginSchema, type LoginInput } from '../schemas'
 
 export function LoginForm() {
+  const { t } = useTranslation()
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -44,13 +46,13 @@ export function LoginForm() {
   const mutation = useMutation({
     mutationFn: (values: LoginInput) => login(values.email, values.password),
     onSuccess: () => {
-      toast.success('Welcome back!')
+      toast.success(t('auth.welcomeBack', 'Welcome back!'))
       void navigate(from, { replace: true })
     },
   })
 
   const serverError = mutation.isError
-    ? getApiErrorMessage(mutation.error, 'Sign in failed. Try again.')
+    ? getApiErrorMessage(mutation.error, t('auth.signInFailed', 'Sign in failed. Try again.'))
     : null
 
   const onSubmit = (values: LoginInput) => {
@@ -78,21 +80,22 @@ export function LoginForm() {
       <div className="space-y-3 sm:space-y-3.5">
         <div>
           <Label htmlFor="email" className="mb-1 text-[11px] font-mono uppercase tracking-wider text-white/90">
-            Work email
+            {t('auth.workEmail', 'Work email')}
           </Label>
           <div className="relative flex items-center">
             <Envelope
-              className="pointer-events-none absolute left-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
+              className="pointer-events-none absolute start-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
               aria-hidden
             />
             <Input
               id="email"
               type="email"
+              dir="ltr"
               autoComplete="username"
-              placeholder="admin@euroassist.com"
+              placeholder={t('auth.workEmailPlaceholder', 'admin@euroassist.com')}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'email-error' : undefined}
-              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white ps-9.5 pe-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
               {...register('email')}
             />
           </div>
@@ -106,22 +109,23 @@ export function LoginForm() {
         <div>
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="mb-1 text-[11px] font-mono uppercase tracking-wider text-white/90">
-              Password
+              {t('auth.password', 'Password')}
             </Label>
           </div>
           <div className="relative flex items-center">
             <LockKey
-              className="pointer-events-none absolute left-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
+              className="pointer-events-none absolute start-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
               aria-hidden
             />
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
+              dir="ltr"
               autoComplete="current-password"
-              placeholder="Minimum 8 characters"
+              placeholder={t('auth.passwordPlaceholder', 'Minimum 8 characters')}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
-              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white pr-9.5 pl-9.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white ps-9.5 pe-9.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
               {...register('password')}
             />
             <button
@@ -129,7 +133,7 @@ export function LoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute right-2 z-10 cursor-pointer rounded-lg p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              className="absolute end-2 z-10 cursor-pointer rounded-lg p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
             >
               {showPassword ? (
                 <EyeSlash className="size-4" aria-hidden />
@@ -157,20 +161,20 @@ export function LoginForm() {
       >
         {mutation.isPending ? (
           <>
-            <CircleNotch className="size-4 animate-spin" aria-hidden />
-            Verifying credentials…
+            <CircleNotch className="size-4 animate-spin me-2" aria-hidden />
+            {t('auth.verifying', 'Verifying credentials…')}
           </>
         ) : (
           <>
-            Sign in to Console
-            <ArrowRight className="size-4" aria-hidden />
+            {t('auth.signIn', 'Sign in to Console')}
+            <ArrowRight className="size-4 ms-2 rtl:rotate-180" aria-hidden />
           </>
         )}
       </Button>
 
       <div className="mt-2.5 sm:mt-3 flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wide text-white/45">
         <span className="size-1.5 rounded-full bg-emerald-400/80 animate-pulse" />
-        <span>SECURE SESSION · HTTPONLY REFRESH ROTATION</span>
+        <span>{t('auth.secureSession', 'SECURE SESSION · HTTPONLY REFRESH ROTATION')}</span>
       </div>
     </form>
   )

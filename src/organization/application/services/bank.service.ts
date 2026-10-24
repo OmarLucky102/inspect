@@ -26,9 +26,9 @@ const ALLOWED_BANK_MEMBER_ROLES: Role[] = [
 
 export interface CreateBankInput {
   name: string;
-  code: string;
-  email?: string;
-  phone?: string;
+  code?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 export interface CreateBankUserInput {
@@ -60,17 +60,89 @@ export class BankService {
     private readonly userService: UserService,
   ) {}
 
+  // ── Auto-generate Bank Code ───────────────────────────────────────────────
+  /**
+   * Generates a unique, clean uppercase bank code.
+   * - If Latin characters are present: generates an acronym (e.g. "Commercial International Bank" -> "CIB").
+   * - If acronym exists or name has no Latin letters (e.g. Arabic names): generates "BNK-001", "BNK-002", etc.
+   */
+  async generateBankCode(name: string): Promise<string> {
+    const trimmed = (name || '').trim();
+    const tokens = trimmed.split(/[\s\-_,.]+/).filter(Boolean);
+    const stopWords = new Set([
+      'AND', '&', 'THE', 'OF', 'FOR', 'DE', 'DU', 'EL', 'AL',
+      'BANK', 'BANQUE', 'بنك', 'مصرف',
+    ]);
+
+    const latinTokens = tokens
+      .filter((t) => /^[a-zA-Z0-9]+$/.test(t))
+      .filter((t) => !stopWords.has(t.toUpperCase()));
+
+    let candidateBase = '';
+    if (latinTokens.length >= 2) {
+      candidateBase = latinTokens
+        .map((t) => t[0].toUpperCase())
+        .join('')
+        .slice(0, 8);
+    } else if (latinTokens.length === 1) {
+      candidateBase = latinTokens[0].toUpperCase().slice(0, 6);
+    } else {
+      const anyLatin = trimmed.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      if (anyLatin.length >= 2) {
+        candidateBase = anyLatin.slice(0, 6);
+      }
+    }
+
+    if (candidateBase.length >= 2 && /^[A-Z0-9_-]+$/.test(candidateBase)) {
+      const existing = await this.bankRepository.findByCode(candidateBase);
+      if (!existing) {
+        return candidateBase;
+      }
+      for (let suffix = 2; suffix <= 99; suffix++) {
+        const candidateWithSuffix = `${candidateBase.slice(0, 16)}-${suffix}`;
+        const match = await this.bankRepository.findByCode(candidateWithSuffix);
+        if (!match) {
+          return candidateWithSuffix;
+        }
+      }
+    }
+
+    // Fallback: sequential BNK-001, BNK-002, etc.
+    const allBanks = await this.bankRepository.findAll();
+    let maxNumber = 0;
+    const bnkRegex = /^BNK[-_]?0*(\d+)$/i;
+
+    for (const b of allBanks) {
+      const match = bnkRegex.exec(b.code.trim());
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNumber) {
+          maxNumber = num;
+        }
+      }
+    }
+
+    const nextNumber = maxNumber + 1;
+    return `BNK-${String(nextNumber).padStart(3, '0')}`;
+  }
+
   // ── Create Bank ───────────────────────────────────────────────────────────
   async createBank(input: CreateBankInput): Promise<Bank> {
-    const existing = await this.bankRepository.findByCode(input.code);
-    if (existing) {
-      throw new BankCodeAlreadyExistsException(input.code);
+    let finalCode = input.code?.trim().toUpperCase();
+
+    if (!finalCode) {
+      finalCode = await this.generateBankCode(input.name);
+    } else {
+      const existing = await this.bankRepository.findByCode(finalCode);
+      if (existing) {
+        throw new BankCodeAlreadyExistsException(finalCode);
+      }
     }
 
     const bank = new Bank({
       id: randomUUID(),
-      name: input.name,
-      code: input.code.toUpperCase(),
+      name: input.name.trim(),
+      code: finalCode,
       email: input.email ?? null,
       phone: input.phone ?? null,
       isActive: true,

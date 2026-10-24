@@ -1,5 +1,6 @@
 import { Trash, Warning, CircleNotch, X } from '@phosphor-icons/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ export function RepresentativeDeleteDialog({
   onClose,
   representative,
 }: RepresentativeDeleteDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -51,17 +53,17 @@ export function RepresentativeDeleteDialog({
             </span>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-ink">
-                Delete Representative?
+                {t('representatives.deleteModalTitle', 'Delete Representative?')}
               </h3>
               <p className="text-xs text-ink-mute mt-1.5 leading-relaxed">
-                Are you sure you want to delete representative{' '}
-                <strong className="text-ink font-semibold">
-                  {representative.name}
-                </strong>{' '}
-                (<span className="font-mono">{representative.representativeId}</span>)?
+                {t('representatives.deleteModalConfirm', {
+                  name: representative.name,
+                  code: representative.representativeId,
+                  defaultValue: `Are you sure you want to delete representative ${representative.name} (${representative.representativeId})?`,
+                })}
               </p>
               <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-[11px] text-amber-900 leading-normal">
-                This record will be permanently removed. If this agent is temporarily away or taking leave, you can toggle their status to <strong>Inactive</strong> instead.
+                {t('representatives.deleteWarning', 'This record will be permanently removed. If this agent is temporarily away or taking leave, you can toggle their status to Inactive instead.')}
               </div>
             </div>
             <button
@@ -80,7 +82,7 @@ export function RepresentativeDeleteDialog({
               onClick={onClose}
               disabled={deleteMutation.isPending}
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               type="button"
@@ -91,12 +93,12 @@ export function RepresentativeDeleteDialog({
               {deleteMutation.isPending ? (
                 <>
                   <CircleNotch className="size-4 animate-spin" />
-                  Deleting...
+                  {t('common.deleting', 'Deleting...')}
                 </>
               ) : (
                 <>
                   <Trash className="size-4" />
-                  Delete Representative
+                  {t('representatives.deleteRep', 'Delete Representative')}
                 </>
               )}
             </Button>

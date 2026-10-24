@@ -7,9 +7,11 @@ import {
   Gear,
 } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 
 export function BankWorkspaceDropdown() {
+  const { t } = useTranslation();
   const { user, banks, activeBankId, setActiveBankId } = useWorkspace();
   const navigate = useNavigate();
 
@@ -100,7 +102,7 @@ export function BankWorkspaceDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className={`group flex items-center gap-2 rounded-xl border bg-white px-2.5 py-1.5 text-left transition-all duration-200 cursor-pointer shadow-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+        className={`group flex items-center gap-2 rounded-xl border bg-white px-2.5 py-1.5 text-start transition-all duration-200 cursor-pointer shadow-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
           isOpen
             ? 'border-ink/40 ring-2 ring-ink/10 shadow-sm'
             : 'border-hairline hover:border-ink/25 hover:bg-paper/40'
@@ -110,20 +112,15 @@ export function BankWorkspaceDropdown() {
           <BankIcon className="size-3.5" />
         </span>
 
-        <div className="flex flex-col min-w-0 pr-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-xs font-semibold text-ink max-w-[100px] sm:max-w-[160px]">
-              {activeBank?.name}
-            </span>
-            {activeBank?.code && (
-              <span className="rounded bg-paper px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-ink-mute border border-hairline shrink-0">
-                {activeBank.code}
-              </span>
-            )}
-          </div>
-          <span className="text-[9px] font-mono tracking-wider text-ink-mute uppercase hidden sm:block">
-            Workspace
+        <div className="flex items-center gap-1.5 min-w-0 pe-1">
+          <span className="truncate text-xs font-semibold text-ink max-w-[100px] sm:max-w-[160px]">
+            {activeBank?.name}
           </span>
+          {activeBank?.code && (
+            <span className="rounded bg-paper px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-ink-mute border border-hairline shrink-0">
+              {activeBank.code}
+            </span>
+          )}
         </div>
 
         <CaretDown
@@ -135,14 +132,14 @@ export function BankWorkspaceDropdown() {
 
       {/* Popover Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white shadow-2xl border border-hairline overflow-hidden z-50 animate-in fade-in-0 zoom-in-95 duration-150">
+        <div className="absolute end-0 top-full mt-2 w-72 rounded-2xl bg-white shadow-2xl border border-hairline overflow-hidden z-50 animate-in fade-in-0 zoom-in-95 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-hairline/70 bg-paper/50 px-3.5 py-2.5">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-ink-mute">
-              Switch Bank Workspace
+              {t('bankWorkspace.switchWorkspace', 'Switch Bank')}
             </span>
             <span className="rounded-full bg-paper px-2 py-0.5 font-mono text-[10px] font-medium text-ink-soft border border-hairline">
-              {banks.length} Banks
+              {t('bankWorkspace.banksCount', { count: banks.length, defaultValue: `${banks.length} Banks` })}
             </span>
           </div>
 
@@ -150,14 +147,14 @@ export function BankWorkspaceDropdown() {
           {banks.length > 3 && (
             <div className="p-2 border-b border-hairline/60">
               <div className="relative flex items-center">
-                <MagnifyingGlass className="absolute left-2.5 size-3.5 text-ink-mute" />
+                <MagnifyingGlass className="absolute start-2.5 size-3.5 text-ink-mute" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Filter banks..."
-                  className="w-full rounded-lg bg-paper/60 pl-8 pr-3 py-1.5 text-xs text-ink placeholder:text-ink-mute/70 border border-hairline/60 outline-none focus:bg-white focus:border-ink/30 transition-all"
+                  placeholder={t('bankWorkspace.filterBanks', 'Filter banks...')}
+                  className="w-full rounded-lg bg-paper/60 ps-8 pe-3 py-1.5 text-xs text-ink placeholder:text-ink-mute/70 border border-hairline/60 outline-none focus:bg-white focus:border-ink/30 transition-all text-start"
                 />
               </div>
             </div>
@@ -167,7 +164,7 @@ export function BankWorkspaceDropdown() {
           <div className="max-h-64 overflow-y-auto p-1.5 space-y-1">
             {filteredBanks.length === 0 ? (
               <div className="py-6 text-center text-xs text-ink-mute">
-                No matching banks found
+                {t('bankWorkspace.noBanksFound', 'No matching banks found')}
               </div>
             ) : (
               filteredBanks.map((bank) => {
@@ -182,7 +179,7 @@ export function BankWorkspaceDropdown() {
                       setActiveBankId(bank.id);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all duration-150 cursor-pointer ${
+                    className={`w-full flex items-center justify-between gap-2.5 rounded-xl px-2.5 py-2 text-start transition-all duration-150 cursor-pointer ${
                       isSelected
                         ? 'bg-ink text-white shadow-xs font-semibold'
                         : 'text-ink-soft hover:bg-paper hover:text-ink'
@@ -210,7 +207,7 @@ export function BankWorkspaceDropdown() {
                                 isSelected ? 'text-white/70' : 'text-ink-mute'
                               }`}
                             >
-                              Code: {bank.code}
+                              {bank.code}
                             </span>
                           )}
                         </div>
@@ -241,10 +238,10 @@ export function BankWorkspaceDropdown() {
               >
                 <span className="flex items-center gap-2">
                   <Gear className="size-3.5" />
-                  Manage Bank Workspaces
+                  {t('titles.banks', 'Manage Banks')}
                 </span>
                 <span className="font-mono text-[10px] text-accent font-semibold">
-                  View →
+                  →
                 </span>
               </button>
             </div>

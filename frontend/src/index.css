@@ -223,3 +223,101 @@ input:-webkit-autofill:active {
   caret-color: #f9fafb !important;
   transition: background-color 5000s ease-in-out 0s !important;
 }
+
+/* RTL Comprehensive Layout, Typography, and Input Alignment */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Ensure text-left utility classes properly flip to right in RTL */
+[dir="rtl"] .text-left {
+  text-align: right !important;
+}
+
+/* Ensure text-right utility classes (actions columns in tables) flip to left in RTL */
+[dir="rtl"] .text-right {
+  text-align: left !important;
+}
+
+/* Table headers & cells align right in RTL, except actions */
+[dir="rtl"] th,
+[dir="rtl"] td {
+  text-align: right;
+}
+
+[dir="rtl"] th.text-right,
+[dir="rtl"] td.text-right {
+  text-align: left !important;
+}
+
+/* Text inputs, textareas, and selects align to the right in Arabic */
+[dir="rtl"] input:not([type="tel"]):not([type="email"]):not(.ltr-force),
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[dir="rtl"] input::placeholder,
+[dir="rtl"] textarea::placeholder {
+  text-align: right !important;
+}
+
+/* Form labels right-aligned */
+[dir="rtl"] label {
+  text-align: right;
+}
+
+/* Specific LTR numeric or credential fields */
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] .ltr-force {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Header dropdown popovers should anchor to the start side in RTL (left instead of right) */
+[dir="rtl"] header .absolute.right-0,
+[dir="rtl"] header .sm\:right-0 {
+  right: auto !important;
+  left: 0 !important;
+}
+
+/* SVG Chart wrapper coordinate protection */
+[dir="rtl"] .recharts-wrapper {
+  direction: ltr;
+}
+
+/* RTL Input icon mirroring */
+[dir="rtl"] .relative > svg.absolute.left-3,
+[dir="rtl"] .relative > svg.absolute.left-3\.5 {
+  left: auto !important;
+  right: 0.875rem !important;
+}
+
+[dir="rtl"] .relative > input.pl-9,
+[dir="rtl"] .relative > input.pl-10 {
+  padding-left: 0.75rem !important;
+  padding-right: 2.5rem !important;
+}
+
+[dir="rtl"] .relative > button.absolute.right-2\.5,
+[dir="rtl"] .relative > button.absolute.right-3 {
+  right: auto !important;
+  left: 0.75rem !important;
+}
+
+/* Modals close button mirror */
+[dir="rtl"] .modal-close,
+[dir="rtl"] [role="dialog"] .absolute.right-4,
+[dir="rtl"] [role="dialog"] .absolute.right-6 {
+  right: auto !important;
+  left: 1rem !important;
+}
+

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   MagnifyingGlass,
@@ -41,6 +42,8 @@ const PRESET_COLORS = [
 ];
 
 export function ColorManagementTab() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddColorModalOpen, setIsAddColorModalOpen] = useState(false);
@@ -142,17 +145,21 @@ export function ColorManagementTab() {
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-white p-4 rounded-xl border border-hairline shadow-sm">
         <div className="relative flex-1 max-w-md">
-          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute" />
+          <MagnifyingGlass className="absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute pointer-events-none" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search colors by name, Arabic, or hex (#FFF)..."
-            className="pl-10 h-10"
+            placeholder={
+              isArabic
+                ? 'بحث في الألوان بالاسم أو بالعربية أو رمز اللون (#FFF)...'
+                : 'Search colors by name, Arabic, or hex (#FFF)...'
+            }
+            className="ps-10 pe-9 h-10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
             >
               <X className="size-3.5" />
             </button>
@@ -161,15 +168,15 @@ export function ColorManagementTab() {
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-ink-mute bg-bone px-2.5 py-1 rounded border border-hairline">
-            {colors.filter((c) => c.isActive).length} ACTIVE / {colors.length} TOTAL
+            {colors.filter((c) => c.isActive).length} {t('common.active', 'ACTIVE')} / {colors.length} {t('banks.total', 'TOTAL')}
           </span>
 
           <Button
             size="sm"
             onClick={() => setIsAddColorModalOpen(true)}
-            className="bg-accent text-white"
+            className="bg-accent text-white cursor-pointer gap-1"
           >
-            <Plus className="size-4 mr-1" /> Add New Color
+            <Plus className="size-4" /> {t('vehicleSettings.addNewColor', 'Add New Color')}
           </Button>
         </div>
       </div>
@@ -178,19 +185,21 @@ export function ColorManagementTab() {
       {filteredColors.length === 0 ? (
         <div className="rounded-xl border border-dashed border-hairline bg-paper/40 p-12 text-center">
           <Palette className="size-10 mx-auto text-ink-mute/70 mb-3" />
-          <h3 className="text-base font-semibold text-ink">No vehicle colors found</h3>
+          <h3 className="text-base font-semibold text-ink">
+            {isArabic ? 'لم يتم العثور على ألوان مركبات' : 'No vehicle colors found'}
+          </h3>
           <p className="text-sm text-ink-mute mt-1 max-w-sm mx-auto">
             {searchTerm
-              ? 'No colors match your search query.'
-              : 'Add your first vehicle color to populate the inspection color dropdown.'}
+              ? (isArabic ? 'لا توجد ألوان تطابق عبارة البحث الحالية.' : 'No colors match your search query.')
+              : (isArabic ? 'أضف أول لون مركبة ليظهر في خيارات فحص المركبات.' : 'Add your first vehicle color to populate the inspection color dropdown.')}
           </p>
           {!searchTerm && (
             <Button
               size="sm"
-              className="mt-4"
+              className="mt-4 cursor-pointer gap-1"
               onClick={() => setIsAddColorModalOpen(true)}
             >
-              <Plus className="size-4 mr-1" /> Add First Color
+              <Plus className="size-4" /> {t('vehicleSettings.addNewColor', 'Add First Color')}
             </Button>
           )}
         </div>
@@ -229,7 +238,7 @@ export function ColorManagementTab() {
                           {color.name}
                         </h4>
                         {color.nameAr && (
-                          <p className="text-xs text-ink-mute font-arabic leading-tight mt-0.5">
+                          <p dir="rtl" className="text-xs text-ink-mute leading-tight mt-0.5">
                             {color.nameAr}
                           </p>
                         )}
@@ -244,20 +253,20 @@ export function ColorManagementTab() {
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                           : 'bg-bone text-ink-mute border border-hairline hover:bg-paper'
                       }`}
-                      title="Click to toggle Active status"
+                      title={isArabic ? 'اضغط لتغيير حالة التفعيل' : 'Click to toggle Active status'}
                     >
-                      {color.isActive ? 'Active' : 'Inactive'}
+                      {color.isActive ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-ink-mute mt-2 pt-2 border-t border-hairline/60">
-                    <span className="font-mono text-[11px]">
+                    <span className="font-mono text-[11px]" dir="ltr">
                       {color.hex || '—'}
                     </span>
                     <span>
                       {color._count?.vehicles > 0
-                        ? `${color._count.vehicles} vehicle${color._count.vehicles === 1 ? '' : 's'}`
-                        : 'No vehicles'}
+                        ? (isArabic ? `${color._count.vehicles} مركبة` : `${color._count.vehicles} vehicle${color._count.vehicles === 1 ? '' : 's'}`)
+                        : (isArabic ? 'لا توجد مركبات' : 'No vehicles')}
                     </span>
                   </div>
                 </div>
@@ -266,33 +275,37 @@ export function ColorManagementTab() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs px-2 text-ink-mute hover:text-ink"
+                    className="h-7 text-xs px-2 text-ink-mute hover:text-ink cursor-pointer"
                     onClick={() => setEditingColor(color)}
                   >
-                    <PencilSimple className="size-3.5 mr-1" /> Edit
+                    <PencilSimple className="size-3.5 mr-1" /> {t('common.edit', 'Edit')}
                   </Button>
 
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs px-2 text-red-500/70 hover:text-red-600 hover:bg-red-50"
+                    className="h-7 text-xs px-2 text-red-500/70 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                     onClick={() => {
                       if (color._count?.vehicles > 0) {
                         toast.error(
-                          `Cannot delete "${color.name}" because ${color._count.vehicles} vehicle(s) reference it. Deactivate it instead.`,
+                          isArabic
+                            ? `لا يمكن حذف اللون "${color.nameAr || color.name}" لأنه مرتبط بـ ${color._count.vehicles} مركبة. يمكنك إلغاء تفعيله بدلاً من ذلك.`
+                            : `Cannot delete "${color.name}" because ${color._count.vehicles} vehicle(s) reference it. Deactivate it instead.`,
                         );
                         return;
                       }
                       if (
                         window.confirm(
-                          `Are you sure you want to delete color "${color.name}"?`,
+                          isArabic
+                            ? `هل أنت متأكد من رغبتك في حذف اللون "${color.nameAr || color.name}"؟`
+                            : `Are you sure you want to delete color "${color.name}"?`,
                         )
                       ) {
                         deleteColorMutation.mutate(color.id);
                       }
                     }}
                   >
-                    <Trash className="size-3.5 mr-1" /> Delete
+                    <Trash className="size-3.5 mr-1" /> {t('common.delete', 'Delete')}
                   </Button>
                 </div>
               </div>
@@ -340,6 +353,8 @@ function CreateColorModal({
   }) => void;
   isLoading: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const [name, setName] = useState('');
   const [nameAr, setNameAr] = useState('');
   const [hex, setHex] = useState('#2563EB');
@@ -348,7 +363,7 @@ function CreateColorModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Color name is required');
+      toast.error(isArabic ? 'اسم اللون بالإنجليزية مطلوب' : 'Color name is required');
       return;
     }
     onSubmit({
@@ -364,12 +379,16 @@ function CreateColorModal({
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-hairline overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4 bg-paper/30">
           <div>
-            <h3 className="font-semibold text-ink text-base">Add Vehicle Color</h3>
+            <h3 className="font-semibold text-ink text-base">
+              {isArabic ? 'إضافة لون مركبة' : 'Add Vehicle Color'}
+            </h3>
             <p className="text-xs text-ink-mute mt-0.5">
-              Add a new color to dynamic vehicle dropdown lists
+              {isArabic
+                ? 'إضافة لون جديد إلى القوائم المنسدلة لبيانات الفحص'
+                : 'Add a new color to dynamic vehicle dropdown lists'}
             </p>
           </div>
-          <button onClick={onClose} className="text-ink-mute hover:text-ink p-1">
+          <button onClick={onClose} className="text-ink-mute hover:text-ink p-1 cursor-pointer">
             <X className="size-5" />
           </button>
         </div>
@@ -377,7 +396,8 @@ function CreateColorModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-ink mb-1.5">
-              Color Name (English) <span className="text-red-500">*</span>
+              {isArabic ? 'اسم اللون (بالإنجليزية)' : 'Color Name (English)'}{' '}
+              <span className="text-red-500">*</span>
             </label>
             <Input
               value={name}
@@ -390,7 +410,7 @@ function CreateColorModal({
 
           <div>
             <label className="block text-xs font-semibold text-ink mb-1.5">
-              Arabic Translation (Optional)
+              {isArabic ? 'الاسم بالعربية (اختياري)' : 'Arabic Translation (Optional)'}
             </label>
             <Input
               value={nameAr}
@@ -402,7 +422,7 @@ function CreateColorModal({
 
           <div>
             <label className="block text-xs font-semibold text-ink mb-1.5">
-              Color Swatch & Hex Code
+              {isArabic ? 'عينة اللون ورمز الهيكس (Hex)' : 'Color Swatch & Hex Code'}
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -417,13 +437,14 @@ function CreateColorModal({
                 placeholder="#000000"
                 className="font-mono text-xs uppercase flex-1"
                 maxLength={7}
+                dir="ltr"
               />
             </div>
 
             {/* Quick palette buttons */}
             <div className="mt-2.5">
               <span className="text-[10px] text-ink-mute block mb-1">
-                Quick palette presets:
+                {isArabic ? 'ألوان جاهزة سريعة:' : 'Quick palette presets:'}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {PRESET_COLORS.map((preset) => (
@@ -434,7 +455,7 @@ function CreateColorModal({
                       setHex(preset.hex);
                       if (!name) setName(preset.name);
                     }}
-                    className="size-5 rounded border border-black/15 shadow-2xs hover:scale-110 transition-transform"
+                    className="size-5 rounded border border-black/15 shadow-2xs hover:scale-110 transition-transform cursor-pointer"
                     style={{ backgroundColor: preset.hex }}
                     title={`${preset.name} (${preset.hex})`}
                   />
@@ -449,24 +470,27 @@ function CreateColorModal({
               id="isActive"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="size-4 rounded border-hairline text-accent focus:ring-accent"
+              className="size-4 rounded border-hairline text-accent focus:ring-accent cursor-pointer"
             />
             <label htmlFor="isActive" className="text-xs text-ink font-medium cursor-pointer">
-              Active (immediately selectable in vehicle inspection forms)
+              {isArabic
+                ? 'نشط (متاح للاختيار فوراً في استمارات فحص المركبات)'
+                : 'Active (immediately selectable in vehicle inspection forms)'}
             </label>
           </div>
 
           <div className="flex justify-end gap-2.5 pt-3 border-t border-hairline">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
-              Cancel
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading} className="cursor-pointer">
+              {t('common.cancel', 'Cancel')}
             </Button>
-            <Button type="submit" disabled={isLoading || !name.trim()}>
+            <Button type="submit" disabled={isLoading || !name.trim()} className="cursor-pointer bg-accent text-white">
               {isLoading ? (
                 <>
-                  <CircleNotch className="size-4 animate-spin mr-1.5" /> Creating...
+                  <CircleNotch className="size-4 animate-spin mr-1.5" />
+                  {isArabic ? 'جاري الإضافة...' : 'Creating...'}
                 </>
               ) : (
-                'Add Color'
+                isArabic ? 'إضافة اللون' : 'Add Color'
               )}
             </Button>
           </div>
@@ -493,6 +517,8 @@ function EditColorModal({
   }) => void;
   isLoading: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const [name, setName] = useState(color.name);
   const [nameAr, setNameAr] = useState(color.nameAr || '');
   const [hex, setHex] = useState(color.hex || '#000000');
@@ -501,7 +527,7 @@ function EditColorModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Color name cannot be empty');
+      toast.error(isArabic ? 'لا يمكن ترك اسم اللون فارغاً' : 'Color name cannot be empty');
       return;
     }
     onSubmit({
@@ -517,10 +543,14 @@ function EditColorModal({
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-hairline overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4 bg-paper/30">
           <div>
-            <h3 className="font-semibold text-ink text-base">Edit Vehicle Color</h3>
-            <p className="text-xs text-ink-mute mt-0.5">Update color details</p>
+            <h3 className="font-semibold text-ink text-base">
+              {isArabic ? 'تعديل لون المركبة' : 'Edit Vehicle Color'}
+            </h3>
+            <p className="text-xs text-ink-mute mt-0.5">
+              {isArabic ? 'تحديث بيانات اللون' : 'Update color details'}
+            </p>
           </div>
-          <button onClick={onClose} className="text-ink-mute hover:text-ink p-1">
+          <button onClick={onClose} className="text-ink-mute hover:text-ink p-1 cursor-pointer">
             <X className="size-5" />
           </button>
         </div>
@@ -528,7 +558,8 @@ function EditColorModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-ink mb-1.5">
-              Color Name (English) <span className="text-red-500">*</span>
+              {isArabic ? 'اسم اللون (بالإنجليزية)' : 'Color Name (English)'}{' '}
+              <span className="text-red-500">*</span>
             </label>
             <Input
               value={name}
@@ -540,7 +571,7 @@ function EditColorModal({
 
           <div>
             <label className="block text-xs font-semibold text-ink mb-1.5">
-              Arabic Translation (Optional)
+              {isArabic ? 'الاسم بالعربية (اختياري)' : 'Arabic Translation (Optional)'}
             </label>
             <Input
               value={nameAr}
@@ -551,7 +582,7 @@ function EditColorModal({
 
           <div>
             <label className="block text-xs font-semibold text-ink mb-1.5">
-              Color Swatch & Hex Code
+              {isArabic ? 'عينة اللون ورمز الهيكس (Hex)' : 'Color Swatch & Hex Code'}
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -565,6 +596,7 @@ function EditColorModal({
                 onChange={(e) => setHex(e.target.value.toUpperCase())}
                 className="font-mono text-xs uppercase flex-1"
                 maxLength={7}
+                dir="ltr"
               />
             </div>
           </div>
@@ -575,24 +607,27 @@ function EditColorModal({
               id="editIsActive"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="size-4 rounded border-hairline text-accent focus:ring-accent"
+              className="size-4 rounded border-hairline text-accent focus:ring-accent cursor-pointer"
             />
             <label htmlFor="editIsActive" className="text-xs text-ink font-medium cursor-pointer">
-              Active (selectable in vehicle inspection forms)
+              {isArabic
+                ? 'نشط (متاح للاختيار في استمارات فحص المركبات)'
+                : 'Active (selectable in vehicle inspection forms)'}
             </label>
           </div>
 
           <div className="flex justify-end gap-2.5 pt-3 border-t border-hairline">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
-              Cancel
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading} className="cursor-pointer">
+              {t('common.cancel', 'Cancel')}
             </Button>
-            <Button type="submit" disabled={isLoading || !name.trim()}>
+            <Button type="submit" disabled={isLoading || !name.trim()} className="cursor-pointer bg-accent text-white">
               {isLoading ? (
                 <>
-                  <CircleNotch className="size-4 animate-spin mr-1.5" /> Saving...
+                  <CircleNotch className="size-4 animate-spin mr-1.5" />
+                  {isArabic ? 'جاري الحفظ...' : 'Saving...'}
                 </>
               ) : (
-                'Save Changes'
+                t('common.saveChanges', 'Save Changes')
               )}
             </Button>
           </div>

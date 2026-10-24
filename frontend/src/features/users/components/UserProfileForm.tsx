@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   User,
   EnvelopeSimple,
@@ -95,6 +96,7 @@ function ProfileContent({
   onCancel,
   showCancelButton = false,
 }: ProfileContentProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { refreshUser } = useWorkspace()
 
@@ -273,7 +275,9 @@ function ProfileContent({
         <div className="rounded-xl sm:rounded-2xl border border-hairline bg-white p-4 sm:p-5 shadow-2xs space-y-4">
           <div className="border-b border-hairline pb-2.5 flex items-center justify-between">
             <div>
-              <h4 className="text-xs sm:text-sm font-semibold text-ink">Personal Details</h4>
+              <h4 className="text-xs sm:text-sm font-semibold text-ink">
+                {t('profile.personalInfo', 'Personal Details')}
+              </h4>
               <p className="text-[11px] text-ink-mute mt-0.5">
                 Authorized editable fields for your account.
               </p>
@@ -287,16 +291,16 @@ function ProfileContent({
             {/* First Name */}
             <div>
               <label className="block text-xs font-medium text-ink mb-1">
-                First Name <span className="text-rose-500">*</span>
+                {t('profile.firstName', 'First Name')} <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <User className="absolute ltr:left-3 rtl:right-3 top-2.5 size-4 text-ink-mute" />
                 <Input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="e.g. John"
                   required
-                  className="pl-9 text-xs h-9"
+                  className="ltr:pl-9 rtl:pr-9 text-xs h-9"
                   disabled={updateMutation.isPending}
                 />
               </div>
@@ -305,16 +309,16 @@ function ProfileContent({
             {/* Last Name */}
             <div>
               <label className="block text-xs font-medium text-ink mb-1">
-                Last Name <span className="text-rose-500">*</span>
+                {t('profile.lastName', 'Last Name')} <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <User className="absolute ltr:left-3 rtl:right-3 top-2.5 size-4 text-ink-mute" />
                 <Input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="e.g. Doe"
                   required
-                  className="pl-9 text-xs h-9"
+                  className="ltr:pl-9 rtl:pr-9 text-xs h-9"
                   disabled={updateMutation.isPending}
                 />
               </div>
@@ -325,18 +329,20 @@ function ProfileContent({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-ink">Email Address</label>
+                <label className="text-xs font-medium text-ink">
+                  {t('profile.email', 'Email Address')}
+                </label>
                 <span className="text-[9px] font-mono text-ink-mute uppercase tracking-wider">
                   Read-only
                 </span>
               </div>
               <div className="relative">
-                <EnvelopeSimple className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <EnvelopeSimple className="absolute ltr:left-3 rtl:right-3 top-2.5 size-4 text-ink-mute" />
                 <Input
                   type="email"
                   value={currentUser.email}
                   disabled
-                  className="pl-9 text-xs h-9 bg-paper/60 text-ink-soft cursor-not-allowed border-hairline/80"
+                  className="ltr:pl-9 rtl:pr-9 text-xs h-9 bg-paper/60 text-ink-soft cursor-not-allowed border-hairline/80"
                 />
               </div>
               <span className="text-[10px] text-ink-mute mt-1 block">
@@ -346,16 +352,16 @@ function ProfileContent({
 
             <div>
               <label className="block text-xs font-medium text-ink mb-1">
-                Phone Number
+                {t('profile.phone', 'Phone Number')}
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-2.5 size-4 text-ink-mute" />
+                <Phone className="absolute ltr:left-3 rtl:right-3 top-2.5 size-4 text-ink-mute" />
                 <Input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. +201012345678"
-                  className="pl-9 text-xs h-9 font-mono"
+                  className="ltr:pl-9 rtl:pr-9 text-xs h-9 font-mono"
                   disabled={updateMutation.isPending}
                 />
               </div>
@@ -376,7 +382,7 @@ function ProfileContent({
                 disabled={updateMutation.isPending}
                 className="w-full sm:w-auto text-xs"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
             )}
 
@@ -403,12 +409,12 @@ function ProfileContent({
               {updateMutation.isPending ? (
                 <>
                   <CircleNotch className="size-3.5 animate-spin" />
-                  Saving...
+                  {t('common.saving', 'Saving...')}
                 </>
               ) : (
                 <>
                   <FloppyDisk className="size-3.5" />
-                  Save Changes
+                  {t('common.saveChanges', 'Save Changes')}
                 </>
               )}
             </Button>

@@ -13,13 +13,13 @@ export class CreateBankDto {
   @MaxLength(255)
   name!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Bank code is required' })
   @MaxLength(20)
   @Matches(/^[A-Z0-9_-]+$/i, {
     message: 'Code must contain only letters, numbers, dashes, or underscores',
   })
-  code!: string;
+  code?: string;
 
   @IsOptional()
   @IsEmail({}, { message: 'Please provide a valid email address' })

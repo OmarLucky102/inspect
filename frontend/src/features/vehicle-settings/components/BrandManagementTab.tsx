@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   MagnifyingGlass,
@@ -30,6 +31,8 @@ import {
 } from '../api';
 
 export function BrandManagementTab() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedBrandIds, setExpandedBrandIds] = useState<Set<string>>(
@@ -204,17 +207,17 @@ export function BrandManagementTab() {
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-white p-4 rounded-xl border border-hairline shadow-sm">
         <div className="relative flex-1 max-w-md">
-          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute" />
+          <MagnifyingGlass className="absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-mute pointer-events-none" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search make or model (e.g. BMW, M3, Porsche)..."
-            className="pl-10 h-10"
+            placeholder={t('vehicleSettings.searchMakeModel', 'Search make or model (e.g. BMW, M3, Porsche)...')}
+            className="ps-10 pe-9 h-10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
             >
               <X className="size-3.5" />
             </button>
@@ -223,19 +226,19 @@ export function BrandManagementTab() {
 
         <div className="flex items-center gap-2">
           {brands.length > 0 && (
-            <div className="hidden md:flex items-center text-xs text-ink-mute gap-1 mr-2">
+            <div className="hidden md:flex items-center text-xs text-ink-mute gap-1 me-2">
               <button
                 onClick={expandAll}
                 className="hover:text-ink underline cursor-pointer"
               >
-                Expand all
+                {t('vehicleSettings.expandAll', 'Expand all')}
               </button>
               <span>·</span>
               <button
                 onClick={collapseAll}
                 className="hover:text-ink underline cursor-pointer"
               >
-                Collapse all
+                {t('vehicleSettings.collapseAll', 'Collapse all')}
               </button>
             </div>
           )}
@@ -248,16 +251,17 @@ export function BrandManagementTab() {
               setIsAddModelModalOpen(true);
             }}
             disabled={brands.length === 0}
+            className="cursor-pointer gap-1"
           >
-            <Plus className="size-4 mr-1 text-ink-soft" /> Add Model
+            <Plus className="size-4 text-ink-soft" /> {t('vehicleSettings.addModel', 'Add Model')}
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsNewBrandModalOpen(true)}
-            className="bg-accent text-white"
+            className="bg-accent text-white cursor-pointer gap-1"
           >
-            <Plus className="size-4 mr-1" /> New Make (Brand)
+            <Plus className="size-4" /> {t('vehicleSettings.addMake', 'New Make (Brand)')}
           </Button>
         </div>
       </div>
@@ -266,19 +270,19 @@ export function BrandManagementTab() {
       {filteredBrands.length === 0 ? (
         <div className="rounded-xl border border-dashed border-hairline bg-paper/40 p-12 text-center">
           <Car className="size-10 mx-auto text-ink-mute/70 mb-3" />
-          <h3 className="text-base font-semibold text-ink">No vehicle makes found</h3>
+          <h3 className="text-base font-semibold text-ink">{t('vehicleSettings.noBrandsFound', 'No vehicle makes found')}</h3>
           <p className="text-sm text-ink-mute mt-1 max-w-sm mx-auto">
             {searchTerm
-              ? 'Try adjusting your search criteria'
-              : 'Start by adding your first car make (e.g. Toyota, Mercedes, BMW)'}
+              ? (isArabic ? 'جرب تغيير معايير البحث' : 'Try adjusting your search criteria')
+              : (isArabic ? 'ابدأ بإضافة أول ماركة مركبة بالنظام (مثل: تويوتا، مرسيدس، بي إم دبليو)' : 'Start by adding your first car make (e.g. Toyota, Mercedes, BMW)')}
           </p>
           {!searchTerm && (
             <Button
               size="sm"
-              className="mt-4"
+              className="mt-4 gap-1.5 cursor-pointer"
               onClick={() => setIsNewBrandModalOpen(true)}
             >
-              <Plus className="size-4 mr-1" /> Add First Make
+              <Plus className="size-4" /> {t('vehicleSettings.addMake', 'Add First Make')}
             </Button>
           )}
         </div>

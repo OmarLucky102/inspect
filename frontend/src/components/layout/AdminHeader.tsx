@@ -1,9 +1,9 @@
 import { CircleNotch, List, SignOut } from '@phosphor-icons/react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/use-logout'
 import { BankWorkspaceDropdown } from './BankWorkspaceDropdown'
 import { UserProfileDropdown } from './UserProfileDropdown'
-import { ThemeToggle } from './ThemeToggle'
 
 interface AdminHeaderProps {
   onMenu: () => void
@@ -12,6 +12,7 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
+  const { t } = useTranslation()
   const logoutMutation = useLogout()
 
   return (
@@ -36,14 +37,11 @@ export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-          {/* Bank Workspace Selector Dropdown */}
+        <div className="flex shrink-0 items-center gap-2.5 sm:gap-3.5">
+          {/* Bank Selector Dropdown */}
           <BankWorkspaceDropdown />
 
           <div className="h-5 w-[1px] bg-hairline hidden sm:block" />
-
-          {/* Quick 1-Click Dark/Light Mode Toggle */}
-          <ThemeToggle />
 
           {/* Interactive Profile Circle Avatar Dropdown */}
           <UserProfileDropdown />
@@ -59,7 +57,7 @@ export function AdminHeader({ onMenu, title, meta }: AdminHeaderProps) {
             ) : (
               <SignOut aria-hidden />
             )}
-            <span className="hidden sm:inline">Sign out</span>
+            <span className="hidden sm:inline">{t('common.signOut', 'Sign out')}</span>
           </Button>
         </div>
       </div>

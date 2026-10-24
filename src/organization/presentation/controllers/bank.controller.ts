@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { BankService } from '../../application/services/bank.service';
 import { CreateBankDto } from '../dto/create-bank.dto';
@@ -93,6 +94,16 @@ export class BankController {
         isActive: b.isActive,
         createdAt: b.createdAt,
       })),
+    };
+  }
+
+  @Get('generate-code')
+  @Roles(Role.SUPER_ADMIN)
+  async generateCode(@Query('name') name?: string) {
+    const code = await this.bankService.generateBankCode(name || '');
+    return {
+      status: 'success',
+      data: { code },
     };
   }
 
