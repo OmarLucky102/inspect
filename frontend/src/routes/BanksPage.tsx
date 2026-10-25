@@ -110,67 +110,24 @@ export function BanksPage() {
     )
   }
 
-  if (!data || data.length === 0) {
+  const renderCreateModal = () => {
+    if (!isCreating) return null
+
     return (
-      <ModuleEmptyState
-        kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
-        title={t('banks.title', 'Bank workspaces and memberships.')}
-        body={t('banks.subtitle', 'Banks, membership roles and inspection scopes will live here, backed by the organization module and bank-membership guard.')}
-        icon={BankIcon}
-        actionLabel={t('banks.newBank', 'New Bank')}
-        onAction={() => setIsCreating(true)}
-      />
-    )
-  }
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-ink/50 backdrop-blur-xs transition-opacity duration-200"
+          onClick={() => setIsCreating(false)}
+          aria-hidden
+        />
 
-  return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-hairline bg-paper/50 flex justify-between items-center">
-          <div>
-            <h2 className="font-semibold text-ink">{t('banks.title', 'Banks (Workspaces)')}</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-ink-mute bg-bone px-2 py-1 rounded">
-              {data.length} {t('banks.total', 'TOTAL')}
-            </span>
-            <Button size="sm" onClick={() => setIsCreating(true)} className="gap-1.5 cursor-pointer">
-              <Plus className="size-4" /> {t('banks.newBank', 'New Bank')}
-            </Button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-start text-sm">
-            <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">
-              <tr>
-                <th className="px-5 py-3 text-start">{t('banks.thCode', 'Code')}</th>
-                <th className="px-5 py-3 text-start">{t('banks.thName', 'Name')}</th>
-                <th className="px-5 py-3 text-start">{t('banks.thContact', 'Contact')}</th>
-                <th className="px-5 py-3 text-end">{t('banks.thActions', 'Actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline">
-              {data.map((b) => (
-                <tr key={b.id} className="hover:bg-paper/50 transition-colors">
-                  <td className="px-5 py-3 font-mono font-medium text-ink">{b.code}</td>
-                  <td className="px-5 py-3 text-ink">{b.name}</td>
-                  <td className="px-5 py-3 text-ink-soft">
-                    {b.email || b.phone || '—'}
-                  </td>
-                  <td className="px-5 py-3 text-end">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedBankId(b.id)} className="cursor-pointer text-xs">
-                      {t('banks.manage', 'Manage')}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isCreating && (
-        <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden relative p-6">
+        {/* Modal Dialog */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-hairline overflow-hidden z-10 animate-in fade-in-0 zoom-in-95 duration-200 p-6"
+        >
           <button 
             className="absolute top-4 end-4 text-ink-mute hover:text-ink cursor-pointer modal-close"
             onClick={() => setIsCreating(false)}
@@ -187,7 +144,7 @@ export function BanksPage() {
               if (formData.phone?.trim()) payload.phone = formData.phone.trim()
               createMutation.mutate(payload)
             }}
-            className="space-y-4 max-w-md"
+            className="space-y-4"
           >
             <div>
               <label className="block text-xs font-medium text-ink-mute mb-1">{t('banks.nameLabel', 'Bank Name *')}</label>
@@ -250,7 +207,73 @@ export function BanksPage() {
             </div>
           </form>
         </div>
-      )}
+      </div>
+    )
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <>
+        <ModuleEmptyState
+          kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
+          title={t('banks.title', 'Bank workspaces and memberships.')}
+          body={t('banks.subtitle', 'Banks, membership roles and inspection scopes will live here, backed by the organization module and bank-membership guard.')}
+          icon={BankIcon}
+          actionLabel={t('banks.newBank', 'New Bank')}
+          onAction={() => setIsCreating(true)}
+        />
+        {renderCreateModal()}
+      </>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-hairline bg-paper/50 flex justify-between items-center">
+          <div>
+            <h2 className="font-semibold text-ink">{t('banks.title', 'Banks (Workspaces)')}</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono text-ink-mute bg-bone px-2 py-1 rounded">
+              {data.length} {t('banks.total', 'TOTAL')}
+            </span>
+            <Button size="sm" onClick={() => setIsCreating(true)} className="gap-1.5 cursor-pointer">
+              <Plus className="size-4" /> {t('banks.newBank', 'New Bank')}
+            </Button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-start text-sm">
+            <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">
+              <tr>
+                <th className="px-5 py-3 text-start">{t('banks.thCode', 'Code')}</th>
+                <th className="px-5 py-3 text-start">{t('banks.thName', 'Name')}</th>
+                <th className="px-5 py-3 text-start">{t('banks.thContact', 'Contact')}</th>
+                <th className="px-5 py-3 text-end">{t('banks.thActions', 'Actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-hairline">
+              {data.map((b) => (
+                <tr key={b.id} className="hover:bg-paper/50 transition-colors">
+                  <td className="px-5 py-3 font-mono font-medium text-ink">{b.code}</td>
+                  <td className="px-5 py-3 text-ink">{b.name}</td>
+                  <td className="px-5 py-3 text-ink-soft">
+                    {b.email || b.phone || '—'}
+                  </td>
+                  <td className="px-5 py-3 text-end">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedBankId(b.id)} className="cursor-pointer text-xs">
+                      {t('banks.manage', 'Manage')}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {renderCreateModal()}
 
       {selectedBankId && (
         <BankDetails 

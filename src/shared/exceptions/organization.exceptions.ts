@@ -26,9 +26,10 @@ export class BankMembershipAlreadyExistsException extends BaseException {
 }
 
 export class InvalidBankMemberRoleException extends BaseException {
-  constructor(role: string) {
+  constructor(role: string, customMessage?: string) {
     super(
-      `Role '${role}' is not allowed for bank members. Allowed roles: MANAGER, REVIEWER, USER, VIEWER, REPRESENTATIVE`,
+      customMessage ||
+        `Role '${role}' is not allowed for bank members. Platform roles (SUPER_ADMIN, SYSTEM_ADMIN) cannot belong to a bank workspace.`,
       HttpStatus.BAD_REQUEST,
     );
   }

@@ -72,12 +72,14 @@ export class User {
       throw new UserAlreadyActiveException(this.props.email);
     }
     this.props.isActive = true;
+    this.props.updatedAt = new Date();
   }
   public deactivate(): void {
     if (!this.props.isActive) {
       throw new UserAlreadyDeactivatedException(this.props.email);
     }
     this.props.isActive = false;
+    this.props.updatedAt = new Date();
   }
 
   //change pass for the already Logged in & Forgot Password both

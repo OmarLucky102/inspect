@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Delete,
   Patch,
   Put,
   Body,
@@ -12,15 +14,22 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { UserService } from '../../application/services/user.service';
+import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
+import { DeleteUserUseCase } from '../../application/use-cases/delete-user.use-case';
+import { ToggleUserStatusUseCase } from '../../application/use-cases/toggle-user-status.use-case';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Roles } from '../../../identity/presentation/decorators/roles.decorator';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
 import { User } from '../../domain/entities/user.entity';
 import { PrismaService } from '../../../database/prisma.service';
-import { BankMembershipAlreadyExistsException } from '../../../shared/exceptions/organization.exceptions';
+import {
+  BankMembershipAlreadyExistsException,
+  InvalidBankMemberRoleException,
+} from '../../../shared/exceptions/organization.exceptions';
 
 interface RequestUser {
   sub?: string;
@@ -35,6 +44,9 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly prisma?: PrismaService,
+    private readonly createUserUseCase?: CreateUserUseCase,
+    private readonly deleteUserUseCase?: DeleteUserUseCase,
+    private readonly toggleUserStatusUseCase?: ToggleUserStatusUseCase,
   ) {}
 
   @Get('me')
@@ -193,6 +205,81 @@ export class UserController {
     };
   }
 
+  @Post()
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  async createUser(@Body() dto: CreateUserDto) {
+    if (!this.createUserUseCase) {
+      throw new NotFoundException('CreateUserUseCase not initialized');
+    }
+    const user = await this.createUserUseCase.execute(dto);
+    return {
+      status: 'success',
+      data: user,
+    };
+  }
+
+  @Delete(':id')
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteUser(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: RequestUser,
+  ) {
+    if (!this.deleteUserUseCase) {
+      throw new NotFoundException('DeleteUserUseCase not initialized');
+    }
+    const actorId = currentUser.sub || currentUser.id || '';
+    await this.deleteUserUseCase.execute({
+      targetUserId: id,
+      actorUserId: actorId,
+    });
+  }
+
+  @Patch(':id/activate')
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async activateUser(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: RequestUser,
+  ) {
+    if (!this.toggleUserStatusUseCase) {
+      throw new NotFoundException('ToggleUserStatusUseCase not initialized');
+    }
+    const actorId = currentUser.sub || currentUser.id || '';
+    const user = await this.toggleUserStatusUseCase.execute({
+      targetUserId: id,
+      actorUserId: actorId,
+      action: 'activate',
+    });
+    return {
+      status: 'success',
+      data: user,
+    };
+  }
+
+  @Patch(':id/deactivate')
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async deactivateUser(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: RequestUser,
+  ) {
+    if (!this.toggleUserStatusUseCase) {
+      throw new NotFoundException('ToggleUserStatusUseCase not initialized');
+    }
+    const actorId = currentUser.sub || currentUser.id || '';
+    const user = await this.toggleUserStatusUseCase.execute({
+      targetUserId: id,
+      actorUserId: actorId,
+      action: 'deactivate',
+    });
+    return {
+      status: 'success',
+      data: user,
+    };
+  }
+
   @Put(':id/banks')
   @Roles(Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -206,6 +293,27 @@ export class UserController {
 
     const { bankIds = [], primaryBankId } = body;
 
+    // Check target user exists
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException(`User with ID '${id}' not found`);
+    }
+
+    // Platform administrators (SUPER_ADMIN, SYSTEM_ADMIN) manage the entire system globally and cannot be assigned to bank workspaces
+    if (
+      (targetUser.role === 'SUPER_ADMIN' || targetUser.role === 'SYSTEM_ADMIN') &&
+      bankIds.length > 0
+    ) {
+      throw new InvalidBankMemberRoleException(
+        targetUser.role,
+        `Role '${targetUser.role}' is not allowed for bank members. Platform administrators manage the platform globally and cannot belong to individual bank workspaces.`,
+      );
+    }
+
     // Check for duplicate bank IDs in the payload
     const uniqueBankIds = Array.from(new Set(bankIds));
     if (uniqueBankIds.length !== bankIds.length) {
@@ -214,6 +322,17 @@ export class UserController {
         undefined,
         'Duplicate bank assignment detected. This user cannot be assigned to the same bank multiple times.',
       );
+    }
+
+    // If bankIds are provided, verify all banks exist
+    if (uniqueBankIds.length > 0) {
+      const existingBanks = await this.prisma.bank.findMany({
+        where: { id: { in: uniqueBankIds } },
+        select: { id: true },
+      });
+      if (existingBanks.length !== uniqueBankIds.length) {
+        throw new NotFoundException('One or more selected banks do not exist');
+      }
     }
 
     // 1. Fetch current bank memberships
@@ -258,7 +377,7 @@ export class UserController {
       });
     }
 
-    // 3. Return updated banks
+    // 5. Return updated banks
     const memberships = await this.prisma.bankMembership.findMany({
       where: { userId: id },
       include: { bank: { select: { id: true, name: true, code: true } } },

@@ -10,9 +10,12 @@ import { BcryptHasherService } from './infrastructure/services/bcrypt-hasher.ser
 import { JwtTokenService } from './infrastructure/services/jwt-token.service';
 import { TokenHasherService } from './infrastructure/services/token-hasher.service';
 
-// Application — Services
+// Application — Services & Use Cases
 import { UserService } from './application/services/user.service';
 import { AuthService } from './application/services/auth.service';
+import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
+import { DeleteUserUseCase } from './application/use-cases/delete-user.use-case';
+import { ToggleUserStatusUseCase } from './application/use-cases/toggle-user-status.use-case';
 
 // Presentation — Controllers
 import { UserController } from './presentation/controllers/user.controller';
@@ -35,9 +38,17 @@ import { RolesGuard } from './presentation/guards/roles.guard';
       provide: 'IRefreshTokenRepository',
       useClass: PrismaRefreshTokenRepository,
     },
-    // Application Services
+    // Hashing Service binding
+    {
+      provide: 'IHashingService',
+      useClass: BcryptHasherService,
+    },
+    // Application Services & Use Cases
     UserService,
     AuthService,
+    CreateUserUseCase,
+    DeleteUserUseCase,
+    ToggleUserStatusUseCase,
     // Infrastructure Services
     BcryptHasherService,
     JwtTokenService,
@@ -49,6 +60,9 @@ import { RolesGuard } from './presentation/guards/roles.guard';
   exports: [
     UserService,
     AuthService,
+    CreateUserUseCase,
+    DeleteUserUseCase,
+    ToggleUserStatusUseCase,
     JwtAuthGuard,
     RolesGuard,
     JwtTokenService,

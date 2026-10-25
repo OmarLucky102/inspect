@@ -105,6 +105,22 @@ const ERROR_RULES: ErrorRule[] = [
     pattern: /failed to load user details/i,
     ar: 'فشل في تحميل بيانات المستخدم.',
   },
+  {
+    pattern: /you cannot delete your own account/i,
+    ar: 'لا يمكنك حذف حسابك الخاص المسجل الدخول به حالياً.',
+  },
+  {
+    pattern: /you cannot deactivate your own account/i,
+    ar: 'لا يمكنك تعطيل حسابك الخاص المسجل الدخول به حالياً.',
+  },
+  {
+    pattern: /is already active/i,
+    ar: 'هذا المستخدم مفعل بالفعل.',
+  },
+  {
+    pattern: /is already deactivated|is already inactive/i,
+    ar: 'هذا المستخدم معطل بالفعل.',
+  },
 
   // ── Prisma & Database ──────────────────────────────────────────────────────
   {

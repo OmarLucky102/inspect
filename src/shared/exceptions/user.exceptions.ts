@@ -48,3 +48,24 @@ export class SamePasswordException extends BaseException {
     );
   }
 }
+
+export class UserAlreadyInactiveException extends UserAlreadyDeactivatedException {}
+
+export class CannotDeleteSelfException extends BaseException {
+  constructor() {
+    super('You cannot delete your own account', HttpStatus.FORBIDDEN);
+  }
+}
+
+export class CannotDeactivateSelfException extends BaseException {
+  constructor() {
+    super('You cannot deactivate your own account', HttpStatus.FORBIDDEN);
+  }
+}
+
+export class InvalidRoleAssignmentException extends BaseException {
+  constructor(role: string) {
+    super(`Invalid role assignment: '${role}'`, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+}
+

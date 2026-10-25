@@ -44,3 +44,32 @@ export async function updateUserBanks(
   return (res.data as any).data || res.data
 }
 
+export interface CreateUserInput {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  phone?: string
+  role: string
+}
+
+export async function createUser(data: CreateUserInput): Promise<UserProfile> {
+  const res = await api.post<{ status: string; data: UserProfile }>('/users', data)
+  return (res.data as any).data || res.data
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await api.delete(`/users/${id}`)
+}
+
+export async function activateUser(id: string): Promise<UserProfile> {
+  const res = await api.patch<{ status: string; data: UserProfile }>(`/users/${id}/activate`)
+  return (res.data as any).data || res.data
+}
+
+export async function deactivateUser(id: string): Promise<UserProfile> {
+  const res = await api.patch<{ status: string; data: UserProfile }>(`/users/${id}/deactivate`)
+  return (res.data as any).data || res.data
+}
+
+

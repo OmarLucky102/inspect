@@ -348,30 +348,32 @@ function TabExistingUser({ bankId }: { bankId: string }) {
 
   const userOptions = useMemo(
     () =>
-      users?.map((u) => {
-        const isMember = members?.some((m) => m.id === u.id)
-        const roleLabel =
-          u.role === 'MANAGER'
-            ? t('banks.roleManager', 'Manager')
-            : u.role === 'REVIEWER'
-            ? t('banks.roleReviewer', 'Reviewer')
-            : u.role === 'USER'
-            ? t('banks.roleUser', 'User')
-            : u.role === 'VIEWER'
-            ? t('banks.roleViewer', 'Viewer')
-            : u.role === 'REPRESENTATIVE'
-            ? t('banks.roleRepresentative', 'Representative')
-            : u.role
+      users
+        ?.filter((u) => u.role !== 'SUPER_ADMIN' && u.role !== 'SYSTEM_ADMIN')
+        ?.map((u) => {
+          const isMember = members?.some((m) => m.id === u.id)
+          const roleLabel =
+            u.role === 'MANAGER'
+              ? t('banks.roleManager', 'Manager')
+              : u.role === 'REVIEWER'
+              ? t('banks.roleReviewer', 'Reviewer')
+              : u.role === 'USER'
+              ? t('banks.roleUser', 'User')
+              : u.role === 'VIEWER'
+              ? t('banks.roleViewer', 'Viewer')
+              : u.role === 'REPRESENTATIVE'
+              ? t('banks.roleRepresentative', 'Representative')
+              : u.role
 
-        return {
-          value: u.id || '',
-          label: `${u.firstName} ${u.lastName}`.trim() || u.email,
-          secondaryLabel: isMember
-            ? `${u.email} — ${t('banks.alreadyAssignedOption', 'Already assigned to this bank')}`
-            : u.email,
-          badge: isMember ? t('banks.alreadyAssignedBadge', 'ALREADY ASSIGNED') : roleLabel,
-        }
-      }) ?? [],
+          return {
+            value: u.id || '',
+            label: `${u.firstName} ${u.lastName}`.trim() || u.email,
+            secondaryLabel: isMember
+              ? `${u.email} — ${t('banks.alreadyAssignedOption', 'Already assigned to this bank')}`
+              : u.email,
+            badge: isMember ? t('banks.alreadyAssignedBadge', 'ALREADY ASSIGNED') : roleLabel,
+          }
+        }) ?? [],
     [users, members, t],
   )
 
