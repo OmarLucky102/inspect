@@ -84,11 +84,13 @@ export class AuthController {
       REFRESH_TOKEN_COOKIE
     ];
 
-    if (refreshToken) {
-      await this.authService.logout(refreshToken);
+    try {
+      if (refreshToken) {
+        await this.authService.logout(refreshToken);
+      }
+    } finally {
+      this.clearRefreshTokenCookie(res, req);
     }
-
-    this.clearRefreshTokenCookie(res, req);
 
     return {
       status: 'success',

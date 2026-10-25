@@ -6,7 +6,7 @@ import axios, {
 
 // ---------------------------------------------------------------------------
 // Token storage: access token lives in memory only. The refresh token is an
-// httpOnly cookie (path /api/v1/auth) managed by the API, so JS never sees it.
+// httpOnly cookie (path /) managed by the API, so JS never sees it.
 // On reload we re-hydrate by calling POST /auth/refresh with credentials.
 // ---------------------------------------------------------------------------
 
