@@ -47,7 +47,7 @@ function resolveDatabaseUrl(): string {
   const password = process.env.DB_PASSWORD || '';
   const host = process.env.DB_HOST || 'localhost';
   const port = process.env.DB_PORT || '5432';
-  const name = process.env.DB_NAME || 'mydb';
+  const name = process.env.DB_NAME || 'inspect';
 
   return `postgresql://${user}:${password}@${host}:${port}/${name}?schema=public`;
 }

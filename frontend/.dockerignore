@@ -1,0 +1,72 @@
+# ==============================================================================
+# Frontend .dockerignore
+# ==============================================================================
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist
+dist-ssr
+build
+*.local
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Tests & Coverage
+coverage
+.nyc_output
+*.spec.ts
+*.spec.tsx
+*.test.ts
+*.test.tsx
+
+# Editor and IDE configurations
+.vscode
+.idea
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Archives & Temporary files
+*.7z
+*.zip
+*.tar.gz
+*.rar
+frontend.7z
+.temp
+.tmp
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Linters, formatters, and docs
+README.md
+.oxlintrc.json

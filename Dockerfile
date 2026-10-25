@@ -1,80 +1,77 @@
 # ==============================================================================
-# Stage 1: Build stage
+# Stage 1: Build stage (full dependencies for compilation & migration service)
 # ==============================================================================
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies for native C++ addons (bcrypt) and Prisma (openssl)
+# Install native dependencies required for building bcrypt and Prisma
 RUN apk add --no-cache libc6-compat openssl python3 make g++
 
-# Install pnpm
+# Enable pnpm
 RUN npm install -g pnpm
 
-# Copy package manifests and workspace/npm configurations for caching
+# Cache package dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
-
-# Install all dependencies (including devDependencies required for building)
 RUN pnpm install --frozen-lockfile
 
-# Copy Prisma schema and configuration files
+# Copy Prisma schema and generate client for Alpine Linux
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-
-# Generate Prisma Client (builds engine and types for Alpine Linux)
 RUN pnpm exec prisma generate
 
-# Copy source code and config files
+# Copy source and compile NestJS app
 COPY . .
-
-# Build the NestJS application (outputs to dist/)
 RUN pnpm run build
 
-# Prune devDependencies to keep only production dependencies in node_modules
+# ==============================================================================
+# Stage 2: Prune devDependencies while safeguarding generated Prisma client
+# ==============================================================================
+FROM builder AS prod-deps
+
+# Backup generated Prisma client before pruning devDependencies
+RUN cp -R node_modules/.prisma /tmp/.prisma 2>/dev/null || true
+
+# Prune devDependencies to keep production image lightweight
 RUN pnpm prune --prod
 
+# Guarantee generated Prisma client is restored if pruned by pnpm
+RUN if [ -d /tmp/.prisma ]; then cp -R /tmp/.prisma node_modules/.prisma; fi
+
 # ==============================================================================
-# Stage 2: Production runtime stage
+# Stage 3: Production runtime stage
 # ==============================================================================
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 WORKDIR /app
 
-# Install runtime dependencies for Prisma and dumb-init for proper signal handling
+# Install runtime dependencies and dumb-init for proper signal handling
 RUN apk add --no-cache libc6-compat openssl dumb-init
 
-# Set production environment variables
-ENV NODE_ENV=production
-ENV SERVER_PORT=3000
+# Configurable port (override via --build-arg PORT=<port> or env SERVER_PORT=<port>)
+ARG PORT=8000
+ENV NODE_ENV=production \
+    PORT=${PORT} \
+    SERVER_PORT=${PORT}
 
-# Ensure the working directory is owned by the unprivileged node user
-RUN chown -R node:node /app
+# Copy pruned dependencies from prod-deps stage
+COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
 
-# Copy pruned node_modules from builder
-COPY --chown=node:node --from=builder /app/node_modules ./node_modules
-
-# Copy compiled application from builder
+# Copy compiled application & runtime schema from builder
 COPY --chown=node:node --from=builder /app/dist ./dist
-
-# Copy Prisma schema & configuration (needed for migrations and runtime metadata)
 COPY --chown=node:node --from=builder /app/prisma ./prisma
-COPY --chown=node:node --from=builder /app/prisma.config.ts ./
-
-# Copy package.json
 COPY --chown=node:node --from=builder /app/package.json ./package.json
 
-# Use non-root node user for security
+# Run as non-root user
 USER node
 
-# Expose server port (default: 3000)
-EXPOSE 3000
+# Expose dynamic application port
+EXPOSE ${PORT}
 
-# Health check using the NestJS /health endpoint
+# Health check against dynamic port
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${SERVER_PORT:-3000}/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${SERVER_PORT}/health || exit 1
 
-# dumb-init forwards signals (SIGTERM/SIGINT) properly to Node.js for graceful shutdown
+# Graceful termination handler & start command
 ENTRYPOINT ["dumb-init", "--"]
-
-# Entrypoint path matching package.json "start:prod" ("node dist/src/main.js")
 CMD ["node", "dist/src/main.js"]

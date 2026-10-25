@@ -3,6 +3,15 @@
 .gitignore
 .gitattributes
 
+# Frontend build artifacts & dependencies (prevent sending heavy files)
+frontend/node_modules
+frontend/dist
+frontend/*.7z
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+
 # Dependencies
 node_modules
 npm-debug.log*
@@ -10,7 +19,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Build outputs & generated files
+# Build outputs & local generated files
 dist
 build
 generated
@@ -21,12 +30,17 @@ generated
 !.env.example
 
 # Tests & coverage
+test
+test/
+*.spec.ts
+*.test.ts
 coverage
 .nyc_output
 
 # Editor & IDE configs
 .vscode
 .idea
+*.sublime-project
 *.sublime-workspace
 .project
 .classpath
@@ -36,7 +50,10 @@ coverage
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
 
 # Logs & temporary files
 logs
@@ -54,11 +71,14 @@ Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# Documentation & local agent configs
+# Documentation, plans & agent configs
 README.md
+*.md
 .agents
 .opencode
 opencode.json
 skills-lock.json
 *.agent
 *.7z
+*.zip
+*.tar.gz
