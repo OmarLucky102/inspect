@@ -203,6 +203,20 @@ body {
   color: #fff;
 }
 
+input::selection,
+textarea::selection {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+input:-webkit-autofill::selection,
+textarea:-webkit-autofill::selection {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 /* Browser autofill normalization: keep clean crisp background and dark text */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

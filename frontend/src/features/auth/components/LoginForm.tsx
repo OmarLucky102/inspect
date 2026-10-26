@@ -84,7 +84,7 @@ export function LoginForm() {
           </Label>
           <div className="relative flex items-center">
             <Envelope
-              className="pointer-events-none absolute start-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
+              className="pointer-events-none absolute start-3 z-10 size-4 text-zinc-500 dark:text-zinc-400 transition-colors peer-focus:text-emerald-600 dark:peer-focus:text-emerald-400"
               aria-hidden
             />
             <Input
@@ -95,7 +95,7 @@ export function LoginForm() {
               placeholder={t('auth.workEmailPlaceholder', 'admin@euroassist.com')}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'email-error' : undefined}
-              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white ps-9.5 pe-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 dark:border-white/15 bg-white dark:bg-[#121620] ps-9.5 pe-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 caret-emerald-600 dark:caret-emerald-400 shadow-xs transition-all hover:border-zinc-300 dark:hover:border-white/25 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#121620] focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20"
               {...register('email')}
             />
           </div>
@@ -114,7 +114,7 @@ export function LoginForm() {
           </div>
           <div className="relative flex items-center">
             <LockKey
-              className="pointer-events-none absolute start-3 z-10 size-4 text-zinc-500 transition-colors peer-focus:text-emerald-600"
+              className="pointer-events-none absolute start-3 z-10 size-4 text-zinc-500 dark:text-zinc-400 transition-colors peer-focus:text-emerald-600 dark:peer-focus:text-emerald-400"
               aria-hidden
             />
             <Input
@@ -125,7 +125,7 @@ export function LoginForm() {
               placeholder={t('auth.passwordPlaceholder', 'Minimum 8 characters')}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
-              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 bg-white ps-9.5 pe-9.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 shadow-xs transition-all hover:border-zinc-300 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              className="peer h-9.5 sm:h-10 w-full rounded-xl border border-zinc-200 dark:border-white/15 bg-white dark:bg-[#121620] ps-9.5 pe-9.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 caret-emerald-600 dark:caret-emerald-400 shadow-xs transition-all hover:border-zinc-300 dark:hover:border-white/25 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#121620] focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20"
               {...register('password')}
             />
             <button
@@ -133,7 +133,7 @@ export function LoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute end-2 z-10 cursor-pointer rounded-lg p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              className="absolute end-2 z-10 cursor-pointer rounded-lg p-1 text-zinc-500 dark:text-zinc-400 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
             >
               {showPassword ? (
                 <EyeSlash className="size-4" aria-hidden />
