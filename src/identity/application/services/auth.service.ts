@@ -93,7 +93,15 @@ export class AuthService {
       throw new RefreshTokenNotFoundException();
     }
 
-    // 3. REUSE DETECTION & GRACE PERIOD
+    // 3. If the token is expired, revoke only if still active, then reject
+    if (existingToken.isExpired) {
+      if (!existingToken.isRevoked) {
+        await this.refreshTokenRepository.revoke(existingToken.id);
+      }
+      throw new RefreshTokenExpiredException();
+    }
+
+    // 4. REUSE DETECTION & GRACE PERIOD
     // If the token is revoked, check if it falls within the grace period (e.g. concurrent network requests).
     // Outside the grace period, treat it as a breach and revoke all sessions for this user.
     if (existingToken.isRevoked) {
@@ -104,15 +112,11 @@ export class AuthService {
       const isWithinGrace = Date.now() - revokedAtMs <= gracePeriodMs;
 
       if (!isWithinGrace) {
-        await this.refreshTokenRepository.revokeAllForUser(existingToken.userId);
+        await this.refreshTokenRepository.revokeAllForUser(
+          existingToken.userId,
+        );
         throw new RefreshTokenReuseDetectedException();
       }
-    }
-
-    // 4. If the token is expired, revoke it and reject
-    if (existingToken.isExpired) {
-      await this.refreshTokenRepository.revoke(existingToken.id);
-      throw new RefreshTokenExpiredException();
     }
 
     // 5. Token is valid — look up user
@@ -167,11 +171,6 @@ export class AuthService {
 
     if (!existingToken) {
       throw new RefreshTokenNotFoundException();
-    }
-
-    // If already revoked or expired, still return 200 (idempotent)
-    if (!existingToken.isActive) {
-      return;
     }
 
     await this.refreshTokenRepository.revoke(existingToken.id);

@@ -6,6 +6,7 @@ import {
   Res,
   HttpCode,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import ms, { type StringValue } from 'ms';
@@ -56,22 +57,29 @@ export class AuthController {
       REFRESH_TOKEN_COOKIE
     ];
 
-    if (!refreshToken) {
-      throw new RefreshTokenNotFoundException();
+    try {
+      if (!refreshToken) {
+        throw new RefreshTokenNotFoundException();
+      }
+
+      const tokens = await this.authService.refreshTokens(
+        refreshToken,
+        ip,
+        userAgent,
+      );
+
+      this.setRefreshTokenCookie(res, tokens.refreshToken, req);
+
+      return {
+        status: 'success',
+        data: { accessToken: tokens.accessToken },
+      };
+    } catch (error) {
+      if (error instanceof HttpException && error.getStatus() === 401) {
+        this.clearRefreshTokenCookie(res, req);
+      }
+      throw error;
     }
-
-    const tokens = await this.authService.refreshTokens(
-      refreshToken,
-      ip,
-      userAgent,
-    );
-
-    this.setRefreshTokenCookie(res, tokens.refreshToken, req);
-
-    return {
-      status: 'success',
-      data: { accessToken: tokens.accessToken },
-    };
   }
 
   @Post('logout')
@@ -88,8 +96,15 @@ export class AuthController {
       if (refreshToken) {
         await this.authService.logout(refreshToken);
       }
-    } finally {
       this.clearRefreshTokenCookie(res, req);
+    } catch (error) {
+      if (
+        error instanceof RefreshTokenNotFoundException ||
+        (error instanceof HttpException && error.getStatus() === 401)
+      ) {
+        this.clearRefreshTokenCookie(res, req);
+      }
+      throw error;
     }
 
     return {
@@ -117,20 +132,22 @@ export class AuthController {
     refreshToken: string,
     req: Request,
   ): void {
+    const isSecure = this.isSecureRequest(req);
     const maxAge = ms(
       (process.env.JWT_COOKIE_EXPIRES_IN ?? '15d') as StringValue,
     );
     res.cookie(
       REFRESH_TOKEN_COOKIE,
       refreshToken,
-      this.getCookieOptions(this.isSecureRequest(req), maxAge),
+      this.getCookieOptions(isSecure, maxAge),
     );
   }
 
   private clearRefreshTokenCookie(res: Response, req: Request): void {
+    const isSecure = this.isSecureRequest(req);
     res.clearCookie(
       REFRESH_TOKEN_COOKIE,
-      this.getCookieOptions(this.isSecureRequest(req), 0),
+      this.getCookieOptions(isSecure, 0),
     );
   }
 }

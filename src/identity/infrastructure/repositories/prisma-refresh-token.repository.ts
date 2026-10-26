@@ -22,21 +22,38 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
   }
 
   async revokeAllForUser(userId: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.refreshToken.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+          expiresAt: new Date(0),
+        },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: {
+          userId,
+          revokedAt: { not: null },
+          expiresAt: { gt: new Date(0) },
+        },
+        data: {
+          expiresAt: new Date(0),
+        },
+      });
     });
   }
 
   async revoke(tokenId: string): Promise<void> {
     await this.prisma.refreshToken.update({
       where: { id: tokenId },
-      data: { revokedAt: new Date() },
+      data: {
+        revokedAt: new Date(),
+        expiresAt: new Date(0),
+      },
     });
   }
 
