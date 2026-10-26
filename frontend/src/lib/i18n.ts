@@ -72,6 +72,9 @@ export const resources = {
         confirm: 'Confirm',
         retry: 'Retry',
         viewAll: 'View All',
+        serviceUnavailableTitle: 'Service Temporarily Unavailable',
+        serviceUnavailableDesc:
+          'Unable to connect to the authentication service. Please check your network connection and try again.',
       },
       nav: {
         operate: 'Operate',
@@ -725,6 +728,9 @@ export const resources = {
         confirm: 'تأكيد',
         retry: 'إعادة المحاولة',
         viewAll: 'عرض الكل',
+        serviceUnavailableTitle: 'الخدمة غير متوفرة حالياً',
+        serviceUnavailableDesc:
+          'تعذر الاتصال بخدمة التحقق من الهوية. يرجى التأكد من اتصالك بالإنترنت والمحاولة مجدداً.',
       },
       nav: {
         operate: 'التشغيل والعمليات',
@@ -804,7 +810,7 @@ export const resources = {
         authentication: 'المصادقة وتسجيل الدخول',
         signInTitle: 'تسجيل الدخول إلى حسابك',
         heroBadge: 'منصة فحص وتدقيق المركبات الميدانية',
-        heroTitle: 'كل عمليات الفحص، تحت السيطرة الكاملة.',
+        heroTitle: 'كل فحص.. بدقة وإحكام تام.',
         heroSubtitle:
           'سجّل الدخول لفرز الطلبات، وتدقيق أدلة وقوائم الفحص 360°، وإبقاء مساحات عمل البنوك جاهزة للاعتماد.',
         telemetryNode: 'عقدة تتبع ومراقبة حية 360° · المرحلة 01',
@@ -1349,14 +1355,17 @@ export function applyHtmlDirection(lang: string) {
   }
 }
 
-// Initial sync based on saved preference or fallback
-const initialLang =
-  (typeof window !== 'undefined' &&
-    (localStorage.getItem('inspect_language') ||
-      localStorage.getItem('i18nextLng'))) ||
-  'en';
+// Initial sync based on saved preference in localStorage, strictly defaulting to 'en'
+const savedLang =
+  typeof window !== 'undefined'
+    ? localStorage.getItem('inspect_language') || localStorage.getItem('i18nextLng')
+    : null;
 
-const normalizedInitialLang = initialLang.startsWith('ar') ? 'ar' : 'en';
+const normalizedInitialLang = savedLang
+  ? savedLang.startsWith('ar')
+    ? 'ar'
+    : 'en'
+  : 'en';
 
 if (typeof window !== 'undefined') {
   applyHtmlDirection(normalizedInitialLang);
@@ -1370,7 +1379,7 @@ void i18n
     fallbackLng: 'en',
     lng: normalizedInitialLang,
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       lookupLocalStorage: 'inspect_language',
       caches: ['localStorage'],
     },
