@@ -38,6 +38,8 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
+export const AUTH_SESSION_EXPIRED_EVENT = 'auth:session-expired'
+
 export async function refreshAccessToken(): Promise<string> {
   if (!refreshInFlight) {
     refreshInFlight = api
@@ -48,6 +50,15 @@ export async function refreshAccessToken(): Promise<string> {
         const token = res.data.data.accessToken
         setAccessToken(token)
         return token
+      })
+      .catch((err) => {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          setAccessToken(null)
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT))
+          }
+        }
+        throw err
       })
       .finally(() => {
         refreshInFlight = null
@@ -82,7 +93,12 @@ api.interceptors.response.use(
       original.headers.set('Authorization', `Bearer ${token}`)
       return api(original)
     } catch (refreshError) {
-      setAccessToken(null)
+      if (
+        axios.isAxiosError(refreshError) &&
+        refreshError.response?.status === 401
+      ) {
+        setAccessToken(null)
+      }
       throw refreshError
     }
   },

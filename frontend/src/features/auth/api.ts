@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { api, refreshAccessToken, setAccessToken } from '@/lib/api'
 
 export interface LoginResponse {
@@ -19,11 +20,16 @@ export async function refreshRequest(): Promise<string> {
   return refreshAccessToken()
 }
 
-/** POST /auth/logout — revokes + clears the cookie (best effort). */
+/** POST /auth/logout — revokes + clears the cookie. */
 export async function logoutRequest(): Promise<void> {
   try {
     await api.post('/auth/logout')
-  } finally {
     setAccessToken(null)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      setAccessToken(null)
+      return
+    }
+    throw error
   }
 }
