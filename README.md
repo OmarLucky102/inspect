@@ -1,98 +1,194 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Inspect Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Project Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**Inspect** is a multi-tenant vehicle inspection and workflow management backend service built with NestJS. It provides enterprise capabilities for managing vehicle catalogs, conducting standardized vehicle inspections, tracking status lifecycles, assigning field representatives, and generating structured inspection reports across organizations and financial institutions.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Runtime & Framework**: [Node.js](https://nodejs.org) (v20+ / v24), [NestJS 11](https://nestjs.com) (Express platform)
+- **Language**: [TypeScript 5.7](https://www.typescriptlang.org)
+- **Database & ORM**: [PostgreSQL 17](https://www.postgresql.org), [Prisma ORM 7](https://www.prisma.io) (multi-file schema with `@prisma/adapter-pg`)
+- **Authentication & Security**: Passport JWT, bcrypt, Cookie Parser, Helmet, Throttler rate limiting
+- **Storage**: AWS S3 SDK (`@aws-sdk/client-s3`) / Cloudflare R2 compatible object storage
+- **Logging**: [Pino](https://github.com/pinojs/pino) (`nestjs-pino`, `pino-http`, `pino-pretty`)
+- **Validation**: `class-validator`, `class-transformer`
+- **Testing**: Jest, Supertest
+- **Package Manager**: [pnpm](https://pnpm.io)
+- **Containerization**: Docker, Docker Compose
 
-```bash
-$ pnpm install
-```
+---
 
-## Compile and run the project
+## Prerequisites
 
-```bash
-# development
-$ pnpm run start
+Ensure the following tools are installed on your environment:
 
-# watch mode
-$ pnpm run start:dev
+- **Node.js**: `v20.18.0+` (or `v24.x`)
+- **pnpm**: `v9.x` or higher (`v11.x` recommended)
+- **PostgreSQL**: `v16+` or `v17` (or Docker for containerized setup)
+- **Docker & Docker Compose**: (Optional, for running containerized infrastructure)
 
-# production mode
-$ pnpm run start:prod
-```
+---
 
-## Run tests
+## Getting Started
+
+### 1. Clone & Install Dependencies
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+git clone <repository-url>
+cd inspect
+pnpm install
 ```
 
-## Deployment
+### 2. Configure Environment Variables
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Create a local `.env` file by copying the example template:
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+cp .env.example .env
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Review and update the variables in `.env` as needed:
 
-## Resources
+| Variable | Description | Default / Example |
+|---|---|---|
+| `NODE_ENV` | Application environment mode | `development` |
+| `SERVER_PORT` | HTTP port for the application | `8000` |
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_USER` | PostgreSQL username | `postgres` |
+| `DB_PASSWORD` | PostgreSQL password | `secret` |
+| `DB_NAME` | PostgreSQL database name | `inspect` |
+| `DATABASE_URL` | Full PostgreSQL connection string | `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public` |
+| `JWT_SECRET` | Primary JWT signing secret | `<your-jwt-secret>` |
+| `JWT_EXPIRES_IN` | Access token lifespan | `15m` |
+| `JWT_REFRESH_SECRET` | Refresh token signing secret | `<your-refresh-secret>` |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token lifespan | `7d` |
+| `CORS_ORIGIN` | Allowed CORS origins (comma-separated) | `http://localhost:5173` |
 
-Check out a few resources that may come in handy when working with NestJS:
+### 3. Initialize the Database
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Generate the Prisma client, execute migrations, and seed initial records:
 
-## Support
+```bash
+# Generate Prisma Client based on schema definitions
+pnpm exec prisma generate
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Apply database migrations
+pnpm run migrate
 
-## Stay in touch
+# (Optional) Seed the database with initial reference data
+pnpm run seed
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 4. Run the Application
 
-## License
+```bash
+# Development mode with hot reload
+pnpm run start:dev
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# Debug mode
+pnpm run start:debug
+
+# Production build and run
+pnpm run build
+pnpm run start:prod
+```
+
+Once running:
+- **API Base URL**: `http://localhost:8000/api/v1`
+- **Health Check**: `http://localhost:8000/health`
+
+---
+
+## Available Scripts
+
+Defined in `package.json`:
+
+| Script | Command | Description |
+|---|---|---|
+| `pnpm run build` | `nest build` | Compiles the TypeScript application into `./dist` |
+| `pnpm run start` | `nest start` | Starts the application in standard mode |
+| `pnpm run start:dev` | `nest start --watch` | Starts the application with file watching and live reload |
+| `pnpm run start:debug` | `nest start --debug --watch` | Starts with debugger inspector and watch mode |
+| `pnpm run start:prod` | `node dist/src/main.js` | Runs the compiled production distribution |
+| `pnpm run migrate` | `prisma migrate dev` | Applies Prisma migrations in development mode |
+| `pnpm run seed` | `prisma db seed` | Executes the database seed script (`prisma/seed.ts`) |
+| `pnpm run format` | `prettier --write "src/**/*.ts" "test/**/*.ts"` | Formats code with Prettier |
+| `pnpm run lint` | `eslint "{src,apps,libs,test}/**/*.ts" --fix` | Runs ESLint and applies automated fixes |
+| `pnpm run test` | `jest` | Runs unit tests |
+| `pnpm run test:watch` | `jest --watch` | Runs unit tests in watch mode |
+| `pnpm run test:cov` | `jest --coverage` | Generates unit test code coverage report |
+| `pnpm run test:debug` | `node --inspect-brk ...` | Runs tests with Node debugger |
+| `pnpm run test:e2e` | `jest --config ./test/jest-e2e.json` | Runs end-to-end integration tests |
+
+---
+
+## Docker Setup
+
+The project includes a multi-service `docker-compose.yml` supporting PostgreSQL, the NestJS API, database migrations, and the frontend service.
+
+### 1. Start Services
+
+To launch PostgreSQL, the NestJS backend, and the frontend:
+
+```bash
+# Start all core services in detached mode
+docker compose up -d
+
+# View application logs
+docker compose logs -f app
+```
+
+### 2. Run Database Migrations in Docker
+
+A dedicated `migration` container profile is configured to run Prisma migrations and seeds safely:
+
+```bash
+# Execute migrations and seeds against the database container
+docker compose --profile migration up migration
+```
+
+### 3. Stop Services
+
+```bash
+# Stop and remove containers and networks
+docker compose down
+
+# Stop and remove associated database volumes
+docker compose down -v
+```
+
+---
+
+## Project Structure
+
+```
+inspect/
+├── docs/                 # Extended documentation (architecture, auth, workflows)
+├── prisma/               # Database definitions & Prisma configurations
+│   ├── migrations/       # SQL migration history
+│   ├── models/           # Domain-split Prisma schema files
+│   ├── seeds/            # Seed data and domain seeders
+│   └── seed.ts           # Root database seed entrypoint
+├── src/                  # NestJS application source code
+│   ├── bootstrap/        # Application bootstrap & middleware configurations
+│   ├── config/           # Typed configuration loaders and validation
+│   ├── database/         # Database module and Prisma service wrapper
+│   ├── health/           # Health check endpoints (/health)
+│   ├── identity/         # Users, roles, permissions, and authentication
+│   ├── inspection/       # Inspection requests, workflows, and checklist modules
+│   ├── organization/     # Organizations, banks, and branch hierarchies
+│   ├── process/          # Process-level uncaught exception handlers
+│   ├── shared/           # Cross-cutting guards, filters, interceptors, decorators
+│   ├── vehicle/          # Vehicle brands, models, and specifications
+│   ├── app.module.ts     # Root module declaring application dependencies
+│   └── main.ts           # Application bootstrap and entrypoint
+├── test/                 # Test suites (E2E configurations and specs)
+├── Dockerfile            # Multi-stage production container build definition
+├── docker-compose.yml    # Orchestration configuration for local & container environments
+├── package.json          # Project dependencies, metadata, and scripts
+└── tsconfig.json         # TypeScript compiler configuration
+```
