@@ -1,23 +1,28 @@
-# Inspect Backend API
+# Inspect Platform
 
 ## Project Overview
 
-**Inspect** is a multi-tenant vehicle inspection and workflow management backend service built with NestJS. It provides enterprise capabilities for managing vehicle catalogs, conducting standardized vehicle inspections, tracking status lifecycles, assigning field representatives, and generating structured inspection reports across organizations and financial institutions.
+**Inspect** is a full-stack, multi-tenant vehicle inspection and workflow management platform. It combines a robust **NestJS backend API** with a modern **React admin frontend** to manage vehicle catalogs, conduct standardized inspections, track status lifecycles, assign field representatives, and generate structured inspection reports across organizations and financial institutions.
 
 ---
 
 ## Tech Stack
 
+### Backend
 - **Runtime & Framework**: [Node.js](https://nodejs.org) (v20+ / v24), [NestJS 11](https://nestjs.com) (Express platform)
 - **Language**: [TypeScript 5.7](https://www.typescriptlang.org)
 - **Database & ORM**: [PostgreSQL 17](https://www.postgresql.org), [Prisma ORM 7](https://www.prisma.io) (multi-file schema with `@prisma/adapter-pg`)
 - **Authentication & Security**: Passport JWT, bcrypt, Cookie Parser, Helmet, Throttler rate limiting
 - **Storage**: AWS S3 SDK (`@aws-sdk/client-s3`) / Cloudflare R2 compatible object storage
 - **Logging**: [Pino](https://github.com/pinojs/pino) (`nestjs-pino`, `pino-http`, `pino-pretty`)
-- **Validation**: `class-validator`, `class-transformer`
-- **Testing**: Jest, Supertest
-- **Package Manager**: [pnpm](https://pnpm.io)
-- **Containerization**: Docker, Docker Compose
+
+### Frontend
+- **Framework & Build**: [React 19](https://react.dev), [Vite 8](https://vite.dev)
+- **Routing & State**: React Router v7, TanStack Query v5 (`@tanstack/react-query`)
+- **Styling & UI**: [Tailwind CSS v4](https://tailwindcss.com), Radix UI primitives, Phosphor Icons
+- **Forms & Validation**: React Hook Form, Zod
+- **Data Visualization**: Recharts
+- **Web Server**: Nginx (Alpine production container)
 
 ---
 
