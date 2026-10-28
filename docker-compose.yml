@@ -30,9 +30,10 @@ services:
     image: chrislusf/seaweedfs:3.80
     container_name: inspect_seaweedfs
     restart: unless-stopped
-    command: "server -dir=/data -s3 -ip=seaweedfs"
+    command: "server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -ip=seaweedfs"
     volumes:
       - seaweedfs_data:/data
+      - ./s3.json:/etc/seaweedfs/s3.json:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9333/dir/status || exit 1"]
       interval: 10s
