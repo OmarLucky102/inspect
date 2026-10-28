@@ -12,8 +12,6 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-inspect}
-    ports:
-      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +24,26 @@ services:
       - inspect_network
 
   # ============================================================================
-  # 2. NestJS Application Service
+  # 2. SeaweedFS Object Storage Service (S3-compatible)
+  # ============================================================================
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.80
+    container_name: inspect_seaweedfs
+    restart: unless-stopped
+    command: "server -dir=/data -s3 -ip=seaweedfs"
+    volumes:
+      - seaweedfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9333/dir/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - inspect_network
+
+  # ============================================================================
+  # 3. NestJS Application Service
   # ============================================================================
   app:
     build:
@@ -48,16 +65,19 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - DB_NAME=${DB_NAME:-inspect}
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-inspect}?schema=public
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://seaweedfs:8333}
     ports:
       - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}"
     depends_on:
       postgres:
         condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
     networks:
       - inspect_network
 
   # ============================================================================
-  # 3. Prisma Migration & Seed Service (Profile: migration)
+  # 4. Prisma Migration & Seed Service (Profile: migration)
   #    Run manually via: docker compose --profile migration up migration
   # ============================================================================
   migration:
@@ -81,7 +101,7 @@ services:
       - migration
 
   # ============================================================================
-  # 4. Frontend Web Service (Vite + React + Nginx)
+  # 5. Frontend Web Service (Vite + React + Nginx)
   # ============================================================================
   frontend:
     build:
@@ -105,6 +125,9 @@ services:
 volumes:
   postgres_data:
     name: inspect_postgres_data
+    driver: local
+  seaweedfs_data:
+    name: inspect_seaweedfs_data
     driver: local
 
 networks:

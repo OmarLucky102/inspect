@@ -30,7 +30,7 @@ RUN pnpm run build
 # ==============================================================================
 # Stage 2: Production Nginx runtime
 # ==============================================================================
-FROM nginx:alpine AS production
+FROM nginx:1.27-alpine AS production
 
 # Remove default static files and configurations
 RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
