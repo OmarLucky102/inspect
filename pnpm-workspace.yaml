@@ -28,3 +28,9 @@ overrides:
   proxy-addr@>=1.1.0 <2.0.8: ^2.0.8
   qs@>=2.2.5 <6.16.0: ^6.16.0
   valibot@<=1.4.1: ^1.4.2
+minimumReleaseAgeExclude:
+  - zod@4.6.6
+  - body-parser@2.4.0
+  - fast-uri@3.1.9
+  - qs@6.16.1
+  - deepmerge@4.3.2
