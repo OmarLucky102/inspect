@@ -5,7 +5,7 @@ services:
   # 1. PostgreSQL Database Service
   # ============================================================================
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.11
     container_name: inspect_postgres
     restart: unless-stopped
     environment:
@@ -15,7 +15,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-inspect}"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-inspect}',
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,15 +31,22 @@ services:
   # 2. SeaweedFS Object Storage Service (S3-compatible)
   # ============================================================================
   seaweedfs:
-    image: chrislusf/seaweedfs:3.80
+    image: chrislusf/seaweedfs:4.51
     container_name: inspect_seaweedfs
     restart: unless-stopped
-    command: "server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -ip=seaweedfs"
+    command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -ip=seaweedfs'
     volumes:
       - seaweedfs_data:/data
       - ./s3.json:/etc/seaweedfs/s3.json:ro
+    ports:
+      - '8333:8333'
+      - '8888:8888'
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9333/dir/status || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q --spider http://127.0.0.1:9333/dir/status || exit 1',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -68,7 +79,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-inspect}?schema=public
       - S3_ENDPOINT=${S3_ENDPOINT:-http://seaweedfs:8333}
     ports:
-      - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}"
+      - '${SERVER_PORT:-8000}:${SERVER_PORT:-8000}'
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,7 +98,7 @@ services:
       dockerfile: Dockerfile
       target: builder
     container_name: inspect_migration
-    restart: "no"
+    restart: 'no'
     env_file:
       - .env
     environment:
@@ -113,7 +124,7 @@ services:
     container_name: inspect_frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - '${FRONTEND_PORT:-80}:80'
     depends_on:
       app:
         condition: service_healthy
