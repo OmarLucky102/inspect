@@ -70,8 +70,19 @@ export class BankService {
     const trimmed = (name || '').trim();
     const tokens = trimmed.split(/[\s\-_,.]+/).filter(Boolean);
     const stopWords = new Set([
-      'AND', '&', 'THE', 'OF', 'FOR', 'DE', 'DU', 'EL', 'AL',
-      'BANK', 'BANQUE', 'بنك', 'مصرف',
+      'AND',
+      '&',
+      'THE',
+      'OF',
+      'FOR',
+      'DE',
+      'DU',
+      'EL',
+      'AL',
+      'BANK',
+      'BANQUE',
+      'بنك',
+      'مصرف',
     ]);
 
     const latinTokens = tokens
@@ -197,10 +208,7 @@ export class BankService {
       user.id,
     );
     if (existing) {
-      throw new BankMembershipAlreadyExistsException(
-        user.id,
-        input.bankId,
-      );
+      throw new BankMembershipAlreadyExistsException(user.id, input.bankId);
     }
 
     // 5. Create the bank membership
@@ -261,7 +269,8 @@ export class BankService {
     const user = await this.userService.getUserById(userId);
     this.validateBankRole(user.role);
 
-    const currentMemberships = await this.membershipRepository.findAllByUserId(userId);
+    const currentMemberships =
+      await this.membershipRepository.findAllByUserId(userId);
     const targetSet = new Set(bankIds);
 
     // Remove memberships not in targetSet
@@ -276,7 +285,10 @@ export class BankService {
     for (const bankId of bankIds) {
       await this.ensureBankExists(bankId);
       const isPrimary = primaryBankId ? primaryBankId === bankId : false;
-      const existing = await this.membershipRepository.findByBankIdAndUserId(bankId, userId);
+      const existing = await this.membershipRepository.findByBankIdAndUserId(
+        bankId,
+        userId,
+      );
       if (!existing) {
         const membership = this.buildMembership(bankId, userId, isPrimary);
         await this.membershipRepository.save(membership);

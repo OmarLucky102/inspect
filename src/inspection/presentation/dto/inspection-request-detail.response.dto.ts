@@ -60,10 +60,24 @@ export interface InspectionRequestWithRelations {
     brand?: { id: string; name: string } | null;
     model?: { id: string; name: string } | null;
     category?: { id: string; name: string; nameAr?: string | null } | null;
-    color?: { id: string; name: string; nameAr?: string | null; hex?: string | null } | null;
+    color?: {
+      id: string;
+      name: string;
+      nameAr?: string | null;
+      hex?: string | null;
+    } | null;
     fuelType?: { id: string; name: string; nameAr?: string | null } | null;
-    transmissionType?: { id: string; name: string; nameAr?: string | null } | null;
-    trim?: { id: string; code?: string; name: string; nameAr?: string | null } | null;
+    transmissionType?: {
+      id: string;
+      name: string;
+      nameAr?: string | null;
+    } | null;
+    trim?: {
+      id: string;
+      code?: string;
+      name: string;
+      nameAr?: string | null;
+    } | null;
   } | null;
   assignedRepresentative?: {
     id: string;
@@ -181,10 +195,24 @@ export class InspectionRequestDetailResponseDto {
     brand: { id: string; name: string } | null;
     model: { id: string; name: string } | null;
     category: { id: string; name: string; nameAr?: string | null } | null;
-    color: { id: string; name: string; nameAr?: string | null; hex?: string | null } | null;
+    color: {
+      id: string;
+      name: string;
+      nameAr?: string | null;
+      hex?: string | null;
+    } | null;
     fuelType: { id: string; name: string; nameAr?: string | null } | null;
-    transmissionType: { id: string; name: string; nameAr?: string | null } | null;
-    trim: { id: string; code?: string; name: string; nameAr?: string | null } | null;
+    transmissionType: {
+      id: string;
+      name: string;
+      nameAr?: string | null;
+    } | null;
+    trim: {
+      id: string;
+      code?: string;
+      name: string;
+      nameAr?: string | null;
+    } | null;
   } | null;
 
   originalTrim!: {
@@ -368,7 +396,8 @@ export class InspectionRequestDetailResponseDto {
               ? {
                   id: record.vehicle.transmissionType.id,
                   name: record.vehicle.transmissionType.name,
-                  nameAr: (record.vehicle.transmissionType as any).nameAr ?? null,
+                  nameAr:
+                    (record.vehicle.transmissionType as any).nameAr ?? null,
                 }
               : null,
             trim: record.vehicle.trim

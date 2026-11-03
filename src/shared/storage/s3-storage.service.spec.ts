@@ -1,7 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 import { S3StorageService } from './s3-storage.service';
 import { StorageOperationException } from '../exceptions/storage.exceptions';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 jest.mock('@aws-sdk/client-s3');
@@ -29,7 +33,9 @@ describe('S3StorageService', () => {
         if (!val) throw new Error(`Missing ${key}`);
         return val;
       }),
-      get: jest.fn((key: string, defaultVal?: string) => mockEnv[key] || defaultVal) as any,
+      get: jest.fn(
+        (key: string, defaultVal?: string) => mockEnv[key] || defaultVal,
+      ) as any,
     };
 
     mockS3Send = jest.fn();
@@ -84,7 +90,8 @@ describe('S3StorageService', () => {
 
   describe('getPresignedUrl', () => {
     it('should return a presigned URL using getSignedUrl', async () => {
-      const mockUrl = 'http://localhost:8333/inspect-bucket/test/photo.jpg?signature=xyz';
+      const mockUrl =
+        'http://localhost:8333/inspect-bucket/test/photo.jpg?signature=xyz';
       (getSignedUrl as jest.Mock).mockResolvedValueOnce(mockUrl);
 
       const result = await service.getPresignedUrl('test/photo.jpg', 1800);
@@ -102,7 +109,9 @@ describe('S3StorageService', () => {
     });
 
     it('should throw StorageOperationException if presigning fails', async () => {
-      (getSignedUrl as jest.Mock).mockRejectedValueOnce(new Error('Signing failed'));
+      (getSignedUrl as jest.Mock).mockRejectedValueOnce(
+        new Error('Signing failed'),
+      );
 
       await expect(
         service.getPresignedUrl('test/photo.jpg', 3600),
@@ -110,4 +119,3 @@ describe('S3StorageService', () => {
     });
   });
 });
-

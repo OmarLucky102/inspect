@@ -20,7 +20,10 @@ export class ToggleUserStatusUseCase {
   ) {}
 
   async execute(input: ToggleUserStatusInput): Promise<UserResponseDto> {
-    if (input.action === 'deactivate' && input.targetUserId === input.actorUserId) {
+    if (
+      input.action === 'deactivate' &&
+      input.targetUserId === input.actorUserId
+    ) {
       throw new CannotDeactivateSelfException();
     }
 
