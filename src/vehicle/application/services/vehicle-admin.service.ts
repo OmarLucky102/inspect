@@ -508,14 +508,15 @@ export class VehicleAdminService {
 
     let code: string;
     if (dto.code && dto.code.trim()) {
-      code = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      code = dto.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_');
       const codeExists = await this.prisma.vehicleTrim.findUnique({
         where: { code },
       });
       if (codeExists) {
-        throw new BadRequestException(
-          `Trim code "${code}" is already in use.`,
-        );
+        throw new BadRequestException(`Trim code "${code}" is already in use.`);
       }
     } else {
       let baseCode = cleanName
@@ -589,7 +590,10 @@ export class VehicleAdminService {
     }
 
     if (dto.code !== undefined && dto.code.trim()) {
-      const cleanCode = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      const cleanCode = dto.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_');
       const existingCode = await this.prisma.vehicleTrim.findUnique({
         where: { code: cleanCode },
       });
@@ -700,7 +704,10 @@ export class VehicleAdminService {
 
     let code: string | null = null;
     if (dto.code && dto.code.trim()) {
-      code = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      code = dto.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_');
       const codeExists = await this.prisma.vehicleCategory.findUnique({
         where: { code },
       });
@@ -710,7 +717,7 @@ export class VehicleAdminService {
         );
       }
     } else {
-      let baseCode = cleanName
+      const baseCode = cleanName
         .toUpperCase()
         .replace(/[^A-Z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '');
@@ -782,7 +789,10 @@ export class VehicleAdminService {
     }
 
     if (dto.code !== undefined && dto.code.trim()) {
-      const cleanCode = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      const cleanCode = dto.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_');
       const existingCode = await this.prisma.vehicleCategory.findUnique({
         where: { code: cleanCode },
       });
@@ -885,7 +895,10 @@ export class VehicleAdminService {
 
     let code: string;
     if (dto.code && dto.code.trim()) {
-      code = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      code = dto.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_');
       const codeExists = await this.prisma.sunroofType.findUnique({
         where: { code },
       });
@@ -960,7 +973,10 @@ export class VehicleAdminService {
     }
 
     if (dto.code !== undefined && dto.code.trim()) {
-      const cleanCode = dto.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      const cleanCode = dto.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_');
       const existingCode = await this.prisma.sunroofType.findUnique({
         where: { code: cleanCode },
       });

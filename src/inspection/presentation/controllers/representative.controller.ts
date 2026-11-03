@@ -24,9 +24,7 @@ import { UpdateRepresentativeDto } from '../dto/update-representative.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.SUPER_ADMIN, Role.SYSTEM_ADMIN, Role.REVIEWER)
 export class RepresentativeController {
-  constructor(
-    private readonly representativeService: RepresentativeService,
-  ) {}
+  constructor(private readonly representativeService: RepresentativeService) {}
 
   @Get('overview')
   async getOverview() {

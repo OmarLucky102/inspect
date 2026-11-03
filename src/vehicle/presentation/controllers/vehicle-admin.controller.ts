@@ -105,7 +105,9 @@ export class VehicleAdminController {
   @HttpCode(HttpStatus.CREATED)
   async createModel(@Body() dto: CreateModelDto) {
     if (!dto.brandId) {
-      throw new BadRequestException('brandId is required when creating a model');
+      throw new BadRequestException(
+        'brandId is required when creating a model',
+      );
     }
     const data = await this.vehicleAdminService.createModel(dto.brandId, dto);
     return {

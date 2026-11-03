@@ -305,7 +305,8 @@ export class UserController {
 
     // Platform administrators (SUPER_ADMIN, SYSTEM_ADMIN) manage the entire system globally and cannot be assigned to bank workspaces
     if (
-      (targetUser.role === 'SUPER_ADMIN' || targetUser.role === 'SYSTEM_ADMIN') &&
+      (targetUser.role === 'SUPER_ADMIN' ||
+        targetUser.role === 'SYSTEM_ADMIN') &&
       bankIds.length > 0
     ) {
       throw new InvalidBankMemberRoleException(

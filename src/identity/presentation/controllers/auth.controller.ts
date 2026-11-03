@@ -145,9 +145,6 @@ export class AuthController {
 
   private clearRefreshTokenCookie(res: Response, req: Request): void {
     const isSecure = this.isSecureRequest(req);
-    res.clearCookie(
-      REFRESH_TOKEN_COOKIE,
-      this.getCookieOptions(isSecure, 0),
-    );
+    res.clearCookie(REFRESH_TOKEN_COOKIE, this.getCookieOptions(isSecure, 0));
   }
 }

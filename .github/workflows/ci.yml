@@ -95,15 +95,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Prepare Temporary .env for Docker Compose
-        run: cp .env.example .env
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Prepare Configuration Files (.env and s3.json)
+        run: |
+          cp .env.example .env
+          cp s3.json.example s3.json
 
       - name: Build Compose Images
         run: docker compose --profile migration build
         env:
+          DOCKER_BUILDKIT: 1
           SERVER_PORT: 8000
           FRONTEND_PORT: 80
           VITE_API_URL: /api/v1

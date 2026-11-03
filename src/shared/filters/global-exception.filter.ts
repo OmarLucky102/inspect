@@ -63,7 +63,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Unknown / programming error
     return new BaseException(
-      exception instanceof Error ? exception.message : 'Something went very wrong',
+      exception instanceof Error
+        ? exception.message
+        : 'Something went very wrong',
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }

@@ -9,4 +9,3 @@ export class StorageOperationException extends BaseException {
     super(message, statusCode);
   }
 }
-

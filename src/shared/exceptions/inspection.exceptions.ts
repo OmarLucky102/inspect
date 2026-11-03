@@ -116,4 +116,3 @@ export class InspectionRequestLockedException extends BaseException {
     super(message, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 }
-

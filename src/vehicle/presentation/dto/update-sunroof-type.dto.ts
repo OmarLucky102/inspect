@@ -1,8 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class UpdateSunroofTypeDto {
   @IsOptional()

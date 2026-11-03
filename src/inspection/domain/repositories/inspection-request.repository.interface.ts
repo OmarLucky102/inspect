@@ -8,7 +8,10 @@ export interface IInspectionRequestRepository {
     id: string,
     bankId: string,
   ): Promise<InspectionRequest | null>;
-  findByBankId(bankId: string, statusFilter?: string): Promise<InspectionRequest[]>;
+  findByBankId(
+    bankId: string,
+    statusFilter?: string,
+  ): Promise<InspectionRequest[]>;
   findByIdWithDetails(
     id: string,
     bankId?: string,

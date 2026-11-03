@@ -17,7 +17,8 @@ export class InspectionChecklistItemMapper {
       notes: prismaItem.notes,
       completed: prismaItem.completed,
       completedAt: prismaItem.completedAt,
-      reviewDecision: (prismaItem.reviewDecision as ChecklistReviewDecision) ?? null,
+      reviewDecision:
+        (prismaItem.reviewDecision as ChecklistReviewDecision) ?? null,
       reviewNotes: prismaItem.reviewNotes ?? null,
       reviewedAt: prismaItem.reviewedAt ?? null,
     });

@@ -82,4 +82,3 @@ export class StorageTestController {
     return 'jpg';
   }
 }
-
