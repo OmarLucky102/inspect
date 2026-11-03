@@ -11,4 +11,3 @@ import { IdentityModule } from '../identity/identity.module';
   exports: [AppLoggerModule, S3StorageService],
 })
 export class SharedModule {}
-

@@ -10,7 +10,8 @@ export class UpdateBrandDto {
   @IsString()
   @MaxLength(20)
   @Matches(/^[A-Za-z0-9 _-]+$/, {
-    message: 'Code must contain only letters, numbers, spaces, dashes, or underscores',
+    message:
+      'Code must contain only letters, numbers, spaces, dashes, or underscores',
   })
   code?: string;
 }

@@ -65,7 +65,9 @@ export class CannotDeactivateSelfException extends BaseException {
 
 export class InvalidRoleAssignmentException extends BaseException {
   constructor(role: string) {
-    super(`Invalid role assignment: '${role}'`, HttpStatus.UNPROCESSABLE_ENTITY);
+    super(
+      `Invalid role assignment: '${role}'`,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+    );
   }
 }
-

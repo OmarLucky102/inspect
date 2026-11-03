@@ -311,9 +311,10 @@ export class VehicleDto {
 
   getResolvedPlateNumber(): string | undefined {
     if (this.plateDigits || this.plateLetters) {
-      const parts = [this.plateDigits?.trim(), this.plateLetters?.trim()].filter(
-        Boolean,
-      );
+      const parts = [
+        this.plateDigits?.trim(),
+        this.plateLetters?.trim(),
+      ].filter(Boolean);
       if (parts.length > 0) return parts.join(' ');
     }
     const val = this.plateNumber ?? this.licensePlate;

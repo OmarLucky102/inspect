@@ -36,7 +36,6 @@ import {
   InspectionRequestAlreadyExistsException,
   InspectionRequestNotFoundException,
   InvalidInspectionRequestStateException,
-  VehicleDataRequiredException,
   InvalidStatusTransitionException,
   InvalidAssignmentException,
   RepresentativeNotEligibleException,
@@ -1127,11 +1126,21 @@ export class InspectionRequestService {
           );
           if (vehicle) {
             vehicle.updateDetails({
-              ...(dto.verifiedMileage != null ? { mileage: dto.verifiedMileage } : {}),
-              ...(dto.trimId !== undefined ? { trimId: dto.trimId || null } : {}),
-              ...(dto.transmissionTypeId !== undefined ? { transmissionTypeId: dto.transmissionTypeId || null } : {}),
-              ...(dto.sideMirrors !== undefined ? { sideMirrors: dto.sideMirrors || null } : {}),
-              ...(dto.sunroofSpecification !== undefined ? { sunroofSpecification: dto.sunroofSpecification || null } : {}),
+              ...(dto.verifiedMileage != null
+                ? { mileage: dto.verifiedMileage }
+                : {}),
+              ...(dto.trimId !== undefined
+                ? { trimId: dto.trimId || null }
+                : {}),
+              ...(dto.transmissionTypeId !== undefined
+                ? { transmissionTypeId: dto.transmissionTypeId || null }
+                : {}),
+              ...(dto.sideMirrors !== undefined
+                ? { sideMirrors: dto.sideMirrors || null }
+                : {}),
+              ...(dto.sunroofSpecification !== undefined
+                ? { sunroofSpecification: dto.sunroofSpecification || null }
+                : {}),
             });
             await this.vehicleRepository.update(vehicle);
           }
@@ -1219,7 +1228,8 @@ export class InspectionRequestService {
       await this.requestRepository.update(request, tx);
 
       // 3. Record status history
-      const effectiveVal = approvedMarketingValue ?? latestDecision?.estimatedValue;
+      const effectiveVal =
+        approvedMarketingValue ?? latestDecision?.estimatedValue;
       const history = new InspectionStatusHistory({
         id: randomUUID(),
         inspectionRequestId: request.id,
@@ -1473,8 +1483,8 @@ export class InspectionRequestService {
       const val = req.marketingDecisions[0]?.estimatedValue
         ? Number(req.marketingDecisions[0].estimatedValue)
         : req.vehicle?.insuranceValue
-        ? Number(req.vehicle.insuranceValue)
-        : 0;
+          ? Number(req.vehicle.insuranceValue)
+          : 0;
 
       if (req.currentStatus === InspectionStatus.APPROVED && val > 0) {
         totalValuation += val;
@@ -1513,8 +1523,8 @@ export class InspectionRequestService {
       decisiveTotal > 0
         ? Math.round((approved / decisiveTotal) * 100)
         : approved > 0
-        ? 100
-        : 0;
+          ? 100
+          : 0;
 
     const averageValuation =
       approved > 0 ? Math.round(totalValuation / approved) : 0;
@@ -1547,15 +1557,17 @@ export class InspectionRequestService {
       }
     }
 
-    const volumeTrend = Array.from(trendMap.entries()).map(([date, counts]) => ({
-      date,
-      formattedDate: new Date(date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
+    const volumeTrend = Array.from(trendMap.entries()).map(
+      ([date, counts]) => ({
+        date,
+        formattedDate: new Date(date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        created: counts.created,
+        approved: counts.approved,
       }),
-      created: counts.created,
-      approved: counts.approved,
-    }));
+    );
 
     const statusBreakdown = [
       {
@@ -1597,9 +1609,7 @@ export class InspectionRequestService {
     ].map((item) => ({
       ...item,
       percentage:
-        totalRequests > 0
-          ? Math.round((item.count / totalRequests) * 100)
-          : 0,
+        totalRequests > 0 ? Math.round((item.count / totalRequests) * 100) : 0,
     }));
 
     const categoryDistribution = Array.from(categoryMap.values()).sort(

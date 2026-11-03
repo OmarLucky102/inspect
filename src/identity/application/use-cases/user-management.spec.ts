@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return */
 import { CreateUserUseCase } from './create-user.use-case';
 import { DeleteUserUseCase } from './delete-user.use-case';
 import { ToggleUserStatusUseCase } from './toggle-user-status.use-case';
@@ -66,7 +67,9 @@ describe('User Management Use Cases (Clean Architecture)', () => {
         role: Role.SUPER_ADMIN,
       });
 
-      expect(mockUserRepo.findByEmail).toHaveBeenCalledWith('new_user@example.com');
+      expect(mockUserRepo.findByEmail).toHaveBeenCalledWith(
+        'new_user@example.com',
+      );
       expect(mockHashingService.hash).toHaveBeenCalledWith('Password123!');
       expect(mockUserRepo.save).toHaveBeenCalled();
       expect(result.email).toBe('new_user@example.com');

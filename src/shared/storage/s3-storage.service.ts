@@ -33,11 +33,7 @@ export class S3StorageService {
     });
   }
 
-  async upload(
-    key: string,
-    buffer: Buffer,
-    mimeType: string,
-  ): Promise<string> {
+  async upload(key: string, buffer: Buffer, mimeType: string): Promise<string> {
     try {
       const command = new PutObjectCommand({
         Bucket: this.bucket,
@@ -83,4 +79,3 @@ export class S3StorageService {
     }
   }
 }
-

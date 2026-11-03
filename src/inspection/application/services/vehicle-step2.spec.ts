@@ -9,7 +9,6 @@ import { InspectionStatus } from '../../domain/value-objects/inspection-status.e
 import { InspectionPriority } from '../../domain/value-objects/inspection-priority.enum';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
 import { InspectionRequest } from '../../domain/entities/inspection-request.entity';
-import { Vehicle } from '../../../vehicle/domain/entities/vehicle.entity';
 import {
   InvalidReferenceDataException,
   InvalidInspectionRequestStateException,

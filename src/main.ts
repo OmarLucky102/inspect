@@ -5,7 +5,7 @@ import { Logger } from 'nestjs-pino';
 import { setupProcessErrorHandlers } from './process/process-error-handlers';
 import { setupMiddlewares } from './bootstrap/app.bootstrap';
 import { ConfigService } from '@nestjs/config';
-import { Logger as NestLogger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   // Catch unexpected errors

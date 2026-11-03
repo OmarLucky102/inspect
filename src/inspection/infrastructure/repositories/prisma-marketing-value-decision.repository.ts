@@ -6,9 +6,7 @@ import { MarketingValueDecisionMapper } from '../persistence/marketing-value-dec
 import { Prisma } from '@prisma/client';
 
 @Injectable()
-export class PrismaMarketingValueDecisionRepository
-  implements IMarketingValueDecisionRepository
-{
+export class PrismaMarketingValueDecisionRepository implements IMarketingValueDecisionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async save(
