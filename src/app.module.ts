@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { ConfigModule } from './config/config.module';
 import { OrganizationModule } from './organization/organization.module';
 import { InspectionModule } from './inspection/inspection.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { InspectionModule } from './inspection/inspection.module';
     HealthModule,
     OrganizationModule,
     InspectionModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
