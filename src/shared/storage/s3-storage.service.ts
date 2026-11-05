@@ -4,6 +4,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StorageOperationException } from '../exceptions/storage.exceptions';
@@ -51,6 +52,25 @@ export class S3StorageService {
       );
       throw new StorageOperationException(
         `Failed to upload object: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      await this.client.send(command);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete object '${key}' from bucket '${this.bucket}': ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new StorageOperationException(
+        `Failed to delete object: ${(error as Error).message}`,
       );
     }
   }
