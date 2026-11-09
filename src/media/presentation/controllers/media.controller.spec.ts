@@ -2,16 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MediaStatus } from '@prisma/client';
 import { MediaController } from './media.controller';
 import { UploadMediaUseCase } from '../../application/use-cases/upload-media.use-case';
+import { UploadGenericMediaUseCase } from '../../application/use-cases/upload-generic-media.use-case';
+import { BatchUploadMediaUseCase } from '../../application/use-cases/batch-upload-media.use-case';
 import { GetMediaUseCase } from '../../application/use-cases/get-media.use-case';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
-import { UploadMediaDto } from '../dto/upload-media.dto';
+import { GenericUploadMediaDto } from '../dto/generic-upload-media.dto';
+import { BatchUploadMediaDto } from '../dto/batch-upload-media.dto';
 import { MediaResponseDto } from '../../application/dto/media-response.dto';
+import { BatchUploadResponseDto } from '../../application/dto/batch-upload-response.dto';
 
 describe('MediaController', () => {
   let controller: MediaController;
   let uploadMediaUseCase: any;
+  let uploadGenericMediaUseCase: any;
+  let batchUploadMediaUseCase: any;
   let getMediaUseCase: any;
 
   const mockFile: Express.Multer.File = {
@@ -58,6 +64,14 @@ describe('MediaController', () => {
       execute: jest.fn(),
     };
 
+    uploadGenericMediaUseCase = {
+      execute: jest.fn(),
+    };
+
+    batchUploadMediaUseCase = {
+      execute: jest.fn(),
+    };
+
     getMediaUseCase = {
       execute: jest.fn(),
     };
@@ -66,6 +80,14 @@ describe('MediaController', () => {
       controllers: [MediaController],
       providers: [
         { provide: UploadMediaUseCase, useValue: uploadMediaUseCase },
+        {
+          provide: UploadGenericMediaUseCase,
+          useValue: uploadGenericMediaUseCase,
+        },
+        {
+          provide: BatchUploadMediaUseCase,
+          useValue: batchUploadMediaUseCase,
+        },
         { provide: GetMediaUseCase, useValue: getMediaUseCase },
       ],
     })
@@ -83,19 +105,24 @@ describe('MediaController', () => {
   });
 
   describe('uploadMedia', () => {
-    it('should successfully delegate to uploadMediaUseCase and return wrapped response', async () => {
-      uploadMediaUseCase.execute.mockResolvedValue(mockResponseDto);
+    it('should successfully delegate to uploadGenericMediaUseCase and return wrapped response', async () => {
+      uploadGenericMediaUseCase.execute.mockResolvedValue(mockResponseDto);
 
-      const dto: UploadMediaDto = {
-        inspectionId: 'insp-1',
+      const dto: GenericUploadMediaDto = {
+        category: 'PROFILE_PHOTO',
+        entityType: 'USER_PROFILE',
       };
 
       const result = await controller.uploadMedia(mockFile, dto, mockUser);
 
-      expect(uploadMediaUseCase.execute).toHaveBeenCalledWith(mockFile, dto, {
-        id: mockUser.sub,
-        role: mockUser.role,
-      });
+      expect(uploadGenericMediaUseCase.execute).toHaveBeenCalledWith(
+        mockFile,
+        dto,
+        {
+          id: mockUser.sub,
+          role: mockUser.role,
+        },
+      );
       expect(result).toEqual({
         status: 'success',
         data: mockResponseDto,
@@ -125,6 +152,54 @@ describe('MediaController', () => {
       expect(result).toEqual({
         status: 'success',
         data: mockResponseDto,
+      });
+    });
+  });
+
+  describe('uploadInspectionMediaBatch', () => {
+    it('should attach inspectionId from URL param and delegate to batchUploadMediaUseCase', async () => {
+      const mockBatchResponse: BatchUploadResponseDto = {
+        total: 1,
+        uploaded: 1,
+        failed: 0,
+        results: [
+          {
+            id: 'media-uuid-1',
+            fileName: 'inspection-photo.webp',
+            fileUrl: 'banks/bank-1/inspections/insp-1/media-uuid-1.webp',
+            status: 'UPLOADED',
+            mimeType: 'image/webp',
+            fileSize: 2048,
+            width: 1000,
+            height: 800,
+          },
+        ],
+      };
+
+      batchUploadMediaUseCase.execute.mockResolvedValue(mockBatchResponse);
+
+      const dto: BatchUploadMediaDto = {
+        sortOrder: 1,
+      };
+
+      const result = await controller.uploadInspectionMediaBatch(
+        'insp-1',
+        [mockFile],
+        dto,
+        mockUser,
+      );
+
+      expect(batchUploadMediaUseCase.execute).toHaveBeenCalledWith(
+        [mockFile],
+        {
+          inspectionId: 'insp-1',
+          sortOrder: 1,
+        },
+        { id: mockUser.sub, role: mockUser.role },
+      );
+      expect(result).toEqual({
+        status: 'success',
+        data: mockBatchResponse,
       });
     });
   });
