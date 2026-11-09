@@ -25,21 +25,25 @@ describe('MediaMapper', () => {
     deletedAt: null,
   };
 
-  it('should map from Prisma to Domain entity', () => {
+  it('should map from Prisma to Domain entity with width and height', () => {
     const domain = MediaMapper.toDomain(mockPrismaMedia);
 
     expect(domain).toBeInstanceOf(Media);
     expect(domain.id).toBe('m1');
     expect(domain.fileName).toBe('photo.jpg');
+    expect(domain.width).toBe(1920);
+    expect(domain.height).toBe(1080);
     expect(domain.status).toBe(MediaStatus.UPLOADED);
   });
 
-  it('should map from Domain to Prisma create data', () => {
+  it('should map from Domain to Prisma create data with width and height', () => {
     const domain = MediaMapper.toDomain(mockPrismaMedia);
     const createData = MediaMapper.toCreateData(domain);
 
     expect(createData.id).toBe('m1');
     expect(createData.fileUrl).toBe('banks/b1/inspections/i1/m1.jpg');
+    expect(createData.width).toBe(1920);
+    expect(createData.height).toBe(1080);
     expect(createData.status).toBe(MediaStatus.UPLOADED);
   });
 
@@ -51,5 +55,7 @@ describe('MediaMapper', () => {
 
     expect(updateData.status).toBe(MediaStatus.FAILED);
     expect(updateData.failureReason).toBe('Network error');
+    expect(updateData.width).toBe(1920);
+    expect(updateData.height).toBe(1080);
   });
 });

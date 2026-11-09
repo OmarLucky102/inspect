@@ -108,6 +108,25 @@ export class Media {
     this.props.updatedAt = new Date();
   }
 
+  public markUploadedWithDetails(details: {
+    width: number;
+    height: number;
+    fileSize: number;
+    mimeType: string;
+    fileName?: string;
+  }): void {
+    this.props.width = details.width;
+    this.props.height = details.height;
+    this.props.fileSize = details.fileSize;
+    this.props.mimeType = details.mimeType;
+    if (details.fileName) {
+      this.props.fileName = details.fileName;
+    }
+    this.props.status = MediaStatus.UPLOADED;
+    this.props.failureReason = null;
+    this.props.updatedAt = new Date();
+  }
+
   public markFailed(reason: string): void {
     this.props.status = MediaStatus.FAILED;
     this.props.failureReason = reason;

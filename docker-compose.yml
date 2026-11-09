@@ -71,7 +71,7 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - SERVER_PORT=${SERVER_PORT:-8000}
       - DB_HOST=postgres
       - DB_PORT=5432

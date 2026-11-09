@@ -138,6 +138,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
     }
 
+    if (err?.name === 'MulterError' || err?.code?.startsWith('LIMIT_')) {
+      return new BaseException(
+        err.message || 'File upload error',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     return error;
   }
 
