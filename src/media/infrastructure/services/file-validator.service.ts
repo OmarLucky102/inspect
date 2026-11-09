@@ -8,11 +8,11 @@ import {
 } from '../../../shared/exceptions/media.exceptions';
 
 export const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
-export const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
+export const MAX_VIDEO_SIZE_BYTES = 250 * 1024 * 1024; // 250 MB
 export const MAX_IMAGES_COUNT = 40;
 export const MAX_BATCH_IMAGES_COUNT = 36;
 export const MAX_VIDEOS_COUNT = 2;
-export const MAX_AGGREGATE_REQUEST_SIZE_BYTES = 250 * 1024 * 1024; // 250 MB
+export const MAX_AGGREGATE_REQUEST_SIZE_BYTES = 300 * 1024 * 1024; // 300 MB
 
 @Injectable()
 export class FileValidatorService implements IFileValidatorService {
@@ -65,6 +65,27 @@ export class FileValidatorService implements IFileValidatorService {
     }
   }
 
+  validateVideo(file?: Express.Multer.File): void {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('File is required');
+    }
+
+    const mime = (file.mimetype || '').toLowerCase();
+    const isVideo = mime.startsWith('video/');
+
+    if (!isVideo) {
+      throw new UnsupportedMediaTypeException(
+        'Only video files are allowed on this endpoint',
+      );
+    }
+
+    if (file.size > MAX_VIDEO_SIZE_BYTES) {
+      throw new FileTooLargeException(
+        `Video file size exceeds the limit of ${MAX_VIDEO_SIZE_BYTES / (1024 * 1024)} MB`,
+      );
+    }
+  }
+
   validateFiles(files: Express.Multer.File[]): void {
     if (!files || files.length === 0) {
       throw new BadRequestException('At least one file is required');
@@ -85,13 +106,13 @@ export class FileValidatorService implements IFileValidatorService {
 
     if (imageCount > MAX_IMAGES_COUNT) {
       throw new FileCountLimitExceededException(
-        `A maximum of ${MAX_IMAGES_COUNT} images per request is allowed`,
+        `Image count (${imageCount}) exceeds the maximum allowed limit of ${MAX_IMAGES_COUNT}`,
       );
     }
 
     if (videoCount > MAX_VIDEOS_COUNT) {
       throw new FileCountLimitExceededException(
-        `A maximum of ${MAX_VIDEOS_COUNT} videos per request is allowed`,
+        `Video count (${videoCount}) exceeds the maximum allowed limit of ${MAX_VIDEOS_COUNT}`,
       );
     }
   }
@@ -111,6 +132,10 @@ export class FileValidatorService implements IFileValidatorService {
       if (subtype === 'x-matroska') return 'mkv';
       if (subtype === 'svg+xml') return 'svg';
       return subtype.replace(/[^a-z0-9]/g, '');
+    }
+
+    if (file.mimetype?.startsWith('video/')) {
+      return 'mp4';
     }
 
     return 'jpg';

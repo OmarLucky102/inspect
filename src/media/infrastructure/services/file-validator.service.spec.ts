@@ -129,6 +129,58 @@ describe('FileValidatorService', () => {
     });
   });
 
+  describe('validateVideo', () => {
+    it('should throw BadRequestException if file is undefined', () => {
+      expect(() => service.validateVideo(undefined)).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw BadRequestException if file buffer is missing', () => {
+      const fileWithoutBuffer = {
+        ...createMockFile(1024, 'video/mp4'),
+        buffer: undefined as any,
+      };
+      expect(() => service.validateVideo(fileWithoutBuffer)).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw UnsupportedMediaTypeException if file is an image', () => {
+      const imageFile = createMockFile(1024, 'image/jpeg', 'test.jpg');
+      expect(() => service.validateVideo(imageFile)).toThrow(
+        UnsupportedMediaTypeException,
+      );
+    });
+
+    it('should throw UnsupportedMediaTypeException for non-video files', () => {
+      const pdfFile = createMockFile(1024, 'application/pdf', 'doc.pdf');
+      expect(() => service.validateVideo(pdfFile)).toThrow(
+        UnsupportedMediaTypeException,
+      );
+    });
+
+    it('should throw FileTooLargeException if video exceeds 250 MB', () => {
+      const oversizedVideo = createMockFile(
+        MAX_VIDEO_SIZE_BYTES + 1,
+        'video/mp4',
+        'large.mp4',
+      );
+      expect(() => service.validateVideo(oversizedVideo)).toThrow(
+        FileTooLargeException,
+      );
+    });
+
+    it('should successfully validate valid video within 250 MB', () => {
+      const validVideo = createMockFile(
+        150 * 1024 * 1024,
+        'video/mp4',
+        'valid.mp4',
+      );
+      expect(() => service.validateVideo(validVideo)).not.toThrow();
+    });
+  });
+
   describe('validateFiles', () => {
     it('should throw BadRequestException for empty files array', () => {
       expect(() => service.validateFiles([])).toThrow(BadRequestException);

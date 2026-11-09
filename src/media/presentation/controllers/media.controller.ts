@@ -23,11 +23,16 @@ import type { JwtPayload } from '../../../identity/infrastructure/services/jwt-t
 import { UploadMediaUseCase } from '../../application/use-cases/upload-media.use-case';
 import { UploadGenericMediaUseCase } from '../../application/use-cases/upload-generic-media.use-case';
 import { BatchUploadMediaUseCase } from '../../application/use-cases/batch-upload-media.use-case';
+import { UploadVideoUseCase } from '../../application/use-cases/upload-video.use-case';
 import { GetMediaUseCase } from '../../application/use-cases/get-media.use-case';
-import { MAX_IMAGE_SIZE_BYTES } from '../../infrastructure/services/file-validator.service';
+import {
+  MAX_IMAGE_SIZE_BYTES,
+  MAX_VIDEO_SIZE_BYTES,
+} from '../../infrastructure/services/file-validator.service';
 import { UploadMediaDto } from '../dto/upload-media.dto';
 import { GenericUploadMediaDto } from '../dto/generic-upload-media.dto';
 import { BatchUploadMediaDto } from '../dto/batch-upload-media.dto';
+import { UploadVideoDto } from '../dto/upload-video.dto';
 
 @Controller('media')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -36,6 +41,7 @@ export class MediaController {
     private readonly uploadMediaUseCase: UploadMediaUseCase,
     private readonly uploadGenericMediaUseCase: UploadGenericMediaUseCase,
     private readonly batchUploadMediaUseCase: BatchUploadMediaUseCase,
+    private readonly uploadVideoUseCase: UploadVideoUseCase,
     private readonly getMediaUseCase: GetMediaUseCase,
   ) {}
 
@@ -135,6 +141,42 @@ export class MediaController {
   ) {
     const data = await this.batchUploadMediaUseCase.execute(
       files,
+      { ...dto, inspectionId },
+      { id: user.sub, role: user.role as Role },
+    );
+
+    return {
+      status: 'success',
+      data,
+    };
+  }
+
+  @Post('inspections/:inspectionId/video')
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.SYSTEM_ADMIN,
+    Role.MANAGER,
+    Role.REVIEWER,
+    Role.REPRESENTATIVE,
+    Role.USER,
+  )
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: MAX_VIDEO_SIZE_BYTES,
+      },
+    }),
+  )
+  async uploadInspectionVideo(
+    @Param('inspectionId', ParseUUIDPipe) inspectionId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body() dto: UploadVideoDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const data = await this.uploadVideoUseCase.execute(
+      file,
       { ...dto, inspectionId },
       { id: user.sub, role: user.role as Role },
     );

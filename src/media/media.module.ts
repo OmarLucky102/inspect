@@ -16,6 +16,7 @@ import { UploadSizeLimitMiddleware } from './presentation/middlewares/upload-siz
 import { UploadMediaUseCase } from './application/use-cases/upload-media.use-case';
 import { UploadGenericMediaUseCase } from './application/use-cases/upload-generic-media.use-case';
 import { BatchUploadMediaUseCase } from './application/use-cases/batch-upload-media.use-case';
+import { UploadVideoUseCase } from './application/use-cases/upload-video.use-case';
 import { GetMediaUseCase } from './application/use-cases/get-media.use-case';
 import { MediaService } from './application/services/media.service';
 import { InspectionMediaContextValidator } from './application/services/inspection-media-context-validator.service';
@@ -51,6 +52,7 @@ import { MediaController } from './presentation/controllers/media.controller';
     UploadMediaUseCase,
     UploadGenericMediaUseCase,
     BatchUploadMediaUseCase,
+    UploadVideoUseCase,
     GetMediaUseCase,
     // Facade service
     MediaService,
@@ -64,6 +66,7 @@ import { MediaController } from './presentation/controllers/media.controller';
     UploadMediaUseCase,
     UploadGenericMediaUseCase,
     BatchUploadMediaUseCase,
+    UploadVideoUseCase,
     GetMediaUseCase,
     MediaService,
   ],

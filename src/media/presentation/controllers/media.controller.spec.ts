@@ -4,6 +4,7 @@ import { MediaController } from './media.controller';
 import { UploadMediaUseCase } from '../../application/use-cases/upload-media.use-case';
 import { UploadGenericMediaUseCase } from '../../application/use-cases/upload-generic-media.use-case';
 import { BatchUploadMediaUseCase } from '../../application/use-cases/batch-upload-media.use-case';
+import { UploadVideoUseCase } from '../../application/use-cases/upload-video.use-case';
 import { GetMediaUseCase } from '../../application/use-cases/get-media.use-case';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
@@ -18,6 +19,7 @@ describe('MediaController', () => {
   let uploadMediaUseCase: any;
   let uploadGenericMediaUseCase: any;
   let batchUploadMediaUseCase: any;
+  let uploadVideoUseCase: any;
   let getMediaUseCase: any;
 
   const mockFile: Express.Multer.File = {
@@ -72,6 +74,10 @@ describe('MediaController', () => {
       execute: jest.fn(),
     };
 
+    uploadVideoUseCase = {
+      execute: jest.fn(),
+    };
+
     getMediaUseCase = {
       execute: jest.fn(),
     };
@@ -87,6 +93,10 @@ describe('MediaController', () => {
         {
           provide: BatchUploadMediaUseCase,
           useValue: batchUploadMediaUseCase,
+        },
+        {
+          provide: UploadVideoUseCase,
+          useValue: uploadVideoUseCase,
         },
         { provide: GetMediaUseCase, useValue: getMediaUseCase },
       ],
@@ -200,6 +210,32 @@ describe('MediaController', () => {
       expect(result).toEqual({
         status: 'success',
         data: mockBatchResponse,
+      });
+    });
+  });
+
+  describe('uploadInspectionVideo', () => {
+    it('should attach inspectionId from URL param and delegate to uploadVideoUseCase', async () => {
+      uploadVideoUseCase.execute.mockResolvedValue(mockResponseDto);
+
+      const result = await controller.uploadInspectionVideo(
+        'insp-1',
+        mockFile,
+        { sortOrder: 1 },
+        mockUser,
+      );
+
+      expect(uploadVideoUseCase.execute).toHaveBeenCalledWith(
+        mockFile,
+        {
+          inspectionId: 'insp-1',
+          sortOrder: 1,
+        },
+        { id: mockUser.sub, role: mockUser.role },
+      );
+      expect(result).toEqual({
+        status: 'success',
+        data: mockResponseDto,
       });
     });
   });
