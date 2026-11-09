@@ -126,7 +126,7 @@ describe('UploadMediaUseCase', () => {
       expect(s3StorageService.upload).toHaveBeenCalledWith(
         expect.stringMatching(
           new RegExp(
-            `^banks/${mockBankId}/inspections/${mockInspectionId}/[a-f0-9-]+\\.webp$`,
+            `^banks/${mockBankId}/inspections/${mockInspectionId}/photos/[a-f0-9-]+\\.webp$`,
           ),
         ),
         Buffer.from('optimized-webp-bytes'),
@@ -295,7 +295,7 @@ describe('UploadMediaUseCase', () => {
       expect(s3StorageService.delete).toHaveBeenCalledWith(
         expect.stringMatching(
           new RegExp(
-            `^banks/${mockBankId}/inspections/${mockInspectionId}/[a-f0-9-]+\\.webp$`,
+            `^banks/${mockBankId}/inspections/${mockInspectionId}/photos/[a-f0-9-]+\\.webp$`,
           ),
         ),
       );

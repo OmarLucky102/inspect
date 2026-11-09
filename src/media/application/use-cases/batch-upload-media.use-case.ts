@@ -152,7 +152,7 @@ export class BatchUploadMediaUseCase {
 
     // Step 2: Save Media entity to DB as PENDING upfront so failures are tracked
     const mediaId = randomUUID();
-    const objectKey = `banks/${context.bankId}/inspections/${context.inspectionId}/${mediaId}.webp`;
+    const objectKey = `banks/${context.bankId}/inspections/${context.inspectionId}/photos/${mediaId}.webp`;
 
     const media = new Media({
       id: mediaId,

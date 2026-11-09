@@ -89,7 +89,7 @@ export class UploadMediaUseCase {
         uploadedById: actor.id,
         captureSessionId: context.captureSessionId,
         fileName: validFile.originalname || `${mediaId}.webp`,
-        fileUrl: `banks/${context.bankId}/inspections/${context.inspectionId}/${mediaId}.webp`,
+        fileUrl: `banks/${context.bankId}/inspections/${context.inspectionId}/photos/${mediaId}.webp`,
         mimeType: validFile.mimetype,
         fileSize: validFile.size || validFile.buffer.length,
         fileHash: dto.fileHash ?? null,
@@ -118,8 +118,8 @@ export class UploadMediaUseCase {
       );
     }
 
-    // 5. Generate canonical object key: banks/{bankId}/inspections/{inspectionId}/{mediaId}.webp
-    const objectKey = `banks/${context.bankId}/inspections/${context.inspectionId}/${mediaId}.${extension}`;
+    // 5. Generate canonical object key: banks/{bankId}/inspections/{inspectionId}/photos/{mediaId}.webp
+    const objectKey = `banks/${context.bankId}/inspections/${context.inspectionId}/photos/${mediaId}.${extension}`;
 
     // 6. Create Domain Entity with PENDING status
     const media = new Media({
