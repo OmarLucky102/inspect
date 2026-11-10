@@ -114,11 +114,15 @@ export class Media {
     fileSize: number;
     mimeType: string;
     fileName?: string;
+    duration?: number | null;
   }): void {
     this.props.width = details.width;
     this.props.height = details.height;
     this.props.fileSize = details.fileSize;
     this.props.mimeType = details.mimeType;
+    if (details.duration !== undefined) {
+      this.props.duration = details.duration;
+    }
     if (details.fileName) {
       this.props.fileName = details.fileName;
     }

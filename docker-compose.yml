@@ -42,7 +42,7 @@ services:
       - ./s3.json:/etc/seaweedfs/s3.json:ro
     ports:
       - '8333:8333'
-      - '8888:8888'
+      - '8889:8888'
     healthcheck:
       test:
         [
@@ -130,6 +130,17 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    networks:
+      - inspect_network
+
+  # ============================================================================
+  # 6. FFmpeg Service (linuxserver/ffmpeg)
+  # ============================================================================
+  ffmpeg:
+    image: linuxserver/ffmpeg:latest
+    container_name: inspect_ffmpeg
+    restart: unless-stopped
+    entrypoint: ['tail', '-f', '/dev/null']
     networks:
       - inspect_network
 

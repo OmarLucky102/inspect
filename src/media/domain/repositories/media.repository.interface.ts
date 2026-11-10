@@ -7,4 +7,5 @@ export interface IMediaRepository {
   save(media: Media): Promise<void>;
   update(media: Media): Promise<void>;
   delete(id: string): Promise<void>;
+  markStalePendingAsFailed(staleBefore: Date, reason: string): Promise<number>;
 }

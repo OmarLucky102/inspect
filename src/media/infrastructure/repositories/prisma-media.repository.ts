@@ -59,4 +59,23 @@ export class PrismaMediaRepository implements IMediaRepository {
       },
     });
   }
+
+  async markStalePendingAsFailed(
+    staleBefore: Date,
+    reason: string,
+  ): Promise<number> {
+    const result = await this.prisma.media.updateMany({
+      where: {
+        status: 'PENDING',
+        createdAt: { lt: staleBefore },
+        deletedAt: null,
+      },
+      data: {
+        status: 'FAILED',
+        failureReason: reason,
+        updatedAt: new Date(),
+      },
+    });
+    return result.count;
+  }
 }

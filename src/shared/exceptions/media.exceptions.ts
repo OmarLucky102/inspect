@@ -34,3 +34,9 @@ export class UnsupportedMediaTypeException extends BaseException {
     super(message, HttpStatus.BAD_REQUEST);
   }
 }
+
+export class VideoProcessingException extends BaseException {
+  constructor(message: string = 'Video processing failed') {
+    super(message, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+}

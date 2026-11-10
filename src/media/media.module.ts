@@ -8,6 +8,8 @@ import { PrismaMediaRepository } from './infrastructure/repositories/prisma-medi
 import { PrismaMediaCategoryRepository } from './infrastructure/repositories/prisma-media-category.repository';
 import { FileValidatorService } from './infrastructure/services/file-validator.service';
 import { SharpImageProcessorService } from './infrastructure/services/sharp-image-processor.service';
+import { FfmpegVideoProcessorService } from './infrastructure/services/ffmpeg-video-processor.service';
+import { VideoProcessingQueueService } from './infrastructure/services/video-processing-queue.service';
 
 // Presentation — Middlewares
 import { UploadSizeLimitMiddleware } from './presentation/middlewares/upload-size-limit.middleware';
@@ -20,6 +22,7 @@ import { UploadVideoUseCase } from './application/use-cases/upload-video.use-cas
 import { GetMediaUseCase } from './application/use-cases/get-media.use-case';
 import { MediaService } from './application/services/media.service';
 import { InspectionMediaContextValidator } from './application/services/inspection-media-context-validator.service';
+import { MediaRecoveryService } from './application/services/media-recovery.service';
 
 // Presentation — Controllers
 import { MediaController } from './presentation/controllers/media.controller';
@@ -46,6 +49,10 @@ import { MediaController } from './presentation/controllers/media.controller';
       provide: 'IImageProcessorService',
       useClass: SharpImageProcessorService,
     },
+    {
+      provide: 'IVideoProcessorService',
+      useClass: FfmpegVideoProcessorService,
+    },
     // Context validator helper
     InspectionMediaContextValidator,
     // Use cases
@@ -56,12 +63,16 @@ import { MediaController } from './presentation/controllers/media.controller';
     GetMediaUseCase,
     // Facade service
     MediaService,
+    // Queue & Recovery
+    VideoProcessingQueueService,
+    MediaRecoveryService,
   ],
   exports: [
     'IMediaRepository',
     'IMediaCategoryRepository',
     'IFileValidatorService',
     'IImageProcessorService',
+    'IVideoProcessorService',
     InspectionMediaContextValidator,
     UploadMediaUseCase,
     UploadGenericMediaUseCase,
@@ -69,6 +80,8 @@ import { MediaController } from './presentation/controllers/media.controller';
     UploadVideoUseCase,
     GetMediaUseCase,
     MediaService,
+    VideoProcessingQueueService,
+    MediaRecoveryService,
   ],
 })
 export class MediaModule implements NestModule {
