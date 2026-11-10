@@ -99,4 +99,3 @@ describe('VideoProcessingQueueService', () => {
     expect(queueService.activeCount).toBe(0);
   });
 });
-

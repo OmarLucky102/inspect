@@ -49,4 +49,3 @@ describe('MediaRecoveryService', () => {
     expect(count).toBe(0);
   });
 });
-

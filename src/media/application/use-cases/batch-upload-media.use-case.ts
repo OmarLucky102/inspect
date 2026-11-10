@@ -52,7 +52,7 @@ export class BatchUploadMediaUseCase {
     actor: BatchUploadActor,
   ): Promise<BatchUploadResponseDto> {
     // 1. Batch-level validation: files count
-    if (!files || files.length === 0) {
+    if (!files || !Array.isArray(files) || files.length === 0) {
       throw new BadRequestException('At least one file is required');
     }
 

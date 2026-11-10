@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return */
 import { AuthService } from './auth.service';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { User } from '../../domain/entities/user.entity';

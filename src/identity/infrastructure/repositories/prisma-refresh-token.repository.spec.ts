@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
 import { PrismaRefreshTokenRepository } from './prisma-refresh-token.repository';
 import { PrismaService } from '../../../database/prisma.service';
 
