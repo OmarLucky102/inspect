@@ -46,7 +46,7 @@ FROM node:24-alpine AS production
 WORKDIR /app
 
 # Install runtime dependencies and dumb-init for proper signal handling
-RUN apk add --no-cache libc6-compat openssl dumb-init
+RUN apk add --no-cache libc6-compat openssl dumb-init ffmpeg
 
 # Configurable port (override via --build-arg PORT=<port> or env SERVER_PORT=<port>)
 ARG PORT=8000

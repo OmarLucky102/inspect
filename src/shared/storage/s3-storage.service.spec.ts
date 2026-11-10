@@ -5,6 +5,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -85,6 +86,29 @@ describe('S3StorageService', () => {
       await expect(
         service.upload('test/photo.jpg', testBuffer, 'image/jpeg'),
       ).rejects.toThrow(StorageOperationException);
+    });
+  });
+
+  describe('delete', () => {
+    it('should successfully delete an object', async () => {
+      mockS3Send.mockResolvedValueOnce({});
+      const key = 'test/photo.jpg';
+
+      await service.delete(key);
+
+      expect(DeleteObjectCommand).toHaveBeenCalledWith({
+        Bucket: 'inspect-bucket',
+        Key: key,
+      });
+      expect(mockS3Send).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw StorageOperationException if S3Client fails on delete', async () => {
+      mockS3Send.mockRejectedValueOnce(new Error('S3 delete failed'));
+
+      await expect(service.delete('test/photo.jpg')).rejects.toThrow(
+        StorageOperationException,
+      );
     });
   });
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import { User } from '../../domain/entities/user.entity';
 import { Role } from '../../domain/value-objects/role.enum';
 import { UserService } from './user.service';

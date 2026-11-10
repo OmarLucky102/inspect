@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import { InspectionPhotoChecklist } from '../../domain/entities/inspection-photo-checklist.entity';
 import {
   InvalidDynamicChecklistFieldException,
