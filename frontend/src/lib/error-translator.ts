@@ -80,8 +80,36 @@ const ERROR_RULES: ErrorRule[] = [
     ar: 'بيانات الاعتماد غير صحيحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور.',
   },
   {
-    pattern: /unauthorized|jwt expired|token expired/i,
-    ar: 'انتهت صلاحية الجلسة أو غير مصرح لك. يرجى تسجيل الدخول مرة أخرى.',
+    pattern: /unauthorized|jwt expired|token expired|invalid or expired refresh token|missing authentication token/i,
+    ar: 'انتهت صلاحية الجلسة أو لم يتم التحقق من الهوية. يرجى تسجيل الدخول مرة أخرى.',
+  },
+  {
+    pattern: /you do not have permission to access inspection requests in another bank workspace/i,
+    ar: 'ليس لديك صلاحية للوصول إلى طلبات الفحص الخاصة بمساحة عمل بنك آخر.',
+  },
+  {
+    pattern: /you do not have permission to view inspection requests belonging to another bank workspace/i,
+    ar: 'ليس لديك صلاحية لعرض طلبات الفحص التابعة لمساحة عمل بنك آخر.',
+  },
+  {
+    pattern: /you do not have permission to access inspection requests in the requested bank workspace/i,
+    ar: 'ليس لديك صلاحية للوصول إلى طلبات الفحص في مساحة عمل البنك المطلوبة.',
+  },
+  {
+    pattern: /you are not an active member of bank|user is not an active member of bank/i,
+    ar: 'حسابك غير معيّن كعضو نشط في مساحة عمل هذا البنك.',
+  },
+  {
+    pattern: /you are not assigned to this bank workspace/i,
+    ar: 'ليس لديك صلاحية لأن حسابك غير معيّن في مساحة عمل هذا البنك.',
+  },
+  {
+    pattern: /no active bank membership found/i,
+    ar: 'لا توجد عضوية نشطة في أي بنك لحسابك حالياً.',
+  },
+  {
+    pattern: /you are not authorized to access this inspection request/i,
+    ar: 'ليس لديك صلاحية للوصول إلى طلب الفحص هذا.',
   },
   {
     pattern: /forbidden resource|access denied|forbidden/i,
@@ -120,6 +148,32 @@ const ERROR_RULES: ErrorRule[] = [
   {
     pattern: /is already deactivated|is already inactive/i,
     ar: 'هذا المستخدم معطل بالفعل.',
+  },
+
+  // ── Inspection Requests ───────────────────────────────────────────────────
+  {
+    pattern: /inspection request with (?:id|identifier) .* not found|inspection request not found|inspection not found/i,
+    ar: 'لم يتم العثور على طلب الفحص المطلوب.',
+  },
+  {
+    pattern: /requested record was not found|record not found/i,
+    ar: 'لم يتم العثور على السجل المطلوب.',
+  },
+  {
+    pattern: /failed to load inspection requests/i,
+    ar: 'فشل في تحميل طلبات الفحص.',
+  },
+  {
+    pattern: /failed to load inspection request details|failed to load request details/i,
+    ar: 'فشل في تحميل تفاصيل طلب الفحص.',
+  },
+  {
+    pattern: /checklist with identifier .* not found|checklist not found/i,
+    ar: 'لم يتم العثور على قائمة الفحص المطلوبة.',
+  },
+  {
+    pattern: /representative with identifier .* not found|representative not found/i,
+    ar: 'لم يتم العثور على المندوب المطلوب.',
   },
 
   // ── Prisma & Database ──────────────────────────────────────────────────────

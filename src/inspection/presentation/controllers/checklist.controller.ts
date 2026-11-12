@@ -27,7 +27,7 @@ export class ChecklistController {
   constructor(private readonly checklistService: ChecklistService) {}
 
   @Get('categories')
-  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN)
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
   async getCategories() {
     const categories = await this.checklistService.getVehicleCategories();
     return {
@@ -37,7 +37,7 @@ export class ChecklistController {
   }
 
   @Get('category/:categoryId')
-  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN)
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
   async getCategoryChecklist(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('categoryId', ParseUUIDPipe) categoryId: string,
@@ -54,7 +54,7 @@ export class ChecklistController {
 
   @Post(':checklistId/items')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(Role.MANAGER, Role.SUPER_ADMIN)
+  @Roles(Role.MANAGER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
   async addCustomItem(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('checklistId', ParseUUIDPipe) checklistId: string,
@@ -73,7 +73,7 @@ export class ChecklistController {
 
   @Delete(':checklistId/items/:itemId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(Role.MANAGER, Role.SUPER_ADMIN)
+  @Roles(Role.MANAGER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
   async removeCustomItem(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('itemId', ParseUUIDPipe) itemId: string,
@@ -82,14 +82,19 @@ export class ChecklistController {
   }
 
   @Get('/requests/:requestId')
-  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN)
+  @Roles(Role.MANAGER, Role.REVIEWER, Role.SUPER_ADMIN, Role.SYSTEM_ADMIN)
   async getRequestChecklistItems(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('requestId', ParseUUIDPipe) requestId: string,
+    @CurrentUser() user: { sub?: string; id?: string; role: Role },
   ) {
     const items = await this.checklistService.getChecklistItemsForRequest(
       bankId,
       requestId,
+      {
+        id: (user.sub || user.id)!,
+        role: user.role,
+      },
     );
     return {
       status: 'success',

@@ -20,9 +20,13 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { getApiErrorMessage } from '@/lib/api';
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { parseApiError } from '@/lib/errors/app-error';
 import {
   createVehicleTrim,
   createVehicleCategory,
@@ -45,26 +49,63 @@ import {
 import { getVehicleColorHex } from '@/lib/colors';
 import { useTranslation } from 'react-i18next';
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function CreateRequestPage() {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
-  const { activeBankId, user } = useWorkspace();
+  const { activeBankId, banks, user } = useWorkspace();
+
+  const isGlobalStaff =
+    user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+  const canCreateRequest = isGlobalStaff || user?.role === 'MANAGER';
+
+  if (user && !canCreateRequest) {
+    return (
+      <div className="py-8">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={
+            isArabic
+              ? 'ليس لديك صلاحية لإنشاء طلبات فحص.'
+              : 'You do not have permission to create inspection requests.'
+          }
+          backUrl="/requests"
+          backLabel={t('errors.backToRequests', 'Back to Inspection Pipeline')}
+        />
+      </div>
+    );
+  }
+
+  if (!activeBankId || (!isGlobalStaff && banks.length === 0)) {
+    return (
+      <div className="py-8">
+        <WorkspaceRequiredView
+          featureName="creating inspection requests"
+          featureNameAr="إنشاء طلبات الفحص"
+          backUrl="/requests"
+          backLabel={t('errors.backToRequests', 'Back to Inspection Pipeline')}
+        />
+      </div>
+    );
+  }
+
+  return <CreateRequestContent />;
+}
+
+function CreateRequestContent() {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
+  const { activeBankId } = useWorkspace();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const existingRequestId = searchParams.get('requestId');
-
-  const canCreateRequest =
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'SYSTEM_ADMIN' ||
-    user?.role === 'MANAGER';
-
-  useEffect(() => {
-    if (user && !canCreateRequest) {
-      toast.error('You do not have permission to create inspection requests.');
-      navigate('/requests', { replace: true });
-    }
-  }, [user, canCreateRequest, navigate]);
+  const isValidExistingUuid = existingRequestId
+    ? UUID_REGEX.test(existingRequestId)
+    : false;
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(
     existingRequestId ? 2 : 1,
@@ -143,11 +184,17 @@ export function CreateRequestPage() {
   });
 
   // If loading existing draft request
-  const { data: existingRequest } = useQuery({
+  const {
+    data: existingRequest,
+    isLoading: isExistingLoading,
+    isError: isExistingError,
+    error: existingError,
+    refetch: refetchExisting,
+  } = useQuery({
     queryKey: ['inspection-request-details', activeBankId, existingRequestId],
     queryFn: () =>
       fetchInspectionRequestDetails(activeBankId!, existingRequestId!),
-    enabled: !!activeBankId && !!existingRequestId,
+    enabled: !!activeBankId && !!existingRequestId && isValidExistingUuid,
   });
 
   useEffect(() => {
@@ -584,10 +631,61 @@ export function CreateRequestPage() {
     saveVehicleMutation.mutate({ payload, isSubmitting, advanceToStep3 });
   };
 
+  if (existingRequestId && !isValidExistingUuid) {
+    return (
+      <div className="py-8">
+        <ErrorView
+          status={404}
+          title={isArabic ? 'طلب الفحص غير موجود' : 'Inspection Request Not Found'}
+          message={
+            isArabic
+              ? `لم يتم العثور على طلب فحص بالمعرّف (${existingRequestId}) في مساحة العمل الحالية.`
+              : `The inspection request with ID "${existingRequestId}" does not exist in the selected bank workspace or has been removed.`
+          }
+          backUrl="/requests"
+          backLabel={t('errors.backToRequests', 'Back to Inspection Pipeline')}
+        />
+      </div>
+    );
+  }
+
+  if (existingRequestId && isExistingLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <CircleNotch className="size-8 animate-spin text-ink-mute" />
+      </div>
+    );
+  }
+
+  if (existingRequestId && isExistingError) {
+    const parsed = existingError ? parseApiError(existingError) : null;
+    const isNotFound = parsed?.status === 404;
+    return (
+      <div className="py-8">
+        <ErrorView
+          error={existingError}
+          status={isNotFound ? 404 : undefined}
+          title={
+            isNotFound
+              ? (isArabic ? 'طلب الفحص غير موجود' : 'Inspection Request Not Found')
+              : undefined
+          }
+          backUrl="/requests"
+          backLabel={t('errors.backToRequests', 'Back to Inspection Pipeline')}
+          onRetry={() => void refetchExisting()}
+        />
+      </div>
+    );
+  }
+
   if (!activeBankId) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-        <p>Please select a bank workspace first.</p>
+      <div className="py-8">
+        <WorkspaceRequiredView
+          featureName="creating inspection requests"
+          featureNameAr="إنشاء طلبات الفحص"
+          backUrl="/requests"
+        />
       </div>
     );
   }
@@ -1108,22 +1206,23 @@ export function CreateRequestPage() {
                 <label className="mb-1 block text-xs font-medium text-ink-soft">
                   {t('createRequest.year', 'Year')} <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  value={vehicleForm.manufactureYear}
-                  onChange={(e) =>
+                <Select
+                  size="lg"
+                  searchable="auto"
+                  clearable={false}
+                  value={String(vehicleForm.manufactureYear)}
+                  onChange={(val) =>
                     setVehicleForm({
                       ...vehicleForm,
-                      manufactureYear: Number(e.target.value),
+                      manufactureYear: Number(val),
                     })
                   }
-                  className="h-11 w-full rounded-xl border border-hairline bg-white px-3.5 font-mono text-sm text-ink shadow-[inset_0_1px_2px_rgba(20,23,26,0.05)] transition-colors outline-none focus:border-accent focus:ring-2 focus:ring-accent/25"
-                >
-                  {yearOptions.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                  triggerClassName="font-mono"
+                  options={yearOptions.map((y) => ({
+                    value: String(y),
+                    label: String(y),
+                  }))}
+                />
               </div>
 
               {/* 8. Color */}

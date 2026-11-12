@@ -123,6 +123,7 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        VITE_CDN_URL: ${VITE_CDN_URL:-https://pub-860509c206114698ad0b355f757c0bf3.r2.dev}
     container_name: inspect_frontend
     restart: unless-stopped
     ports:
@@ -136,13 +137,14 @@ services:
   # ============================================================================
   # 6. FFmpeg Service (linuxserver/ffmpeg)
   # ============================================================================
-  ffmpeg:
-    image: linuxserver/ffmpeg:latest
-    container_name: inspect_ffmpeg
-    restart: unless-stopped
-    entrypoint: ['tail', '-f', '/dev/null']
-    networks:
-      - inspect_network
+  # service is not used in the current versionThis
+  # ffmpeg:
+  #   image: linuxserver/ffmpeg:latest
+  #   container_name: inspect_ffmpeg
+  #   restart: unless-stopped
+  #   entrypoint: ['tail', '-f', '/dev/null']
+  #   networks:
+  #     - inspect_network
 
 # ==============================================================================
 # Volumes & Networks

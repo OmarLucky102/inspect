@@ -206,11 +206,63 @@ export class ChecklistService {
     return updatedItem;
   }
 
+  private async findRequestInBankOrThrow(
+    requestId: string,
+    bankId: string,
+    isGlobalAdmin: boolean,
+  ) {
+    if (isGlobalAdmin) {
+      const req = await this.requestRepository.findById(requestId);
+      if (!req) {
+        throw new InspectionRequestNotFoundException(requestId);
+      }
+      return req;
+    }
+
+    const scoped = await this.requestRepository.findByIdAndBankId(
+      requestId,
+      bankId,
+    );
+    if (scoped) {
+      return scoped;
+    }
+
+    if (typeof this.requestRepository?.findById === 'function') {
+      const existingInOtherBank =
+        await this.requestRepository.findById(requestId);
+      if (existingInOtherBank && existingInOtherBank.bankId !== bankId) {
+        throw new InspectionRequestAccessDeniedException(
+          'You do not have permission to access inspection requests in another bank workspace.',
+        );
+      }
+    }
+
+    throw new InspectionRequestNotFoundException(requestId);
+  }
+
   async getChecklistItemsForRequest(
     bankId: string,
     requestId: string,
+    actor?: { id: string; role: Role },
   ): Promise<InspectionChecklistItem[]> {
-    // Basic check that we are returning for a request, assuming auth guard checked bank membership
+    if (
+      typeof this.requestRepository?.findById === 'function' &&
+      typeof this.requestRepository?.findByIdAndBankId === 'function'
+    ) {
+      const isGlobalAdmin =
+        actor?.role === Role.SUPER_ADMIN || actor?.role === Role.SYSTEM_ADMIN;
+      const request = await this.findRequestInBankOrThrow(
+        requestId,
+        bankId,
+        isGlobalAdmin,
+      );
+      if (
+        actor?.role === Role.REPRESENTATIVE &&
+        request.assignedRepresentativeId !== actor.id
+      ) {
+        throw new InspectionRequestAccessDeniedException();
+      }
+    }
     return this.inspectionChecklistItemRepository.findByRequestId(requestId);
   }
 
@@ -222,12 +274,17 @@ export class ChecklistService {
     const isGlobalAdmin =
       actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(requestId)
-      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
+    const request = await this.findRequestInBankOrThrow(
+      requestId,
+      bankId,
+      isGlobalAdmin,
+    );
 
-    if (!request) {
-      throw new InspectionRequestNotFoundException(requestId);
+    if (
+      actor.role === Role.REPRESENTATIVE &&
+      request.assignedRepresentativeId !== actor.id
+    ) {
+      throw new InspectionRequestAccessDeniedException();
     }
 
     let photoChecklist =
@@ -261,13 +318,11 @@ export class ChecklistService {
       throw new InspectionRequestAccessDeniedException();
     }
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(requestId)
-      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
-
-    if (!request) {
-      throw new InspectionRequestNotFoundException(requestId);
-    }
+    const request = await this.findRequestInBankOrThrow(
+      requestId,
+      bankId,
+      isGlobalAdmin,
+    );
 
     // State protection: locked or finalized inspections cannot be modified
     const lockedStatuses = ['COMPLETED', 'APPROVED', 'CANCELLED', 'REJECTED'];

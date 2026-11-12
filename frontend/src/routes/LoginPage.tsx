@@ -1,12 +1,12 @@
 import {
   Bank,
   ClipboardText,
-  Compass,
   ShieldCheck,
 } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 import { LanguageToggle } from '@/components/layout/LanguageToggle'
+import { getCdnAsset } from '@/lib/assets'
 
 export function LoginPage() {
   const { t } = useTranslation()
@@ -31,11 +31,11 @@ export function LoginPage() {
 
   return (
     <main className="relative h-screen h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#07090e] text-white">
-      {/* Cinematic Background Layer with euro.png */}
+      {/* Cinematic Background Layer with login_background.webp */}
       <div className="fixed inset-0 pointer-events-none select-none z-0">
         <img
-          src="/euro.png"
-          alt="Euro Assist Vehicle Inspection Telemetry"
+          src={getCdnAsset('login_background.webp', '/euro.png')}
+          alt="Inspect Vehicle Inspection Telemetry"
           className="h-full w-full object-cover object-[72%_center] lg:object-[68%_center] xl:object-[64%_center]"
         />
 
@@ -62,10 +62,15 @@ export function LoginPage() {
       <div className="relative z-10 flex h-full max-h-[100dvh] flex-col justify-between p-4 sm:px-8 sm:py-4 lg:px-12 lg:py-5 xl:px-14 xl:py-6 overflow-hidden">
         {/* Top Header Bar */}
         <header className="flex shrink-0 items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-emerald-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md">
-              <Compass className="size-4.5" aria-hidden />
-            </span>
+          <div className="flex items-center gap-3">
+            <img
+              src={getCdnAsset('logo.webp')}
+              alt="Inspect Logo"
+              className="h-10 w-auto max-w-[130px] object-contain rounded-xl border border-white/20 bg-white/10 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
             <div className="leading-tight">
               <div className="flex items-center gap-2">
                 <span className="text-[15px] font-semibold tracking-[0.2em] text-white">

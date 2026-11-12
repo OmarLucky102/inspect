@@ -1,4 +1,4 @@
-import { Bank as BankIcon, CircleNotch, WarningCircle, X, Plus } from '@phosphor-icons/react'
+import { Bank as BankIcon, CircleNotch, X, Plus } from '@phosphor-icons/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { BankDetails } from '@/features/banks/components/BankDetails'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
+import { ErrorView } from '@/components/errors/ErrorView'
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView'
 
 function getSuggestedBankCode(name: string): string {
   const trimmed = name.trim()
@@ -36,8 +38,9 @@ function getSuggestedBankCode(name: string): string {
 }
 
 export function BanksPage() {
-  const { t } = useTranslation()
-  const { user, activeBankId } = useWorkspace()
+  const { t, i18n } = useTranslation()
+  const isArabic = i18n.language?.startsWith('ar')
+  const { user, banks, activeBankId } = useWorkspace()
   const queryClient = useQueryClient()
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -54,7 +57,7 @@ export function BanksPage() {
     }
   }
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['banks'],
     queryFn: fetchBanks,
     enabled: user?.role === 'SUPER_ADMIN',
@@ -74,12 +77,32 @@ export function BanksPage() {
     }
   })
 
+  if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'MANAGER') {
+    return (
+      <div className="py-8">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={
+            isArabic
+              ? 'إدارة البنوك متاحة فقط لمديري النظام ومديري البنوك.'
+              : 'Bank management is restricted to Super Admins and Bank Managers.'
+          }
+          backUrl="/"
+          backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
+        />
+      </div>
+    )
+  }
+
   if (user?.role !== 'SUPER_ADMIN') {
-    if (!activeBankId) {
+    if (!activeBankId || banks.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-          <WarningCircle className="size-12 mb-4 text-red-500" />
-          <p>{t('requests.selectBankFirst', 'You do not belong to any bank workspace.')}</p>
+        <div className="py-8">
+          <WorkspaceRequiredView
+            featureName="bank details and members"
+            featureNameAr="تفاصيل البنك وأعضائه"
+          />
         </div>
       )
     }
@@ -101,11 +124,11 @@ export function BanksPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-red-500 mb-4">{t('banks.banksLoadError', 'Failed to load banks.')}</p>
-        <button onClick={() => refetch()} className="text-sm font-medium underline cursor-pointer">
-          {t('common.retry', 'Try again')}
-        </button>
+      <div className="py-8">
+        <ErrorView
+          error={error}
+          onRetry={() => refetch()}
+        />
       </div>
     )
   }

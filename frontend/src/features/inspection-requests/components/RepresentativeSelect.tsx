@@ -10,6 +10,7 @@ import {
   EnvelopeSimple,
   CircleNotch,
 } from '@phosphor-icons/react';
+import { useDropdownDismiss } from '@/lib/use-dropdown-dismiss';
 
 export interface RepresentativeOption {
   id: string;
@@ -73,39 +74,12 @@ export function RepresentativeSelect({
     });
   }, [options, searchTerm]);
 
-  // Click outside listener
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
+  useDropdownDismiss(isOpen, () => setIsOpen(false), containerRef);
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      // Focus search input after popover renders
-      const timer = setTimeout(() => inputRef.current?.focus(), 60);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        clearTimeout(timer);
-      };
-    }
-  }, [isOpen]);
-
-  // ESC key listener
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
+    if (!isOpen) return;
+    const timer = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 60);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   const handleSelect = (id: string) => {

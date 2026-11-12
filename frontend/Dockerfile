@@ -20,9 +20,11 @@ COPY frontend ./frontend
 
 WORKDIR /app/frontend
 
-# Configurable build-time API base URL (defaults to relative /api/v1 for Nginx reverse-proxy)
+# Configurable build-time API base URL & CDN asset URL
 ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
+ARG VITE_CDN_URL
+ENV VITE_CDN_URL=${VITE_CDN_URL}
 
 # Build production assets (outputs to /app/frontend/dist)
 RUN pnpm run build

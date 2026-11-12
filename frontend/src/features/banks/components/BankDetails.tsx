@@ -1,4 +1,4 @@
-import { CircleNotch, X, CaretDown, Trash } from '@phosphor-icons/react'
+import { CircleNotch, X, Trash } from '@phosphor-icons/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
 import {
@@ -12,9 +12,11 @@ import {
 } from '../api'
 import { fetchUsers } from '@/features/users/api'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
+import { ErrorView } from '@/components/errors/ErrorView'
 
 import { useTranslation } from 'react-i18next'
 
@@ -27,7 +29,7 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'details' | 'members' | 'newUser' | 'existingUser'>('details')
 
-  const { data: bank, isLoading, isError } = useQuery({
+  const { data: bank, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['banks', bankId],
     queryFn: () => fetchBankById(bankId),
   })
@@ -69,7 +71,12 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
             <CircleNotch className="size-6 animate-spin text-ink-mute" />
           </div>
         ) : isError || !bank ? (
-          <p className="text-red-500">{t('banks.bankLoadError', 'Failed to load bank details.')}</p>
+          <ErrorView
+            compact
+            error={error}
+            status={error ? undefined : 404}
+            onRetry={() => void refetch()}
+          />
         ) : (
           <>
             {activeTab === 'details' && <TabDetails bank={bank} />}
@@ -114,7 +121,7 @@ function TabDetails({ bank }: { bank: any }) {
 function TabMembers({ bankId }: { bankId: string }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { data: members, isLoading, isError, refetch } = useQuery({
+  const { data: members, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['bankMembers', bankId],
     queryFn: () => fetchBankMembers(bankId),
   })
@@ -140,12 +147,11 @@ function TabMembers({ bankId }: { bankId: string }) {
 
   if (isError) {
     return (
-      <div className="py-4 text-sm text-red-500">
-        {t('banks.membersLoadError', 'Failed to load bank members.')}{' '}
-        <button onClick={() => refetch()} className="font-medium underline ml-1 cursor-pointer">
-          {t('common.retry', 'Retry')}
-        </button>
-      </div>
+      <ErrorView
+        compact
+        error={error}
+        onRetry={() => void refetch()}
+      />
     )
   }
 
@@ -283,21 +289,19 @@ function TabNewUser({ bankId }: { bankId: string }) {
       </div>
       <div>
         <label className="block text-xs font-medium text-ink mb-1.5">{t('banks.roleInBankLabel', 'Role in Bank')}</label>
-        <div className="relative flex items-center">
-          <select
-            required
-            className="w-full appearance-none rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none cursor-pointer hover:border-ink/20 focus:border-ink/40 focus:ring-1 focus:ring-accent transition-all pe-8"
-            value={formData.role}
-            onChange={e => setFormData({ ...formData, role: e.target.value })}
-          >
-            <option value="MANAGER">{t('banks.roleManager', 'Manager (Bank Admin)')}</option>
-            <option value="REVIEWER">{t('banks.roleReviewer', 'Reviewer (Auditor)')}</option>
-            <option value="USER">{t('banks.roleUser', 'User (Standard)')}</option>
-            <option value="VIEWER">{t('banks.roleViewer', 'Viewer (Read-only)')}</option>
-            <option value="REPRESENTATIVE">{t('banks.roleRepresentative', 'Representative (Field Inspector)')}</option>
-          </select>
-          <CaretDown className="pointer-events-none absolute end-3 size-3.5 text-ink-mute" />
-        </div>
+        <Select
+          required
+          clearable={false}
+          value={formData.role}
+          onChange={(role) => setFormData({ ...formData, role })}
+          options={[
+            { value: 'MANAGER', label: t('banks.roleManager', 'Manager (Bank Admin)') },
+            { value: 'REVIEWER', label: t('banks.roleReviewer', 'Reviewer (Auditor)') },
+            { value: 'USER', label: t('banks.roleUser', 'User (Standard)') },
+            { value: 'VIEWER', label: t('banks.roleViewer', 'Viewer (Read-only)') },
+            { value: 'REPRESENTATIVE', label: t('banks.roleRepresentative', 'Representative (Field Inspector)') },
+          ]}
+        />
       </div>
       <label className="flex items-center gap-2 text-sm cursor-pointer mt-2">
         <input type="checkbox" checked={formData.isPrimary} onChange={e => setFormData({ ...formData, isPrimary: e.target.checked })} />

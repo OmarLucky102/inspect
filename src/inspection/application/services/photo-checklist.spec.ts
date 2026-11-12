@@ -3,6 +3,7 @@ import {
   InvalidDynamicChecklistFieldException,
   InspectionRequestLockedException,
   InspectionRequestAccessDeniedException,
+  InspectionRequestNotFoundException,
 } from '../../../shared/exceptions/inspection.exceptions';
 import { ChecklistService } from './checklist.service';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
@@ -84,6 +85,7 @@ describe('InspectionPhotoChecklist Domain Entity & ChecklistService', () => {
     let service: ChecklistService;
     let mockPhotoRepo: any;
     let mockRequestRepo: any;
+    let mockInspectionChecklistRepo: any;
 
     beforeEach(() => {
       mockPhotoRepo = {
@@ -95,11 +97,14 @@ describe('InspectionPhotoChecklist Domain Entity & ChecklistService', () => {
         findById: jest.fn(),
         findByIdAndBankId: jest.fn(),
       };
+      mockInspectionChecklistRepo = {
+        findByRequestId: jest.fn().mockResolvedValue([]),
+      };
 
       service = new ChecklistService(
         {} as any,
         {} as any,
-        {} as any,
+        mockInspectionChecklistRepo,
         mockPhotoRepo,
         mockRequestRepo,
         {} as any,
@@ -161,6 +166,70 @@ describe('InspectionPhotoChecklist Domain Entity & ChecklistService', () => {
       expect(result.customFields.length).toBe(1);
       expect(result.customFields[0].name).toBe('Front bumper close-up');
       expect(result.customFields[0].required).toBe(true);
+    });
+
+    it('should throw InspectionRequestAccessDeniedException (403) when accessing photo checklist of another bank request', async () => {
+      mockRequestRepo.findByIdAndBankId.mockResolvedValue(null);
+      mockRequestRepo.findById.mockResolvedValue({
+        id: 'req-other-bank',
+        bankId: 'bank-2',
+        assignedRepresentativeId: 'rep-1',
+      });
+
+      await expect(
+        service.getPhotoChecklist('bank-1', 'req-other-bank', {
+          id: 'user-reviewer',
+          role: Role.REVIEWER,
+        }),
+      ).rejects.toThrow(InspectionRequestAccessDeniedException);
+
+      await expect(
+        service.updatePhotoChecklist(
+          'bank-1',
+          'req-other-bank',
+          { licensePhoto: false },
+          { id: 'user-reviewer', role: Role.REVIEWER },
+        ),
+      ).rejects.toThrow(InspectionRequestAccessDeniedException);
+    });
+
+    it('should throw InspectionRequestAccessDeniedException (403) when unassigned representative reads photo checklist', async () => {
+      mockRequestRepo.findByIdAndBankId.mockResolvedValue({
+        id: 'req-1',
+        bankId: 'bank-1',
+        assignedRepresentativeId: 'rep-other',
+      });
+
+      await expect(
+        service.getPhotoChecklist('bank-1', 'req-1', {
+          id: 'rep-1',
+          role: Role.REPRESENTATIVE,
+        }),
+      ).rejects.toThrow(InspectionRequestAccessDeniedException);
+    });
+
+    it('should throw InspectionRequestAccessDeniedException (403) on getChecklistItemsForRequest for cross-bank request and 404 when absent', async () => {
+      mockRequestRepo.findByIdAndBankId.mockResolvedValue(null);
+      mockRequestRepo.findById.mockResolvedValue({
+        id: 'req-other-bank',
+        bankId: 'bank-2',
+      });
+
+      await expect(
+        service.getChecklistItemsForRequest('bank-1', 'req-other-bank', {
+          id: 'user-reviewer',
+          role: Role.REVIEWER,
+        }),
+      ).rejects.toThrow(InspectionRequestAccessDeniedException);
+
+      mockRequestRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        service.getChecklistItemsForRequest('bank-1', 'req-missing', {
+          id: 'user-reviewer',
+          role: Role.REVIEWER,
+        }),
+      ).rejects.toThrow(InspectionRequestNotFoundException);
     });
   });
 });

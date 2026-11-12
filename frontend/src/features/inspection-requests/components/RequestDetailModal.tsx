@@ -10,7 +10,6 @@ import {
   ListChecks,
   UserPlus,
   ShieldCheck,
-  XCircle,
   ArrowRight,
   MapPin,
   ChatCenteredText,
@@ -23,8 +22,11 @@ import {
   Phone,
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { parseApiError } from '@/lib/errors/app-error';
 import {
   fetchInspectionRequestDetails,
   fetchInspectionStatusHistory,
@@ -148,6 +150,7 @@ export function RequestDetailModal({
     data: details,
     isLoading: isDetailsLoading,
     isError: isDetailsError,
+    error: detailsError,
     refetch: refetchDetails,
   } = useQuery({
     queryKey: ['inspection-request-details', activeBankId, requestId],
@@ -809,18 +812,24 @@ export function RequestDetailModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-mono text-lg font-bold text-ink">
-                  {details?.requestNumber || 'Inspection Request'}
+                  {details ? details.requestNumber || 'Inspection Request' : (isArabic ? 'طلب الفحص' : 'Inspection Request')}
                 </h3>
                 {details && getStatusBadge(details.currentStatus)}
               </div>
-              <p className="text-xs text-ink-mute">
-                ID: {requestId} • {isArabic ? 'الأولوية:' : 'Priority:'}{' '}
-                <span className="font-mono font-medium text-ink">
-                  {details?.priority
-                    ? t(`priorities.${details.priority.toLowerCase()}`, details.priority)
-                    : (isArabic ? 'متوسط' : 'MEDIUM')}
-                </span>
-              </p>
+              {details ? (
+                <p className="text-xs text-ink-mute">
+                  ID: {requestId} • {isArabic ? 'الأولوية:' : 'Priority:'}{' '}
+                  <span className="font-mono font-medium text-ink">
+                    {details.priority
+                      ? t(`priorities.${details.priority.toLowerCase()}`, details.priority)
+                      : (isArabic ? 'متوسط' : 'MEDIUM')}
+                  </span>
+                </p>
+              ) : (
+                <p className="text-xs text-ink-mute font-mono">
+                  ID: {requestId}
+                </p>
+              )}
             </div>
           </div>
 
@@ -843,25 +852,35 @@ export function RequestDetailModal({
             <CircleNotch className="size-8 animate-spin text-ink-mute" />
           </div>
         ) : isDetailsError || !details ? (
-          <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-            <XCircle className="mb-2 size-10 text-rose-500" />
-            <p className="font-medium text-ink">
-              {isArabic ? 'فشل تحميل تفاصيل طلب الفحص' : 'Failed to load request details'}
-            </p>
-            <p className="mt-1 text-xs text-ink-mute">
-              {isArabic
-                ? 'تأكد من امتلاك الصلاحيات المناسبة لمساحة عمل هذا البنك.'
-                : 'Make sure you have proper permissions for this bank request.'}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-4"
-              onClick={() => void refetchDetails()}
-            >
-              {isArabic ? 'إعادة المحاولة' : 'Try Again'}
-            </Button>
-          </div>
+          (() => {
+            const parsed = detailsError ? parseApiError(detailsError) : null;
+            const isNotFound = !detailsError || parsed?.status === 404;
+            return (
+              <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+                <ErrorView
+                  compact={false}
+                  error={detailsError}
+                  status={isNotFound ? 404 : undefined}
+                  title={
+                    isNotFound
+                      ? (isArabic ? 'لم يتم العثور على طلب الفحص' : 'Inspection Request Not Found')
+                      : undefined
+                  }
+                  message={
+                    isNotFound
+                      ? (isArabic
+                          ? 'معرّف طلب الفحص غير صالح أو غير موجود في مساحة عمل هذا البنك.'
+                          : 'The inspection request ID is invalid or does not exist in this bank workspace.')
+                      : undefined
+                  }
+                  onRetry={activeBankId ? () => void refetchDetails() : undefined}
+                  backUrl={isFullPage ? '/requests' : undefined}
+                  backLabel={isArabic ? 'العودة لطلبات الفحص' : 'Back to Requests'}
+                  showHomeButton={isFullPage}
+                />
+              </div>
+            );
+          })()
         ) : (
           <div
             className={
@@ -2482,34 +2501,36 @@ export function RequestDetailModal({
                         ? 'قرار الشركة المعتمد:'
                         : 'Current (Company Decision):'}
                     </label>
-                    <select
+                    <Select
+                      size="sm"
+                      variant="subtle"
+                      searchable="auto"
+                      clearable
                       value={selectedTrimId}
-                      onChange={(e) => setSelectedTrimId(e.target.value)}
-                      className="w-full rounded-md border border-hairline bg-zinc-50/80 px-2.5 py-1.5 text-xs font-medium text-ink outline-none focus:border-accent"
-                    >
-                      <option value="">
-                        {isArabic
+                      onChange={setSelectedTrimId}
+                      placeholder={
+                        isArabic
                           ? '— اختر الفئة المؤكدة —'
-                          : '— Select Confirmed Trim —'}
-                      </option>
-                      {(vehicleLookups?.trims || []).map((t) => {
+                          : '— Select Confirmed Trim —'
+                      }
+                      options={(vehicleLookups?.trims || []).map((tr) => {
                         const origId =
                           details.originalTrim?.id || details.vehicle?.trim?.id;
-                        const isUnchanged = t.id === origId;
-                        return (
-                          <option key={t.id} value={t.id}>
-                            {isArabic
-                              ? (t.nameAr || t.name)
-                              : `${t.name} ${t.nameAr ? `(${t.nameAr})` : ''}`}{' '}
-                            {isUnchanged
-                              ? isArabic
-                                ? '— (بدون تغيير)'
-                                : '— (unchanged)'
-                              : ''}
-                          </option>
-                        );
+                        const isUnchanged = tr.id === origId;
+                        return {
+                          value: tr.id,
+                          label: isArabic ? tr.nameAr || tr.name : tr.name,
+                          secondaryLabel:
+                            !isArabic && tr.nameAr ? tr.nameAr : undefined,
+                          badge: isUnchanged
+                            ? isArabic
+                              ? 'بدون تغيير'
+                              : 'unchanged'
+                            : undefined,
+                          keywords: `${tr.name} ${tr.nameAr || ''}`,
+                        };
                       })}
-                    </select>
+                    />
                   </div>
                 </div>
               </div>
@@ -2520,29 +2541,28 @@ export function RequestDetailModal({
                   <label className="mb-1 block text-xs font-medium text-ink-soft">
                     {isArabic ? 'ناقل الحركة' : 'Transmission (ناقل الحركة)'}
                   </label>
-                  <select
+                  <Select
+                    size="sm"
+                    searchable="auto"
+                    clearable
                     value={selectedTransmissionTypeId}
-                    onChange={(e) =>
-                      setSelectedTransmissionTypeId(e.target.value)
-                    }
-                    className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink outline-none focus:border-accent"
-                  >
-                    <option value="">
-                      {isArabic
+                    onChange={setSelectedTransmissionTypeId}
+                    placeholder={
+                      isArabic
                         ? '— اختر ناقل الحركة —'
-                        : '— Select Transmission —'}
-                    </option>
-                    {(
+                        : '— Select Transmission —'
+                    }
+                    options={(
                       vehicleLookups?.transmissionTypes ||
                       DEFAULT_TRANSMISSION_OPTIONS
-                    ).map((tr) => (
-                      <option key={tr.id || tr.name} value={tr.id || tr.name}>
-                        {isArabic
-                          ? (tr.nameAr || tr.name)
-                          : `${tr.name} ${tr.nameAr ? `(${tr.nameAr})` : ''}`}
-                      </option>
-                    ))}
-                  </select>
+                    ).map((tr) => ({
+                      value: tr.id || tr.name,
+                      label: isArabic ? tr.nameAr || tr.name : tr.name,
+                      secondaryLabel:
+                        !isArabic && tr.nameAr ? tr.nameAr : undefined,
+                      keywords: `${tr.name} ${tr.nameAr || ''}`,
+                    }))}
+                  />
                 </div>
 
                 <div>
@@ -2551,23 +2571,22 @@ export function RequestDetailModal({
                       ? 'المرايا الجانبية'
                       : 'Side Mirrors (المرايا الجانبية)'}
                   </label>
-                  <select
+                  <Select
+                    size="sm"
+                    clearable={false}
                     value={selectedSideMirrors}
-                    onChange={(e) => setSelectedSideMirrors(e.target.value)}
-                    className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink outline-none focus:border-accent"
-                  >
-                    {DEFAULT_SIDE_MIRRORS.map((m) => (
-                      <option key={m.code} value={m.code}>
-                        {isArabic
-                          ? (m.code === 'Manual'
-                              ? 'يدوي (عادي)'
-                              : m.code === 'Electric'
-                                ? 'كهربائي'
-                                : m.name)
-                          : m.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedSideMirrors}
+                    options={DEFAULT_SIDE_MIRRORS.map((m) => ({
+                      value: m.code,
+                      label: isArabic
+                        ? m.code === 'Manual'
+                          ? 'يدوي (عادي)'
+                          : m.code === 'Electric'
+                            ? 'كهربائي'
+                            : m.name
+                        : m.name,
+                    }))}
+                  />
                 </div>
 
                 <div>
@@ -2576,17 +2595,16 @@ export function RequestDetailModal({
                       ? 'مواصفات فتحة السقف *'
                       : 'Sunroof Specification (فتحة السقف) *'}
                   </label>
-                  <select
+                  <Select
+                    size="sm"
+                    clearable={false}
                     value={selectedSunroof}
-                    onChange={(e) => setSelectedSunroof(e.target.value)}
-                    className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink outline-none focus:border-accent"
-                  >
-                    {DEFAULT_SUNROOF_OPTIONS.map((sn) => (
-                      <option key={sn.code} value={sn.name}>
-                        {sn.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedSunroof}
+                    options={DEFAULT_SUNROOF_OPTIONS.map((sn) => ({
+                      value: sn.name,
+                      label: sn.name,
+                    }))}
+                  />
                 </div>
               </div>
 

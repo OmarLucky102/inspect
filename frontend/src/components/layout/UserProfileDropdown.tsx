@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { UserCircle, ArrowSquareOut, X } from '@phosphor-icons/react'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { UserProfileForm } from '@/features/users/components/UserProfileForm'
+import { useDropdownDismiss } from '@/lib/use-dropdown-dismiss'
 import { ThemeSelector } from './ThemeToggle'
 import { LanguageSelector } from './LanguageToggle'
 
@@ -17,33 +18,7 @@ export function UserProfileDropdown() {
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
     : '..'
 
-  // Close dropdown on outside click or Escape key
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleMouseDown)
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown)
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen])
+  useDropdownDismiss(isOpen, () => setIsOpen(false), dropdownRef)
 
   return (
     <div ref={dropdownRef} className="relative">

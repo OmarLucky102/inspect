@@ -14,6 +14,7 @@ import { RepresentativesPage } from './routes/RepresentativesPage'
 import { UsersPage } from './routes/UsersPage'
 import { VehicleSettingsPage } from './routes/VehicleSettingsPage'
 import { ProfilePage } from './routes/ProfilePage'
+import { ErrorPage } from './routes/ErrorPage'
 
 function LoginRoute() {
   const { status } = useAuth()
@@ -25,6 +26,10 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/400" element={<ErrorPage status={400} standalone />} />
+      <Route path="/401" element={<ErrorPage status={401} standalone />} />
+      <Route path="/409" element={<ErrorPage status={409} standalone />} />
+      <Route path="/422" element={<ErrorPage status={422} standalone />} />
       <Route
         element={
           <ProtectedRoute>
@@ -44,8 +49,10 @@ export default function App() {
         <Route path="vehicle-settings" element={<VehicleSettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="error" element={<ErrorPage />} />
+        <Route path="*" element={<ErrorPage status={404} />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<ErrorPage status={404} />} />
     </Routes>
   )
 }

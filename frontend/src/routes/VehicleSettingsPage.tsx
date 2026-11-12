@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ShieldCheck,
   Car,
   Palette,
   SlidersHorizontal,
   Shapes,
   Sun,
-  ShieldCheck,
-  WarningCircle,
 } from '@phosphor-icons/react';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
+import { ErrorView } from '@/components/errors/ErrorView';
 import { VehicleSettingsOverview } from '@/features/vehicle-settings/components/VehicleSettingsOverview';
 import { BrandManagementTab } from '@/features/vehicle-settings/components/BrandManagementTab';
 import { ColorManagementTab } from '@/features/vehicle-settings/components/ColorManagementTab';
@@ -27,14 +27,19 @@ export function VehicleSettingsPage() {
   // Strict role check: Superadmin only
   if (user?.role !== 'SUPER_ADMIN') {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-        <div className="size-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
-          <WarningCircle className="size-8" />
-        </div>
-        <h2 className="text-lg font-semibold text-ink">{t('common.error', 'Access Restricted')}</h2>
-        <p className="text-sm text-ink-mute mt-1 max-w-sm text-center">
-          Vehicle and lookup management is restricted to Superadmin accounts only.
-        </p>
+      <div className="py-12">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={
+            t(
+              'vehicleSettings.restricted',
+              'Vehicle and lookup management is restricted to Superadmin accounts only.',
+            )
+          }
+          backUrl="/"
+          backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
+        />
       </div>
     );
   }

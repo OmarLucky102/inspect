@@ -54,7 +54,17 @@ export class InspectionMediaContextValidator {
       throw new InspectionRequestNotFoundException(inspectionId);
     }
 
-    // 2. Verify inspection is not in a locked terminal status
+    // 2. Assert user authorization BEFORE revealing status locks or capture session details
+    const initialCaptureSession = requestedCaptureSessionId
+      ? inspection.captureSessions.find(
+          (cs) => cs.id === requestedCaptureSessionId,
+        )
+      : inspection.captureSessions.find(
+          (cs) => cs.status === CaptureSessionStatus.IN_PROGRESS,
+        );
+    await this.assertUserAuthorized(inspection, initialCaptureSession, actor);
+
+    // 3. Verify inspection is not in a locked terminal status
     const lockedStatuses: InspectionStatus[] = [
       InspectionStatus.COMPLETED,
       InspectionStatus.APPROVED,
@@ -67,7 +77,7 @@ export class InspectionMediaContextValidator {
       );
     }
 
-    // 3. Resolve capture session
+    // 4. Resolve capture session
     let resolvedCaptureSessionId = requestedCaptureSessionId;
     let targetCaptureSession = resolvedCaptureSessionId
       ? inspection.captureSessions.find(
@@ -102,8 +112,10 @@ export class InspectionMediaContextValidator {
       }
     }
 
-    // 4. Assert user authorization
-    await this.assertUserAuthorized(inspection, targetCaptureSession, actor);
+    // Re-verify capture-session-specific representative assignment if a new session was resolved
+    if (targetCaptureSession !== initialCaptureSession) {
+      await this.assertUserAuthorized(inspection, targetCaptureSession, actor);
+    }
 
     // 5. Resolve category ID
     const categoryId = await this.resolveCategoryId(requestedCategoryIdOrName);

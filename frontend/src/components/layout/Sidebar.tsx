@@ -1,9 +1,10 @@
-import { Compass, X } from '@phosphor-icons/react'
+import { X } from '@phosphor-icons/react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { NAV_SECTIONS } from './nav'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
+import { getCdnAsset } from '@/lib/assets'
 
 interface SidebarProps {
   mobileOpen: boolean
@@ -67,10 +68,15 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5 px-5 pt-6 pb-2">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-ink text-white">
-          <Compass className="size-4.5" aria-hidden />
-        </span>
+      <div className="flex items-center gap-3 px-5 pt-6 pb-2">
+        <img
+          src={getCdnAsset('logo.webp')}
+          alt="Inspect Logo"
+          className="h-8 w-auto max-w-[120px] object-contain rounded-lg"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
         <div className="leading-tight">
           <p className="text-sm font-semibold tracking-[0.18em]">
             {t('common.inspect', 'INSPECT')}
