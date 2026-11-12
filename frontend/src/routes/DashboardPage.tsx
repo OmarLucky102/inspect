@@ -16,7 +16,6 @@ import {
   ArrowRight,
   Plus,
   CheckSquare,
-  Funnel,
   Eye,
 } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +34,10 @@ import {
   Bar,
 } from 'recharts';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
+import { BankSelect } from '@/components/ui/bank-select';
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { parseApiError } from '@/lib/errors/app-error';
 import {
   fetchInspectionAnalytics,
   type InspectionAnalyticsData,
@@ -58,11 +61,10 @@ export function DashboardPage() {
   // Period filter (7, 30, 90 days)
   const [periodDays, setPeriodDays] = useState<number>(30);
 
-  // Selected bank for Super Admin / Reviewer filter ('all' or specific bank id)
+  // Global multi-bank overview is strictly restricted to Super Admin & System Admin
   const isGlobalStaff =
     user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'SYSTEM_ADMIN' ||
-    user?.role === 'REVIEWER';
+    user?.role === 'SYSTEM_ADMIN';
 
   const canCreateRequest =
     user?.role === 'SUPER_ADMIN' ||
@@ -85,6 +87,8 @@ export function DashboardPage() {
     data: analytics,
     isLoading,
     isRefetching,
+    isError,
+    error,
     refetch,
   } = useQuery<InspectionAnalyticsData>({
     queryKey: ['inspection-analytics', queryBankId, periodDays],
@@ -93,8 +97,52 @@ export function DashboardPage() {
         bankId: queryBankId,
         periodDays,
       }),
+    enabled: isGlobalStaff || !!activeBankId,
     refetchInterval: 30000, // automatic 30s live poll
   });
+
+  // Guard: if user is not global admin and has no bank workspace assigned/selected
+  if (!isGlobalStaff && (!activeBankId || banks.length === 0)) {
+    return (
+      <div className="py-8">
+        <WorkspaceRequiredView
+          featureName="inspection analytics and dashboard"
+          featureNameAr="لوحة القيادة ومؤشرات الأداء"
+        />
+      </div>
+    );
+  }
+
+  // Guard: if backend access is denied (missing bank membership) vs general API error
+  if (isError) {
+    const parsed = error ? parseApiError(error) : null;
+    const isWorkspaceMembershipError =
+      !isGlobalStaff &&
+      parsed?.status === 403 &&
+      (banks.length === 0 ||
+        parsed.message.toLowerCase().includes('membership') ||
+        parsed.message.toLowerCase().includes('assigned to any bank'));
+
+    if (isWorkspaceMembershipError) {
+      return (
+        <div className="py-8">
+          <WorkspaceRequiredView
+            featureName="inspection analytics and dashboard"
+            featureNameAr="لوحة القيادة ومؤشرات الأداء"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="py-8">
+        <ErrorView
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   // Format currency helper - standardizing to consistent Latin numerals
   const formatCurrency = (val: number | undefined) => {
@@ -189,30 +237,24 @@ export function DashboardPage() {
         {/* Controls: Bank Selector & Period */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Bank Scope Selector for Super Admin & Reviewer */}
-          {isGlobalStaff && (
-            <div className="flex items-center gap-1.5 rounded-xl border border-hairline bg-paper px-3 py-1.5 text-xs">
-              <Funnel className="size-3.5 text-ink-mute" />
-              <select
-                aria-label={t('dashboard.filterBankScope', 'Filter by bank scope')}
-                value={selectedBankScope}
-                onChange={(e) => {
-                  setSelectedBankScope(e.target.value);
-                  if (e.target.value !== 'all') {
-                    setActiveBankId(e.target.value);
-                  }
-                }}
-                className="bg-transparent font-medium text-ink outline-hidden cursor-pointer"
-              >
-                <option value="all">
-                  {t('dashboard.allBanksGlobal', '🌐 All Banks (Global View)')}
-                </option>
-                {banks.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    🏦 {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {isGlobalStaff && banks.length > 0 && (
+            <BankSelect
+              banks={banks}
+              value={selectedBankScope}
+              onChange={(val) => {
+                setSelectedBankScope(val);
+                if (val !== 'all') {
+                  setActiveBankId(val);
+                }
+              }}
+              includeAllOption
+              variant="subtle"
+              size="sm"
+              align="end"
+              headerTitle={t('dashboard.filterBankScope', 'Filter by bank scope')}
+              ariaLabel={t('dashboard.filterBankScope', 'Filter by bank scope')}
+              triggerClassName="max-w-[260px]"
+            />
           )}
 
           {/* Period Selector Pills */}

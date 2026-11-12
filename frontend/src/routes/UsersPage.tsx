@@ -30,6 +30,8 @@ import {
 import { fetchBanks, type Bank } from '@/features/banks/api'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
+import { ErrorView } from '@/components/errors/ErrorView'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
 import type { UserProfile } from '@/features/workspaces/api'
@@ -42,13 +44,18 @@ export function UsersPage() {
   const [isCreatingUser, setIsCreatingUser] = useState(false)
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserProfile | null>(null)
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
     enabled: user?.role === 'SUPER_ADMIN',
   })
 
-  const { data: selectedUser, isLoading: isUserLoading } = useQuery({
+  const {
+    data: selectedUser,
+    isLoading: isUserLoading,
+    error: selectedUserError,
+    refetch: refetchSelectedUser,
+  } = useQuery({
     queryKey: ['users', selectedUserId],
     queryFn: () => fetchUserById(selectedUserId!),
     enabled: !!selectedUserId,
@@ -71,9 +78,14 @@ export function UsersPage() {
 
   if (user?.role !== 'SUPER_ADMIN') {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-        <WarningCircle className="size-12 mb-4 text-red-500" />
-        <p>{t('common.error', 'You do not have permission to view this page.')}</p>
+      <div className="py-12">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={t('errors.forbiddenDesc', 'You do not have permission to view this page.')}
+          backUrl="/"
+          backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
+        />
       </div>
     )
   }
@@ -88,11 +100,11 @@ export function UsersPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-red-500 mb-4">{t('common.error', 'Failed to load users.')}</p>
-        <button onClick={() => refetch()} className="text-sm font-medium underline cursor-pointer">
-          {t('common.retry', 'Try again')}
-        </button>
+      <div className="py-8">
+        <ErrorView
+          error={error}
+          onRetry={() => refetch()}
+        />
       </div>
     )
   }
@@ -324,7 +336,12 @@ export function UsersPage() {
               onRequestDelete={() => setDeleteConfirmUser(selectedUser)}
             />
           ) : (
-            <p className="text-red-500 text-sm">{t('common.error', 'Failed to load user details.')}</p>
+            <ErrorView
+              compact
+              error={selectedUserError}
+              status={selectedUserError ? undefined : 404}
+              onRetry={() => void refetchSelectedUser()}
+            />
           )}
         </div>
       )}
@@ -494,17 +511,14 @@ function CreateUserModal({
             <label className="block text-xs font-medium text-ink mb-1.5">
               {t('users.thRole', 'Role')} <span className="text-red-500">*</span>
             </label>
-            <select
+            <Select
+              required
+              clearable={false}
+              variant="subtle"
               value={formData.role}
-              onChange={(e) => setFormData((p) => ({ ...p, role: e.target.value }))}
-              className="w-full text-sm px-3 py-2 rounded-md border border-hairline bg-paper/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
-            >
-              {roleOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(role) => setFormData((p) => ({ ...p, role }))}
+              options={roleOptions}
+            />
           </div>
 
           <div className="pt-4 border-t border-hairline flex items-center justify-end gap-2">

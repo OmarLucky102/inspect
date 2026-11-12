@@ -11,7 +11,6 @@ import {
   EnvelopeSimple,
   MapPin,
   CircleNotch,
-  WarningCircle,
   Copy,
   Check,
   UserCheck,
@@ -23,6 +22,8 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { ErrorView } from '@/components/errors/ErrorView';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import {
   fetchRepresentatives,
@@ -71,6 +72,7 @@ export function RepresentativesPage() {
     data: representatives = [],
     isLoading,
     isError,
+    error,
     refetch,
   } = useQuery({
     queryKey: ['representatives', statusFilter, selectedGovernorateId],
@@ -143,14 +145,18 @@ export function RepresentativesPage() {
 
   if (!isAuthorized) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-ink-mute">
-        <div className="size-14 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mb-4">
-          <WarningCircle className="size-8" />
-        </div>
-        <h2 className="text-lg font-semibold text-ink">Access Restricted</h2>
-        <p className="text-sm text-ink-mute mt-1 max-w-sm text-center">
-          Representative management is accessible only to Superadmins and Reviewers.
-        </p>
+      <div className="py-12">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={
+            isArabic
+              ? 'إدارة المناديب متاحة فقط لمسؤولي النظام والمراجعين.'
+              : 'Representative management is accessible only to Super Admins, System Admins, and Reviewers.'
+          }
+          backUrl="/"
+          backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
+        />
       </div>
     );
   }
@@ -253,18 +259,31 @@ export function RepresentativesPage() {
 
             {/* Governorate Filter */}
             {governorates.length > 0 && (
-              <select
+              <Select
+                size="sm"
+                align="end"
+                searchable="auto"
+                clearable={false}
                 value={selectedGovernorateId}
-                onChange={(e) => setSelectedGovernorateId(e.target.value)}
-                className="h-8 rounded-lg border border-hairline bg-white px-2.5 text-xs text-ink-soft cursor-pointer hover:border-ink/20 focus:outline-none focus:ring-1 focus:ring-accent"
-              >
-                <option value="all">{t('representatives.governorates', 'All Governorates')} ({governorates.length})</option>
-                {governorates.map((gov) => (
-                  <option key={gov.id} value={gov.id}>
-                    {isArabic && gov.nameAr ? `${gov.nameAr} (${gov.name})` : gov.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedGovernorateId}
+                leadingIcon={<MapPin className="size-3.5" />}
+                triggerClassName="max-w-[220px]"
+                options={[
+                  {
+                    value: 'all',
+                    label: `${t('representatives.governorates', 'All Governorates')} (${governorates.length})`,
+                  },
+                  ...governorates.map((gov) => ({
+                    value: gov.id,
+                    label: isArabic && gov.nameAr ? gov.nameAr : gov.name,
+                    secondaryLabel:
+                      isArabic && gov.nameAr
+                        ? gov.name
+                        : gov.nameAr || undefined,
+                    keywords: `${gov.name} ${gov.nameAr || ''}`,
+                  })),
+                ]}
+              />
             )}
           </div>
         </div>
@@ -302,18 +321,11 @@ export function RepresentativesPage() {
             <p className="text-xs">{t('common.loading', 'Loading representatives roster...')}</p>
           </div>
         ) : isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-rose-600">
-            <WarningCircle className="size-8 mb-2" />
-            <p className="text-sm font-medium">{t('common.error', 'Failed to load representatives')}</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              className="mt-3 text-xs"
-            >
-              {t('common.retry', 'Try Again')}
-            </Button>
+          <div className="py-12 px-4">
+            <ErrorView
+              error={error}
+              onRetry={() => refetch()}
+            />
           </div>
         ) : filteredRepresentatives.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">

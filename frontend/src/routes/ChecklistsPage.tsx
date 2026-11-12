@@ -11,6 +11,7 @@ import {
 } from '@phosphor-icons/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import {
   fetchVehicleCategories,
@@ -24,15 +25,23 @@ import {
 } from '@/features/checklists/api'
 import { fetchInspectionRequests } from '@/features/inspection-requests/api'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
+import { ErrorView } from '@/components/errors/ErrorView'
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView'
 
 export function ChecklistsPage() {
-  const { activeBankId, user } = useWorkspace()
+  const { t, i18n } = useTranslation()
+  const isArabic = i18n.language?.startsWith('ar')
+  const { activeBankId, banks, user } = useWorkspace()
   const queryClient = useQueryClient()
 
-  // Permissions: MANAGER & SUPER_ADMIN can add/remove custom items
-  const canManage = user?.role === 'SUPER_ADMIN' || user?.role === 'MANAGER'
+  // Permissions: MANAGER, REVIEWER, SUPER_ADMIN, SYSTEM_ADMIN can access checklists
+  const isGlobalStaff = user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN'
+  const canAccessChecklists =
+    isGlobalStaff || user?.role === 'MANAGER' || user?.role === 'REVIEWER'
+  const canManage = isGlobalStaff || user?.role === 'MANAGER'
 
   const [activeTab, setActiveTab] = useState<'templates' | 'evidence'>('templates')
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
@@ -64,10 +73,12 @@ export function ChecklistsPage() {
     data: categories = [],
     isLoading: isCategoriesLoading,
     isError: isCategoriesError,
+    error: categoriesError,
+    refetch: refetchCategories,
   } = useQuery({
     queryKey: ['checklist-categories', activeBankId],
     queryFn: () => fetchVehicleCategories(activeBankId!),
-    enabled: !!activeBankId,
+    enabled: !!activeBankId && canAccessChecklists,
   })
 
   // Auto-select first category if none active
@@ -78,11 +89,12 @@ export function ChecklistsPage() {
     data: checklistItems = [],
     isLoading: isItemsLoading,
     isError: isItemsError,
+    error: itemsError,
     refetch: refetchItems,
   } = useQuery({
     queryKey: ['category-checklist', activeBankId, currentCategoryId],
     queryFn: () => fetchCategoryChecklist(activeBankId!, currentCategoryId!),
-    enabled: !!activeBankId && !!currentCategoryId,
+    enabled: !!activeBankId && !!currentCategoryId && canAccessChecklists,
   })
 
   // Derive template checklist ID (from any existing item or system mandatory ID)
@@ -95,17 +107,20 @@ export function ChecklistsPage() {
   const { data: requests = [] } = useQuery({
     queryKey: ['inspection-requests', activeBankId],
     queryFn: () => fetchInspectionRequests(activeBankId!),
-    enabled: !!activeBankId && activeTab === 'evidence',
+    enabled: !!activeBankId && activeTab === 'evidence' && canAccessChecklists,
   })
 
   // 4. Fetch Evidence Checklist items for Selected Request
   const {
     data: evidenceItems = [],
     isLoading: isEvidenceLoading,
+    isError: isEvidenceError,
+    error: evidenceError,
+    refetch: refetchEvidence,
   } = useQuery({
     queryKey: ['request-evidence-items', activeBankId, selectedRequestId],
     queryFn: () => fetchRequestChecklistItems(activeBankId!, selectedRequestId),
-    enabled: !!activeBankId && !!selectedRequestId && activeTab === 'evidence',
+    enabled: !!activeBankId && !!selectedRequestId && activeTab === 'evidence' && canAccessChecklists,
   })
 
   // Add Custom Item Mutation
@@ -170,12 +185,31 @@ export function ChecklistsPage() {
     addMutation.mutate(payload)
   }
 
-  if (!activeBankId) {
+  if (user && !canAccessChecklists) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-ink-mute">
-        <ListChecks className="mb-3 size-12 opacity-30" />
-        <h3 className="text-base font-semibold text-ink">No Bank Workspace Selected</h3>
-        <p className="mt-1 text-xs text-ink-mute">Please select a bank workspace in the top header to manage checklists.</p>
+      <div className="py-8">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={
+            isArabic
+              ? 'قوائم الفحص متاحة فقط لمديري البنوك والمراجعين ومسؤولي النظام.'
+              : 'Inspection checklists are accessible only to Bank Managers, Reviewers, and Administrators.'
+          }
+          backUrl="/"
+          backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
+        />
+      </div>
+    )
+  }
+
+  if (!activeBankId || (!isGlobalStaff && banks.length === 0)) {
+    return (
+      <div className="py-8">
+        <WorkspaceRequiredView
+          featureName="inspection checklists"
+          featureNameAr="قوائم الفحص"
+        />
       </div>
     )
   }
@@ -234,8 +268,12 @@ export function ChecklistsPage() {
               <span className="text-xs text-ink-mute">Loading vehicle categories…</span>
             </div>
           ) : isCategoriesError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-600">
-              Failed to load vehicle categories.
+            <div className="py-2">
+              <ErrorView
+                compact
+                error={categoriesError}
+                onRetry={() => void refetchCategories()}
+              />
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-4">
@@ -291,11 +329,12 @@ export function ChecklistsPage() {
                 <CircleNotch className="size-8 animate-spin text-ink-mute" />
               </div>
             ) : isItemsError ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <p className="mb-3 text-xs text-red-500">Failed to load category checklist.</p>
-                <Button variant="outline" size="sm" onClick={() => void refetchItems()}>
-                  Retry
-                </Button>
+              <div className="p-6">
+                <ErrorView
+                  compact
+                  error={itemsError}
+                  onRetry={() => void refetchItems()}
+                />
               </div>
             ) : checklistItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-ink-mute">
@@ -392,18 +431,19 @@ export function ChecklistsPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex-1">
                 <label className="mb-1 block text-xs font-medium text-ink-soft">Select Request</label>
-                <select
+                <Select
+                  searchable="auto"
+                  clearable
                   value={selectedRequestId}
-                  onChange={(e) => setSelectedRequestId(e.target.value)}
-                  className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                >
-                  <option value="">-- Choose an inspection request --</option>
-                  {requests.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.requestNumber} ({r.currentStatus})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedRequestId}
+                  placeholder="-- Choose an inspection request --"
+                  options={requests.map((r) => ({
+                    value: r.id,
+                    label: r.requestNumber,
+                    badge: r.currentStatus,
+                    keywords: `${r.requestNumber} ${r.currentStatus}`,
+                  }))}
+                />
               </div>
 
               <div className="flex-1">
@@ -436,6 +476,14 @@ export function ChecklistsPage() {
               {isEvidenceLoading ? (
                 <div className="flex justify-center py-16">
                   <CircleNotch className="size-8 animate-spin text-ink-mute" />
+                </div>
+              ) : isEvidenceError ? (
+                <div className="p-6">
+                  <ErrorView
+                    compact
+                    error={evidenceError}
+                    onRetry={() => void refetchEvidence()}
+                  />
                 </div>
               ) : evidenceItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center text-ink-mute">
@@ -577,18 +625,19 @@ export function ChecklistsPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink-soft">Input Type</label>
-                <select
+                <Select
+                  clearable={false}
                   value={form.inputType}
-                  onChange={(e) =>
-                    setForm({ ...form, inputType: e.target.value as ChecklistInputType })
+                  onChange={(val) =>
+                    setForm({ ...form, inputType: val as ChecklistInputType })
                   }
-                  className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                >
-                  <option value="BOOLEAN">Boolean (Pass / Fail / Yes / No)</option>
-                  <option value="TEXT">Text (Freeform notes / value)</option>
-                  <option value="NUMBER">Number (Numeric rating or metric)</option>
-                  <option value="SELECT">Select (Predefined choices)</option>
-                </select>
+                  options={[
+                    { value: 'BOOLEAN', label: 'Boolean (Pass / Fail / Yes / No)' },
+                    { value: 'TEXT', label: 'Text (Freeform notes / value)' },
+                    { value: 'NUMBER', label: 'Number (Numeric rating or metric)' },
+                    { value: 'SELECT', label: 'Select (Predefined choices)' },
+                  ]}
+                />
               </div>
 
               {form.inputType === 'SELECT' && (
