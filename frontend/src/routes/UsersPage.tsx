@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
+import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchUsers,
   fetchUserById,
@@ -196,29 +197,29 @@ export function UsersPage() {
       {renderCreateModal()}
       {renderDeleteConfirmModal()}
 
-      <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-hairline bg-paper/50 flex flex-wrap gap-4 justify-between items-center">
-          <div>
-            <h2 className="font-semibold text-ink">{t('users.title', 'System Users')}</h2>
-            <p className="text-xs text-ink-mute mt-0.5">
-              {t('users.subtitle', 'Manage user access, roles, and bank affiliations across EuroInspect 360.')}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-ink-mute bg-bone px-2 py-1 rounded">
+      <PageHeader
+        kicker={t('titles.usersMeta', 'IDENTITY · ACCESS')}
+        kickerIcon={UsersThree}
+        title={t('users.title', 'System Users')}
+        subtitle={t('users.subtitle', 'Manage user access, roles, and bank affiliations across EuroInspect 360.')}
+        actions={
+          <>
+            <span className="rounded-lg bg-paper px-2.5 py-1.5 font-mono text-xs text-ink-mute border border-hairline">
               {data.length} {t('users.total', 'TOTAL')}
             </span>
             <Button
               size="sm"
               onClick={() => setIsCreatingUser(true)}
-              className="flex items-center gap-1.5 text-xs cursor-pointer"
+              className="h-9 flex items-center gap-1.5 rounded-xl px-3.5 text-xs cursor-pointer"
             >
               <UserPlus className="size-4" weight="bold" />
               {t('users.newUser', 'New User')}
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      />
 
+      <div className="rounded-2xl border border-hairline bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm">
             <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">

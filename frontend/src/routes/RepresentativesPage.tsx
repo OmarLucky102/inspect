@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { ErrorView } from '@/components/errors/ErrorView';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import {
   fetchRepresentatives,
@@ -164,39 +165,31 @@ export function RepresentativesPage() {
   return (
     <div className="space-y-6 pb-12 animate-in fade-in-0 duration-300">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-hairline pb-5">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-paper px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider text-ink-mute uppercase border border-hairline">
-              <IdentificationBadge className="size-3 text-accent" />
-              {t('representatives.kicker', 'Inspection Domain · Field Ops')}
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-            {t('representatives.title', 'Representatives')}
-          </h1>
-          <p className="text-sm text-ink-mute mt-1">
-            {t('representatives.subtitle', 'Manage field inspection agents, operational branches, and availability for vehicle evaluations.')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <PageHeader
+        kicker={t('representatives.kicker', 'Inspection Domain · Field Ops')}
+        kickerIcon={IdentificationBadge}
+        title={t('representatives.title', 'Representatives')}
+        subtitle={t(
+          'representatives.subtitle',
+          'Manage field inspection agents, operational branches, and availability for vehicle evaluations.',
+        )}
+        actions={
           <Button
             type="button"
             onClick={handleOpenAdd}
-            className="h-9 gap-2 bg-ink text-white hover:bg-ink/90 text-xs font-medium cursor-pointer shadow-xs"
+            className="h-9 gap-2 rounded-xl bg-ink text-white hover:bg-ink/90 text-xs font-medium cursor-pointer shadow-xs"
           >
             <Plus className="size-4" />
             {t('representatives.addRep', 'Add Representative')}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Top Overview KPI Cards */}
       <RepresentativeOverviewStats />
 
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-xl border border-hairline bg-white shadow-2xs space-y-3">
+      <div className="p-4 rounded-2xl border border-hairline bg-white shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">

@@ -35,7 +35,7 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
   })
 
   return (
-    <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden relative">
+    <div className="rounded-2xl border border-hairline bg-white shadow-xs overflow-hidden relative">
       <div className="flex border-b border-hairline bg-paper/50 px-5 pt-4">
         <h3 className="font-semibold text-lg pb-4 me-6">{t('banks.manageBank', 'Manage Bank')}</h3>
         <nav className="flex gap-4">

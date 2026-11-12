@@ -30,6 +30,7 @@ import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api'
 import { ErrorView } from '@/components/errors/ErrorView'
 import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView'
+import { PageHeader } from '@/components/layout/PageHeader'
 
 export function ChecklistsPage() {
   const { t, i18n } = useTranslation()
@@ -216,48 +217,46 @@ export function ChecklistsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header / Mode Switcher */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-semibold text-ink text-xl">Inspection Checklists</h2>
-          <p className="text-xs text-ink-mute">
-            Configure audit templates per vehicle category &amp; inspect completed request evidence
-          </p>
-        </div>
+      <PageHeader
+        kicker={t('titles.checklistsMeta', 'INSPECTION · EVIDENCE')}
+        kickerIcon={ListChecks}
+        title={t('titles.checklists', 'Inspection Checklists')}
+        subtitle="Configure audit templates per vehicle category & inspect completed request evidence"
+        actions={
+          <>
+            <div className="inline-flex rounded-xl border border-hairline bg-paper p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('templates')}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === 'templates'
+                    ? 'bg-white text-ink shadow-xs font-semibold'
+                    : 'text-ink-mute hover:text-ink'
+                }`}
+              >
+                Category Templates
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('evidence')}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === 'evidence'
+                    ? 'bg-white text-ink shadow-xs font-semibold'
+                    : 'text-ink-mute hover:text-ink'
+                }`}
+              >
+                Request Evidence
+              </button>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-xl border border-hairline bg-paper/60 p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('templates')}
-              className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === 'templates'
-                  ? 'bg-white text-ink shadow-xs'
-                  : 'text-ink-mute hover:text-ink'
-              }`}
-            >
-              Category Templates
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('evidence')}
-              className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === 'evidence'
-                  ? 'bg-white text-ink shadow-xs'
-                  : 'text-ink-mute hover:text-ink'
-              }`}
-            >
-              Request Evidence
-            </button>
-          </div>
-
-          {activeTab === 'templates' && canManage && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-              <Plus className="mr-1 size-4" /> Add Item
-            </Button>
-          )}
-        </div>
-      </div>
+            {activeTab === 'templates' && canManage && (
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="h-9 rounded-xl px-3.5 cursor-pointer">
+                <Plus className="me-1 size-4" /> Add Item
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {activeTab === 'templates' ? (
         <>

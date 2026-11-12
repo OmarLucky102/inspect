@@ -50,17 +50,19 @@ export function AppShellSkeleton() {
       {/* Main Content Area */}
       <div className="flex min-w-0 flex-col">
         {/* Header Skeleton */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-hairline bg-paper/80 px-4 sm:px-6 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-ink/10 lg:hidden" />
-            <div className="space-y-1">
-              <div className="h-4 w-32 rounded bg-ink/10" />
-              <div className="h-2.5 w-20 rounded bg-ink/10" />
+        <header className="sticky top-0 z-20 border-b border-hairline bg-paper/80 backdrop-blur-md">
+          <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-lg bg-ink/10 lg:hidden" />
+              <div className="space-y-1">
+                <div className="h-4 w-32 rounded bg-ink/10" />
+                <div className="h-2.5 w-20 rounded bg-ink/10" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-36 rounded-xl bg-ink/10" />
-            <div className="size-8 rounded-xl bg-ink/10" />
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-36 rounded-xl bg-ink/10" />
+              <div className="size-8 rounded-xl bg-ink/10" />
+            </div>
           </div>
         </header>
 

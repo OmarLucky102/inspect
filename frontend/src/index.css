@@ -44,12 +44,14 @@
   color-scheme: dark;
 }
 
-html,
-body {
+html {
   height: 100%;
+  scrollbar-gutter: stable;
 }
 
 body {
+  height: 100%;
+  overflow-x: clip;
   font-family: var(--font-sans);
   background: var(--color-bone);
   color: var(--color-ink);

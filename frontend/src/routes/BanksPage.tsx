@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchBanks, createBank, type CreateBankDto } from '@/features/banks/api'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { Button } from '@/components/ui/button'
@@ -108,7 +109,13 @@ export function BanksPage() {
     }
 
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="space-y-6">
+        <PageHeader
+          kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
+          kickerIcon={BankIcon}
+          title={t('banks.title', 'Bank Workspace')}
+          subtitle={t('banks.subtitle', 'Review your bank workspace details and manage assigned team members.')}
+        />
         <BankDetails bankId={activeBankId} onClose={() => {}} />
       </div>
     )
@@ -252,20 +259,24 @@ export function BanksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-hairline bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-hairline bg-paper/50 flex justify-between items-center">
-          <div>
-            <h2 className="font-semibold text-ink">{t('banks.title', 'Banks (Workspaces)')}</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-ink-mute bg-bone px-2 py-1 rounded">
+      <PageHeader
+        kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
+        kickerIcon={BankIcon}
+        title={t('banks.title', 'Banks (Workspaces)')}
+        subtitle={t('banks.subtitle', 'Administer partner bank workspaces, codes, and assigned team memberships.')}
+        actions={
+          <>
+            <span className="rounded-lg bg-paper px-2.5 py-1.5 font-mono text-xs text-ink-mute border border-hairline">
               {data.length} {t('banks.total', 'TOTAL')}
             </span>
-            <Button size="sm" onClick={() => setIsCreating(true)} className="gap-1.5 cursor-pointer">
+            <Button size="sm" onClick={() => setIsCreating(true)} className="h-9 gap-1.5 rounded-xl px-3.5 cursor-pointer">
               <Plus className="size-4" /> {t('banks.newBank', 'New Bank')}
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      />
+
+      <div className="rounded-2xl border border-hairline bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm">
             <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">

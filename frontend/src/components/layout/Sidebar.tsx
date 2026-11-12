@@ -68,20 +68,20 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 px-5 pt-6 pb-2">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-hairline px-5">
         <img
           src={getCdnAsset('logo.webp')}
           alt="Inspect Logo"
-          className="h-8 w-auto max-w-[120px] object-contain rounded-lg"
+          className="h-8 w-auto max-w-[110px] shrink-0 rounded-lg object-contain"
           onError={(e) => {
             e.currentTarget.style.display = 'none';
           }}
         />
-        <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-[0.18em]">
+        <div className="min-w-0 leading-tight">
+          <p className="truncate text-sm font-semibold tracking-[0.18em]">
             {t('common.inspect', 'INSPECT')}
           </p>
-          <p className="font-mono text-[10px] tracking-[0.22em] text-ink-mute">
+          <p className="truncate font-mono text-[10px] tracking-[0.22em] text-ink-mute">
             {t('common.adminConsole', 'ADMIN CONSOLE')}
           </p>
         </div>
@@ -102,9 +102,9 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                     onClick={onNavigate}
                     className={({ isActive }) =>
                       cn(
-                        'group flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+                        'group flex min-h-[40px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
                         isActive
-                          ? 'bg-ink text-white shadow-[0_12px_24px_-14px_rgba(20,23,26,0.7)]'
+                          ? 'bg-ink text-white shadow-xs'
                           : 'text-ink-soft hover:bg-paper hover:text-ink',
                       )
                     }
@@ -120,7 +120,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                           )}
                           aria-hidden
                         />
-                        {getItemLabel(item.label)}
+                        <span className="truncate">{getItemLabel(item.label)}</span>
                       </>
                     )}
                   </NavLink>
@@ -132,10 +132,12 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="border-t border-hairline p-4">
-        <div className="rounded-xl bg-paper px-3.5 py-3 font-mono text-[10px] leading-relaxed tracking-[0.14em] text-ink-mute">
-          {t('common.systemNotice', 'STAGE 01 · AUTH LIVE')}
-          <br />
-          {t('common.stageModules', 'STAGE 02 · MODULES')}
+        <div className="flex items-center justify-between rounded-xl bg-paper px-3.5 py-2.5 font-mono text-[10px] tracking-[0.14em] text-ink-mute">
+          <span className="truncate">EUROINSPECT 360</span>
+          <span className="inline-flex items-center gap-1.5 shrink-0 text-accent font-semibold">
+            <span className="size-1.5 rounded-full bg-accent" aria-hidden />
+            LIVE
+          </span>
         </div>
       </div>
     </div>
@@ -146,7 +148,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop: fixed column */}
-      <aside className="hidden border-r rtl:border-r-0 rtl:border-l border-hairline bg-white lg:block">
+      <aside className="hidden w-[260px] border-r rtl:border-r-0 rtl:border-l border-hairline bg-white lg:block">
         <div className="sticky top-0 h-[100dvh]">
           <SidebarBody />
         </div>
@@ -169,7 +171,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         />
         <aside
           className={cn(
-            'absolute top-0 left-0 rtl:left-auto rtl:right-0 h-full w-[280px] bg-white shadow-2xl transition-transform duration-200',
+            'absolute top-0 left-0 rtl:left-auto rtl:right-0 h-full w-[260px] bg-white shadow-2xl transition-transform duration-200',
             mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full',
           )}
           role="dialog"
