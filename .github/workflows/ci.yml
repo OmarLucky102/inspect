@@ -104,6 +104,6 @@ jobs:
         run: docker compose --profile migration build
         env:
           DOCKER_BUILDKIT: 1
-          SERVER_PORT: 8000
+          SERVER_PORT: 18080
           FRONTEND_PORT: 80
           VITE_API_URL: /api/v1

@@ -6,7 +6,6 @@ services:
   # ============================================================================
   postgres:
     image: postgres:17.11
-    container_name: inspect_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -34,7 +33,6 @@ services:
   # ============================================================================
   seaweedfs:
     image: chrislusf/seaweedfs:4.51
-    container_name: inspect_seaweedfs
     restart: unless-stopped
     command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -ip=seaweedfs'
     volumes:
@@ -65,14 +63,13 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        PORT: ${SERVER_PORT:-8000}
-    container_name: inspect_api
+        PORT: ${SERVER_PORT:-18080}
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - NODE_ENV=development
-      - SERVER_PORT=${SERVER_PORT:-8000}
+      - SERVER_PORT=${SERVER_PORT:-18080}
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-postgres}
@@ -81,7 +78,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-inspect}?schema=public
       - S3_ENDPOINT=${S3_ENDPOINT:-http://seaweedfs:8333}
     ports:
-      - '${SERVER_PORT:-8000}:${SERVER_PORT:-8000}'
+      - '${SERVER_PORT:-18080}:${SERVER_PORT:-18080}'
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,7 +96,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: builder
-    container_name: inspect_migration
     restart: 'no'
     env_file:
       - .env
@@ -124,10 +120,9 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
         VITE_CDN_URL: ${VITE_CDN_URL:-https://pub-860509c206114698ad0b355f757c0bf3.r2.dev}
-    container_name: inspect_frontend
     restart: unless-stopped
-    ports:
-      - '${FRONTEND_PORT:-80}:80'
+    expose:
+      - "80"
     depends_on:
       app:
         condition: service_healthy

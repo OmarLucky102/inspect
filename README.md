@@ -59,8 +59,8 @@ docker compose --profile migration up -d --build
 ### 3. Verify Running Services
 
 Once started, the services are accessible at:
-- **NestJS API**: `http://localhost:8000/api/v1`
-- **Health Check**: `http://localhost:8000/health`
+- **NestJS API**: `http://localhost:18080/api/v1`
+- **Health Check**: `http://localhost:18080/health`
 - **Frontend App**: `http://localhost:80`
 - **PostgreSQL**: `localhost:5432`
 
