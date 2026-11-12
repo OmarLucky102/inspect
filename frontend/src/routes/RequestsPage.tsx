@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { fetchInspectionRequests } from '@/features/inspection-requests/api';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { Button } from '@/components/ui/button';
@@ -137,77 +138,95 @@ export function RequestsPage() {
     );
   }
 
+  const reviewerQueueLabel =
+    reviewerQueueFilter === 'ALL'
+      ? t('requests.allRequests', 'All Requests')
+      : reviewerQueueFilter === 'INITIAL'
+        ? t('requests.queueInitial', 'Initial Review')
+        : reviewerQueueFilter === 'MEDIA'
+          ? t('requests.queueMedia', 'Media Review')
+          : reviewerQueueFilter === 'AWAITING_APPROVAL'
+            ? t('requests.queueAwaitingApproval', 'Awaiting Approval')
+            : t('requests.queueDone', 'History');
+
+  const reviewerFilterOptions: Array<{
+    key: 'ALL' | 'INITIAL' | 'MEDIA' | 'AWAITING_APPROVAL' | 'DONE';
+    label: string;
+  }> = [
+    { key: 'ALL', label: t('requests.allRequests', 'All Requests') },
+    { key: 'INITIAL', label: t('requests.queueInitial', 'Initial Review') },
+    { key: 'MEDIA', label: t('requests.queueMedia', 'Media Review') },
+    {
+      key: 'AWAITING_APPROVAL',
+      label: t('requests.queueAwaitingApproval', 'Awaiting Approval'),
+    },
+    { key: 'DONE', label: t('requests.queueDone', 'History') },
+  ];
+
+  const headerActions = isReviewer ? (
+    <div className="flex flex-wrap items-center gap-1 rounded-xl border border-hairline bg-paper p-1 text-xs font-medium">
+      {reviewerFilterOptions.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => setReviewerQueueFilter(opt.key)}
+          className={`rounded-lg px-2.5 py-1 transition-colors cursor-pointer ${
+            reviewerQueueFilter === opt.key
+              ? 'bg-white font-semibold text-accent shadow-xs'
+              : 'text-ink-mute hover:text-ink'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  ) : canCreateRequest ? (
+    <Button
+      size="sm"
+      onClick={() => navigate('/requests/new')}
+      className="h-9 rounded-xl px-3.5 cursor-pointer"
+    >
+      <Plus className="me-1.5 size-4" /> {t('requests.newRequest', 'New Request')}
+    </Button>
+  ) : null;
+
+  const pageHeader = (
+    <PageHeader
+      kicker={t('titles.requestsMeta', 'INSPECTION · PIPELINE')}
+      kickerIcon={ClipboardText}
+      badges={
+        isReviewer ? (
+          <span className="inline-flex items-center gap-1 rounded-md border border-accent/20 bg-accent/10 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-accent">
+            <FunnelSimple className="size-3" />
+            {reviewerQueueLabel}
+          </span>
+        ) : undefined
+      }
+      title={
+        isReviewer
+          ? t('requests.title', 'Reviewer Workflow Queues')
+          : t('requests.title', 'Inspection Requests')
+      }
+      subtitle={
+        isReviewer
+          ? t(
+              'requests.subtitle',
+              'Initial intake reviews (Stage 2) & media evaluations (Stage 4)',
+            )
+          : t(
+              'requests.subtitle',
+              'Create and manage vehicle inspection requests for your bank.',
+            )
+      }
+      actions={headerActions}
+    />
+  );
+
   if (!data || data.length === 0) {
     if (isReviewer) {
       return (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-hairline bg-white p-4 rounded-xl">
-            <div>
-              <h2 className="font-semibold text-ink">
-                {t('requests.title', 'Reviewer Workflow Queues')}
-              </h2>
-              <p className="text-xs text-ink-mute">
-                {t('requests.subtitle', 'Initial intake reviews and field media inspections')}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 rounded-xl border border-hairline bg-paper p-1 text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('ALL')}
-                className={`rounded-lg px-3 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'ALL'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.allRequests', 'All Requests')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('INITIAL')}
-                className={`rounded-lg px-3 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'INITIAL'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueInitial', 'Initial Review')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('MEDIA')}
-                className={`rounded-lg px-3 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'MEDIA'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueMedia', 'Media Review')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('AWAITING_APPROVAL')}
-                className={`rounded-lg px-3 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'AWAITING_APPROVAL'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueAwaitingApproval', 'Awaiting Approval')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('DONE')}
-                className={`rounded-lg px-3 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'DONE'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueDone', 'History')}
-              </button>
-            </div>
-          </div>
+          {pageHeader}
 
           <div className="flex flex-col items-center justify-center rounded-2xl border border-hairline bg-white py-16 text-center shadow-xs">
             <ClipboardText className="size-12 text-ink-mute" />
@@ -236,109 +255,16 @@ export function RequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-hairline bg-white shadow-xs">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-hairline bg-paper/30 px-6 py-4">
-          <div>
-            {isReviewer ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-ink">
-                    {t('requests.title', 'Reviewer Workflow Queues')}
-                  </h2>
-                  <span className="inline-flex items-center gap-1 rounded-lg bg-accent/10 border border-accent/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-accent tracking-wider">
-                    <FunnelSimple className="size-3" />
-                    {reviewerQueueFilter === 'ALL'
-                      ? t('requests.allRequests', 'All Requests')
-                      : reviewerQueueFilter === 'INITIAL'
-                        ? t('requests.queueInitial', 'Initial Review')
-                        : reviewerQueueFilter === 'MEDIA'
-                          ? t('requests.queueMedia', 'Media Review')
-                          : reviewerQueueFilter === 'AWAITING_APPROVAL'
-                            ? t('requests.queueAwaitingApproval', 'Awaiting Approval')
-                            : t('requests.queueDone', 'History')}
-                  </span>
-                </div>
-                <p className="text-xs text-ink-mute">
-                  {t('requests.subtitle', 'Initial intake reviews (Stage 2) & media evaluations (Stage 4)')}
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="font-semibold text-ink">{t('requests.title', 'Inspection Requests')}</h2>
-                <p className="text-xs text-ink-mute">
-                  {t('requests.subtitle', 'Intake and status of vehicle inspections')}
-                </p>
-              </>
-            )}
-          </div>
+      {pageHeader}
 
-          {isReviewer ? (
-            <div className="flex items-center gap-1 rounded-xl border border-hairline bg-paper p-1 text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('ALL')}
-                className={`rounded-lg px-2.5 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'ALL'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.allRequests', 'All Requests')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('INITIAL')}
-                className={`rounded-lg px-2.5 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'INITIAL'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueInitial', 'Initial Review')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('MEDIA')}
-                className={`rounded-lg px-2.5 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'MEDIA'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueMedia', 'Media Review')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('AWAITING_APPROVAL')}
-                className={`rounded-lg px-2.5 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'AWAITING_APPROVAL'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueAwaitingApproval', 'Awaiting Approval')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReviewerQueueFilter('DONE')}
-                className={`rounded-lg px-2.5 py-1 transition-colors cursor-pointer ${
-                  reviewerQueueFilter === 'DONE'
-                    ? 'bg-white font-semibold text-accent shadow-xs'
-                    : 'text-ink-mute hover:text-ink'
-                }`}
-              >
-                {t('requests.queueDone', 'History')}
-              </button>
-            </div>
-          ) : canCreateRequest ? (
-            <Button
-              size="sm"
-              onClick={() => navigate('/requests/new')}
-              className="h-8 rounded-lg px-3"
-            >
-              <Plus className="me-1.5 size-4" /> {t('requests.newRequest', 'New Request')}
-            </Button>
-          ) : null}
+      <div className="overflow-hidden rounded-2xl border border-hairline bg-white shadow-xs">
+        <div className="flex items-center justify-between border-b border-hairline bg-paper/40 px-5 py-3.5">
+          <h2 className="text-sm font-semibold text-ink">
+            {isReviewer ? reviewerQueueLabel : t('requests.allRequests', 'All Requests')}
+          </h2>
+          <span className="rounded-lg bg-bone px-2.5 py-1 font-mono text-xs text-ink-mute">
+            {data.length} {t('common.total', 'TOTAL')}
+          </span>
         </div>
 
         <div className="overflow-x-auto">

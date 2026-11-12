@@ -20,27 +20,29 @@ export function ModuleEmptyState({
   onAction,
 }: ModuleEmptyStateProps) {
   return (
-    <section>
-      <p className="font-mono text-[11px] tracking-[0.24em] text-ink-mute">
-        {kicker}
-      </p>
-      <h2 className="mt-3 max-w-[24ch] text-3xl font-semibold tracking-tighter text-balance sm:text-4xl">
-        {title}
-      </h2>
-      <div className="mt-6 max-w-3xl rounded-3xl border border-hairline bg-white p-6 shadow-[0_20px_40px_-24px_rgba(20,23,26,0.25)] sm:p-8">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+    <section className="mx-auto max-w-2xl py-8">
+      <div className="text-center">
+        <p className="font-mono text-[11px] tracking-[0.24em] text-ink-mute uppercase">
+          {kicker}
+        </p>
+        <h2 className="mt-2.5 text-2xl font-bold tracking-tight text-balance text-ink sm:text-3xl">
+          {title}
+        </h2>
+      </div>
+      <div className="mt-6 rounded-2xl border border-hairline bg-white p-6 shadow-xs sm:p-8">
+        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-start">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-hairline bg-bone text-ink">
             <Icon className="size-5" aria-hidden />
           </span>
-          <div>
-            <p className="text-[15px] font-semibold">Nothing to show yet</p>
-            <p className="mt-1 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-ink">Nothing to show yet</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-soft">
               {body}
             </p>
           </div>
         </div>
         {actionLabel && (
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 border-t border-hairline pt-5 sm:justify-start">
             <Button
               type="button"
               disabled={!onAction}
