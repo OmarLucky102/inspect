@@ -303,9 +303,27 @@ input:-webkit-autofill:active {
   left: 0 !important;
 }
 
-/* SVG Chart wrapper coordinate protection */
+/* SVG Chart & 403 illustration coordinate protection */
 [dir="rtl"] .recharts-wrapper {
   direction: ltr;
+}
+
+[dir="rtl"] .robot-forbidden-svg,
+[dir="rtl"] .robot-forbidden-svg text,
+[dir="rtl"] .robot-forbidden-svg use {
+  direction: ltr !important;
+  unicode-bidi: bidi-override;
+  text-anchor: start;
+}
+
+[dir="rtl"] .lock-unauthorized-svg,
+[dir="rtl"] .lock-unauthorized-svg text,
+[dir="rtl"] .lock-unauthorized-svg use,
+[dir="rtl"] .validation-conflict-svg,
+[dir="rtl"] .validation-conflict-svg text,
+[dir="rtl"] .validation-conflict-svg use {
+  direction: ltr !important;
+  unicode-bidi: bidi-override;
 }
 
 /* RTL Input icon mirroring */

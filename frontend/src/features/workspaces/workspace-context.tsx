@@ -15,6 +15,7 @@ import {
 } from './api'
 import { useAuth } from '@/features/auth/auth-context'
 import { getAccessToken } from '@/lib/api'
+import { AppShellSkeleton } from '@/components/layout/AppShellSkeleton'
 
 interface WorkspaceContextValue {
   user: UserProfile | null
@@ -136,7 +137,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         refreshUser,
       }}
     >
-      {children}
+      {isLoading ? <AppShellSkeleton /> : children}
     </WorkspaceContext.Provider>
   )
 }

@@ -104,31 +104,10 @@ api.interceptors.response.use(
   },
 )
 
-import i18n from './i18n'
-import { translateErrorMessage } from './error-translator'
+import { parseApiError } from './errors/app-error'
 
 /** Extract a human message from the API error envelope with full Arabic localization support. */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
-  const currentLang = i18n.language || 'en'
-
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data as
-      | { message?: string | string[]; error?: string }
-      | undefined
-
-    if (Array.isArray(data?.message)) {
-      return data.message
-        .map((m) => translateErrorMessage(String(m), currentLang))
-        .join(currentLang.startsWith('ar') ? '، ' : '. ')
-    }
-    if (typeof data?.message === 'string' && data.message.trim()) {
-      return translateErrorMessage(data.message.trim(), currentLang)
-    }
-    if (!error.response) {
-      return translateErrorMessage('Cannot reach the server. Check your connection.', currentLang)
-    }
-  }
-
-  return translateErrorMessage(fallback, currentLang)
+  return parseApiError(error, fallback).message
 }
 

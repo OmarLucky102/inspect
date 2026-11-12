@@ -13,15 +13,25 @@ import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState';
 import { fetchInspectionRequests } from '@/features/inspection-requests/api';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { Button } from '@/components/ui/button';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView';
 
 export function RequestsPage() {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
-  const { activeBankId, user } = useWorkspace();
+  const { activeBankId, banks, user } = useWorkspace();
   const navigate = useNavigate();
   const [reviewerQueueFilter, setReviewerQueueFilter] = useState<
     'ALL' | 'INITIAL' | 'MEDIA' | 'AWAITING_APPROVAL' | 'DONE'
   >('ALL');
+
+  const isGlobalStaff =
+    user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+  const canViewRequests =
+    isGlobalStaff ||
+    user?.role === 'MANAGER' ||
+    user?.role === 'REVIEWER' ||
+    user?.role === 'REPRESENTATIVE';
 
   function getStatusBadge(status: string) {
     if (status === 'COMPLETED') {
@@ -73,16 +83,37 @@ export function RequestsPage() {
     else statusParam = undefined;
   }
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['inspection-requests', activeBankId, statusParam],
     queryFn: () => fetchInspectionRequests(activeBankId!, statusParam),
-    enabled: !!activeBankId,
+    enabled: !!activeBankId && canViewRequests,
   });
 
-  if (!activeBankId) {
+  if (user && !canViewRequests) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
-        <p>Please select a bank workspace first.</p>
+      <div className="py-8">
+        <ErrorView
+          status={403}
+          title={t('errors.forbiddenTitle', 'Access Restricted')}
+          message={
+            isArabic
+              ? 'ليس لديك صلاحية لعرض طلبات الفحص.'
+              : 'You do not have permission to view inspection requests.'
+          }
+          backUrl="/"
+          backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
+        />
+      </div>
+    );
+  }
+
+  if (!activeBankId || (!isGlobalStaff && banks.length === 0)) {
+    return (
+      <div className="py-8">
+        <WorkspaceRequiredView
+          featureName="inspection requests"
+          featureNameAr="طلبات الفحص"
+        />
       </div>
     );
   }
@@ -97,14 +128,11 @@ export function RequestsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="mb-4 text-red-500">Failed to load inspection requests.</p>
-        <button
-          onClick={() => void refetch()}
-          className="cursor-pointer text-sm font-medium underline"
-        >
-          Try again
-        </button>
+      <div className="py-8">
+        <ErrorView
+          error={error}
+          onRetry={() => void refetch()}
+        />
       </div>
     );
   }

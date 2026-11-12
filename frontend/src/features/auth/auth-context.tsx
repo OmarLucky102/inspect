@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -29,6 +30,8 @@ export type AuthStatus =
 
 export interface AuthContextValue {
   status: AuthStatus;
+  sessionExpired: boolean;
+  clearSessionExpired: () => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   retry: () => void;
@@ -41,8 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>(() => {
     return getAccessToken() ? 'authenticated' : 'pending';
   });
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const wasAuthenticatedRef = useRef(Boolean(getAccessToken()));
+
+  useEffect(() => {
+    wasAuthenticatedRef.current = status === 'authenticated';
+  }, [status]);
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
 
   const retry = useCallback(() => {
+    setSessionExpired(false);
     setStatus('pending');
     refreshRequest()
       .then((token) => {
@@ -106,10 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Listen for session expiry from API interceptor
   useEffect(() => {
     const onSessionExpired = () => {
+      const wasAuthenticated = wasAuthenticatedRef.current;
       setAccessToken(null);
       queryClient.clear();
+      if (wasAuthenticated) {
+        setSessionExpired(true);
+        broadcastAuthEvent(AUTH_SYNC_EVENTS.SESSION_EXPIRED);
+      }
       setStatus('unauthenticated');
-      broadcastAuthEvent(AUTH_SYNC_EVENTS.SESSION_EXPIRED);
     };
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, onSessionExpired);
@@ -123,12 +141,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = subscribeToAuthEvents((event) => {
       switch (event.type) {
         case AUTH_SYNC_EVENTS.LOGOUT:
+          setSessionExpired(false);
+          setAccessToken(null);
+          queryClient.clear();
+          setStatus('unauthenticated');
+          break;
         case AUTH_SYNC_EVENTS.SESSION_EXPIRED:
+          if (wasAuthenticatedRef.current) {
+            setSessionExpired(true);
+          }
           setAccessToken(null);
           queryClient.clear();
           setStatus('unauthenticated');
           break;
         case AUTH_SYNC_EVENTS.LOGIN:
+          setSessionExpired(false);
           setStatus((current) => {
             if (current !== 'authenticated') {
               retry();
@@ -145,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const token = await loginRequest(email, password);
     setAccessToken(token);
+    setSessionExpired(false);
     setStatus('authenticated');
     broadcastAuthEvent(AUTH_SYNC_EVENTS.LOGIN);
   }, []);
@@ -154,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logoutRequest();
     } finally {
       setAccessToken(null);
+      setSessionExpired(false);
       queryClient.clear();
       setStatus('unauthenticated');
       broadcastAuthEvent(AUTH_SYNC_EVENTS.LOGOUT);
@@ -161,8 +190,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ status, login, logout, retry }),
-    [status, login, logout, retry],
+    () => ({
+      status,
+      sessionExpired,
+      clearSessionExpired,
+      login,
+      logout,
+      retry,
+    }),
+    [status, sessionExpired, clearSessionExpired, login, logout, retry],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
