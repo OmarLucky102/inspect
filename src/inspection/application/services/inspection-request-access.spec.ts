@@ -18,7 +18,11 @@ describe('InspectionRequestService - Cross-Bank & Permission Authorization (403 
   const reqInBankB = '33333333-3333-4333-8333-333333333333';
   const missingReq = '44444444-4444-4444-8444-444444444444';
 
-  const makeEntity = (id: string, bankId: string, assignedRep: string | null = null) =>
+  const makeEntity = (
+    id: string,
+    bankId: string,
+    assignedRep: string | null = null,
+  ) =>
     new InspectionRequest({
       id,
       requestNumber: 'IR-BNKB-001',
@@ -100,9 +104,9 @@ describe('InspectionRequestService - Cross-Bank & Permission Authorization (403 
     mockRequestRepo.findByIdAndBankId.mockResolvedValue(null);
     mockRequestRepo.findById.mockResolvedValue(bankBEntity);
 
-    await expect(
-      service.getRequestById(reqInBankB, bankA),
-    ).rejects.toThrow(InspectionRequestAccessDeniedException);
+    await expect(service.getRequestById(reqInBankB, bankA)).rejects.toThrow(
+      InspectionRequestAccessDeniedException,
+    );
 
     await expect(
       service.updateStatus(
@@ -115,12 +119,10 @@ describe('InspectionRequestService - Cross-Bank & Permission Authorization (403 
     ).rejects.toThrow(InspectionRequestAccessDeniedException);
 
     await expect(
-      service.assignRepresentative(
-        reqInBankB,
-        bankA,
-        'rep-1',
-        { id: 'reviewer-a', role: Role.REVIEWER },
-      ),
+      service.assignRepresentative(reqInBankB, bankA, 'rep-1', {
+        id: 'reviewer-a',
+        role: Role.REVIEWER,
+      }),
     ).rejects.toThrow(InspectionRequestAccessDeniedException);
 
     await expect(
@@ -159,4 +161,3 @@ describe('InspectionRequestService - Cross-Bank & Permission Authorization (403 
     ).rejects.toThrow(InspectionRequestAccessDeniedException);
   });
 });
-

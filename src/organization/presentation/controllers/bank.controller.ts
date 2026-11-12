@@ -116,7 +116,9 @@ export class BankController {
     }
     const userId = user?.sub || user?.id;
     if (!userId) {
-      throw new ForbiddenException('Access denied. No authenticated user identity found.');
+      throw new ForbiddenException(
+        'Access denied. No authenticated user identity found.',
+      );
     }
     const membership = await this.prisma.bankMembership.findFirst({
       where: {
@@ -163,16 +165,17 @@ export class BankController {
     @CurrentUser() user: any,
   ) {
     await this.ensureBankAccess(user, bankId);
-    const { user: createdUser, membership } = await this.bankService.createBankUser({
-      bankId,
-      email: dto.email,
-      password: dto.password,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      phone: dto.phone,
-      role: dto.role,
-      isPrimary: dto.isPrimary,
-    });
+    const { user: createdUser, membership } =
+      await this.bankService.createBankUser({
+        bankId,
+        email: dto.email,
+        password: dto.password,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone,
+        role: dto.role,
+        isPrimary: dto.isPrimary,
+      });
 
     return {
       status: 'success',

@@ -101,6 +101,53 @@ export function DashboardPage() {
     refetchInterval: 30000, // automatic 30s live poll
   });
 
+  // Active bank name for display
+  const activeBankObj = useMemo(() => {
+    if (queryBankId) {
+      return banks.find((b) => b.id === queryBankId);
+    }
+    return null;
+  }, [banks, queryBankId]);
+
+  // Localized date trend for area chart (Arabic month with Latin numerals)
+  const formattedVolumeTrend = useMemo(() => {
+    if (!analytics?.volumeTrend) return [];
+    return analytics.volumeTrend.map((item) => ({
+      ...item,
+      displayDate: new Date(item.date).toLocaleDateString(
+        isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
+        { month: 'short', day: 'numeric' },
+      ),
+    }));
+  }, [analytics?.volumeTrend, isArabic]);
+
+  // Localized status breakdown for donut chart and legend
+  const formattedStatusBreakdown = useMemo(() => {
+    if (!analytics?.statusBreakdown) return [];
+    return analytics.statusBreakdown.map((item) => ({
+      ...item,
+      displayLabel: t(`statuses.${item.status.toLowerCase()}`, item.label),
+    }));
+  }, [analytics?.statusBreakdown, t]);
+
+  // Localized vehicle category names for bar chart
+  const formattedCategoryDistribution = useMemo(() => {
+    if (!analytics?.categoryDistribution) return [];
+    const arCategoryMap: Record<string, string> = {
+      Sedan: 'سيدان',
+      SUV: 'دفع رباعي (SUV)',
+      Hatchback: 'هاتشباك',
+      Coupe: 'كوبيه',
+      Crossover: 'كروس أوفر',
+      Truck: 'شاحنة / نقل',
+      Van: 'فان',
+    };
+    return analytics.categoryDistribution.map((item) => ({
+      ...item,
+      displayName: isArabic ? (arCategoryMap[item.name] || item.name) : item.name,
+    }));
+  }, [analytics?.categoryDistribution, isArabic]);
+
   // Guard: if user is not global admin and has no bank workspace assigned/selected
   if (!isGlobalStaff && (!activeBankId || banks.length === 0)) {
     return (
@@ -149,53 +196,6 @@ export function DashboardPage() {
     if (!val) return isArabic ? '0 ج.م' : '0 EGP';
     return `${val.toLocaleString('en-US')} ${isArabic ? 'ج.م' : 'EGP'}`;
   };
-
-  // Active bank name for display
-  const activeBankObj = useMemo(() => {
-    if (queryBankId) {
-      return banks.find((b) => b.id === queryBankId);
-    }
-    return null;
-  }, [banks, queryBankId]);
-
-  // Localized date trend for area chart (Arabic month with Latin numerals)
-  const formattedVolumeTrend = useMemo(() => {
-    if (!analytics?.volumeTrend) return [];
-    return analytics.volumeTrend.map((item) => ({
-      ...item,
-      displayDate: new Date(item.date).toLocaleDateString(
-        isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
-        { month: 'short', day: 'numeric' },
-      ),
-    }));
-  }, [analytics?.volumeTrend, isArabic]);
-
-  // Localized status breakdown for donut chart and legend
-  const formattedStatusBreakdown = useMemo(() => {
-    if (!analytics?.statusBreakdown) return [];
-    return analytics.statusBreakdown.map((item) => ({
-      ...item,
-      displayLabel: t(`statuses.${item.status.toLowerCase()}`, item.label),
-    }));
-  }, [analytics?.statusBreakdown, t]);
-
-  // Localized vehicle category names for bar chart
-  const formattedCategoryDistribution = useMemo(() => {
-    if (!analytics?.categoryDistribution) return [];
-    const arCategoryMap: Record<string, string> = {
-      Sedan: 'سيدان',
-      SUV: 'دفع رباعي (SUV)',
-      Hatchback: 'هاتشباك',
-      Coupe: 'كوبيه',
-      Crossover: 'كروس أوفر',
-      Truck: 'شاحنة / نقل',
-      Van: 'فان',
-    };
-    return analytics.categoryDistribution.map((item) => ({
-      ...item,
-      displayName: isArabic ? (arCategoryMap[item.name] || item.name) : item.name,
-    }));
-  }, [analytics?.categoryDistribution, isArabic]);
 
   const overview = analytics?.overview;
 
