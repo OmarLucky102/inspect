@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { BankService } from '../../application/services/bank.service';
 import { CreateBankDto } from '../dto/create-bank.dto';
@@ -39,14 +40,15 @@ export class BankController {
     Role.VIEWER,
     Role.REPRESENTATIVE,
     Role.SUPER_ADMIN,
+    Role.SYSTEM_ADMIN,
   )
   async getMyBanks(@CurrentUser() user: any) {
-    if (user.role === Role.SUPER_ADMIN) {
+    if (user.role === Role.SUPER_ADMIN || user.role === Role.SYSTEM_ADMIN) {
       const banks = await this.bankService.listBanks();
       return { status: 'success', data: banks };
     }
     const memberships = await this.prisma.bankMembership.findMany({
-      where: { userId: user.sub || user.id },
+      where: { userId: user.sub || user.id, status: 'ACTIVE' },
       include: { bank: true },
     });
     return {
@@ -81,6 +83,7 @@ export class BankController {
   }
 
   @Get()
+  @Roles(Role.SUPER_ADMIN)
   async listBanks() {
     const banks = await this.bankService.listBanks();
     return {
@@ -107,9 +110,35 @@ export class BankController {
     };
   }
 
+  private async ensureBankAccess(user: any, bankId: string): Promise<void> {
+    if (user?.role === Role.SUPER_ADMIN || user?.role === Role.SYSTEM_ADMIN) {
+      return;
+    }
+    const userId = user?.sub || user?.id;
+    if (!userId) {
+      throw new ForbiddenException('Access denied. No authenticated user identity found.');
+    }
+    const membership = await this.prisma.bankMembership.findFirst({
+      where: {
+        bankId,
+        userId,
+        status: 'ACTIVE',
+      },
+    });
+    if (!membership) {
+      throw new ForbiddenException(
+        'Access denied. You are not assigned to this bank workspace.',
+      );
+    }
+  }
+
   @Get(':bankId')
   @Roles(Role.SUPER_ADMIN, Role.MANAGER)
-  async getBank(@Param('bankId', ParseUUIDPipe) bankId: string) {
+  async getBank(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @CurrentUser() user: any,
+  ) {
+    await this.ensureBankAccess(user, bankId);
     const bank = await this.bankService.getBankById(bankId);
     return {
       status: 'success',
@@ -131,8 +160,10 @@ export class BankController {
   async createBankUser(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Body() dto: CreateBankUserDto,
+    @CurrentUser() user: any,
   ) {
-    const { user, membership } = await this.bankService.createBankUser({
+    await this.ensureBankAccess(user, bankId);
+    const { user: createdUser, membership } = await this.bankService.createBankUser({
       bankId,
       email: dto.email,
       password: dto.password,
@@ -147,13 +178,13 @@ export class BankController {
       status: 'success',
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone,
-          role: user.role,
-          isActive: user.isActive,
+          id: createdUser.id,
+          email: createdUser.email,
+          firstName: createdUser.firstName,
+          lastName: createdUser.lastName,
+          phone: createdUser.phone,
+          role: createdUser.role,
+          isActive: createdUser.isActive,
         },
         membership: {
           id: membership.id,
@@ -173,7 +204,9 @@ export class BankController {
   async addBankMember(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Body() dto: AddBankMemberDto,
+    @CurrentUser() user: any,
   ) {
+    await this.ensureBankAccess(user, bankId);
     const membership = await this.bankService.addBankMember({
       bankId,
       userId: dto.userId,
@@ -195,7 +228,11 @@ export class BankController {
 
   @Get(':bankId/members')
   @Roles(Role.SUPER_ADMIN, Role.MANAGER, Role.REVIEWER)
-  async getBankMembers(@Param('bankId', ParseUUIDPipe) bankId: string) {
+  async getBankMembers(
+    @Param('bankId', ParseUUIDPipe) bankId: string,
+    @CurrentUser() user: any,
+  ) {
+    await this.ensureBankAccess(user, bankId);
     const memberships = await this.prisma.bankMembership.findMany({
       where: { bankId, status: 'ACTIVE' },
       include: {
@@ -231,7 +268,9 @@ export class BankController {
   async removeBankMember(
     @Param('bankId', ParseUUIDPipe) bankId: string,
     @Param('userId', ParseUUIDPipe) userId: string,
+    @CurrentUser() user: any,
   ) {
+    await this.ensureBankAccess(user, bankId);
     await this.bankService.removeBankMember(bankId, userId);
     return {
       status: 'success',

@@ -47,14 +47,17 @@ export class InspectionRequestStandaloneController {
     @Query('periodDays') periodDays?: string,
     @CurrentUser() user?: { sub?: string; id?: string; role?: Role },
   ) {
+    const userId = (user?.sub || user?.id)!;
+    const role = (user?.role as Role) || Role.USER;
+
     const data = await this.inspectionRequestService.getAnalytics(
       {
         bankId,
         periodDays: periodDays ? parseInt(periodDays, 10) : 30,
       },
       {
-        id: (user?.sub || user?.id)!,
-        role: user?.role || Role.SUPER_ADMIN,
+        id: userId,
+        role,
       },
     );
     return {
@@ -72,18 +75,30 @@ export class InspectionRequestStandaloneController {
     @CurrentUser() user: { sub?: string; id?: string; role: Role },
   ) {
     const userId = (user.sub || user.id)!;
+    const isGlobalAdmin =
+      user.role === Role.SUPER_ADMIN || user.role === Role.SYSTEM_ADMIN;
+
     const reqRow = await this.prisma.inspectionRequest.findUnique({
       where: { id: requestId },
       select: { id: true, bankId: true },
     });
 
     if (!reqRow) {
+      if (!isGlobalAdmin) {
+        const anyMembership = await this.prisma.bankMembership.findFirst({
+          where: { userId, status: 'ACTIVE' },
+          select: { id: true },
+        });
+        if (!anyMembership) {
+          throw new InspectionRequestAccessDeniedException(
+            'No active bank membership found. You are not assigned to any bank workspace.',
+          );
+        }
+      }
       throw new InspectionRequestNotFoundException(requestId);
     }
 
     // Verify bank access if not global admin
-    const isGlobalAdmin =
-      user.role === Role.SUPER_ADMIN || user.role === Role.SYSTEM_ADMIN;
     if (!isGlobalAdmin) {
       const membership = await this.prisma.bankMembership.findFirst({
         where: {

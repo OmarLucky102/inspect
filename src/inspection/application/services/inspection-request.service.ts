@@ -330,16 +330,48 @@ export class InspectionRequestService {
     return request;
   }
 
+  private async findRequestInBankOrThrow(
+    requestId: string,
+    bankId: string,
+    isGlobalAdmin = false,
+  ): Promise<InspectionRequest> {
+    if (isGlobalAdmin) {
+      const request = await this.requestRepository.findById(requestId);
+      if (!request) {
+        throw new InspectionRequestNotFoundException(requestId);
+      }
+      return request;
+    }
+
+    const request = await this.requestRepository.findByIdAndBankId(
+      requestId,
+      bankId,
+    );
+    if (request) {
+      return request;
+    }
+
+    if (typeof this.requestRepository.findById === 'function') {
+      const existingInOtherBank =
+        await this.requestRepository.findById(requestId);
+      if (existingInOtherBank && existingInOtherBank.bankId !== bankId) {
+        throw new InspectionRequestAccessDeniedException(
+          'You do not have permission to access inspection requests in another bank workspace.',
+        );
+      }
+    }
+
+    throw new InspectionRequestNotFoundException(requestId);
+  }
+
   async submitRequest(
     input: SubmitInspectionRequestInput,
   ): Promise<InspectionRequest> {
-    const request = await this.requestRepository.findByIdAndBankId(
+    const request = await this.findRequestInBankOrThrow(
       input.requestId,
       input.bankId,
+      false,
     );
-    if (!request) {
-      throw new InspectionRequestNotFoundException(input.requestId);
-    }
 
     await this.validateVehicleRefs(input.vehicle);
 
@@ -391,17 +423,6 @@ export class InspectionRequestService {
       input.actor.role === Role.SUPER_ADMIN ||
       input.actor.role === Role.SYSTEM_ADMIN;
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(input.requestId)
-      : await this.requestRepository.findByIdAndBankId(
-          input.requestId,
-          input.bankId,
-        );
-
-    if (!request) {
-      throw new InspectionRequestNotFoundException(input.requestId);
-    }
-
     if (
       !isGlobalAdmin &&
       input.actor.role !== Role.MANAGER &&
@@ -409,6 +430,12 @@ export class InspectionRequestService {
     ) {
       throw new InspectionRequestAccessDeniedException();
     }
+
+    const request = await this.findRequestInBankOrThrow(
+      input.requestId,
+      input.bankId,
+      isGlobalAdmin,
+    );
 
     if (
       request.currentStatus !== InspectionStatus.DRAFT &&
@@ -607,9 +634,7 @@ export class InspectionRequestService {
   }
 
   async getRequestById(id: string, bankId: string): Promise<InspectionRequest> {
-    const request = await this.requestRepository.findByIdAndBankId(id, bankId);
-    if (!request) throw new InspectionRequestNotFoundException(id);
-    return request;
+    return this.findRequestInBankOrThrow(id, bankId, false);
   }
 
   async getRequestDetails(
@@ -626,6 +651,18 @@ export class InspectionRequestService {
     );
 
     if (!data) {
+      if (
+        !isGlobalAdmin &&
+        typeof this.requestRepository.findById === 'function'
+      ) {
+        const existingInOtherBank =
+          await this.requestRepository.findById(requestId);
+        if (existingInOtherBank && existingInOtherBank.bankId !== bankId) {
+          throw new InspectionRequestAccessDeniedException(
+            'You do not have permission to view inspection requests belonging to another bank workspace.',
+          );
+        }
+      }
       throw new InspectionRequestNotFoundException(requestId);
     }
 
@@ -650,13 +687,11 @@ export class InspectionRequestService {
     const isGlobalAdmin =
       actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(requestId)
-      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
-
-    if (!request) {
-      throw new InspectionRequestNotFoundException(requestId);
-    }
+    const request = await this.findRequestInBankOrThrow(
+      requestId,
+      bankId,
+      isGlobalAdmin,
+    );
 
     // Role-specific transition permissions
     if (newStatus === InspectionStatus.APPROVED && !isGlobalAdmin) {
@@ -795,10 +830,9 @@ export class InspectionRequestService {
     notes?: string,
     captureMode?: CaptureMode,
   ): Promise<InspectionRequestDetailResponseDto> {
-    const isAllowed =
-      actor.role === Role.SUPER_ADMIN ||
-      actor.role === Role.SYSTEM_ADMIN ||
-      actor.role === Role.REVIEWER;
+    const isGlobalAdmin =
+      actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
+    const isAllowed = isGlobalAdmin || actor.role === Role.REVIEWER;
 
     if (!isAllowed) {
       throw new InspectionRequestAccessDeniedException(
@@ -806,11 +840,11 @@ export class InspectionRequestService {
       );
     }
 
-    const request = await this.requestRepository.findById(requestId);
-
-    if (!request) {
-      throw new InspectionRequestNotFoundException(requestId);
-    }
+    const request = await this.findRequestInBankOrThrow(
+      requestId,
+      bankId,
+      isGlobalAdmin,
+    );
 
     if (
       request.currentStatus !== InspectionStatus.PENDING_ASSIGNMENT &&
@@ -973,13 +1007,11 @@ export class InspectionRequestService {
     const isGlobalAdmin =
       actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(requestId)
-      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
-
-    if (!request) {
-      throw new InspectionRequestNotFoundException(requestId);
-    }
+    const request = await this.findRequestInBankOrThrow(
+      requestId,
+      bankId,
+      isGlobalAdmin,
+    );
 
     if (
       actor.role === Role.REPRESENTATIVE &&
@@ -1069,13 +1101,11 @@ export class InspectionRequestService {
       throw new InspectionRequestAccessDeniedException();
     }
 
-    const request = isGlobalAdmin
-      ? await this.requestRepository.findById(requestId)
-      : await this.requestRepository.findByIdAndBankId(requestId, bankId);
-
-    if (!request) {
-      throw new InspectionRequestNotFoundException(requestId);
-    }
+    const request = await this.findRequestInBankOrThrow(
+      requestId,
+      bankId,
+      isGlobalAdmin,
+    );
 
     if (request.currentStatus !== InspectionStatus.UNDER_REVIEW) {
       throw new InvalidStatusTransitionException(
@@ -1314,13 +1344,13 @@ export class InspectionRequestService {
   ) {
     const isGlobalAdmin =
       actor.role === Role.SUPER_ADMIN || actor.role === Role.SYSTEM_ADMIN;
-    const isReviewer = actor.role === Role.REVIEWER;
     const periodDays =
       params.periodDays && params.periodDays > 0 ? params.periodDays : 30;
 
     let targetBankId: string | undefined = undefined;
     let bankName: string | null = null;
     let isGlobal = false;
+    let allowedBankIds: string[] = [];
 
     if (isGlobalAdmin) {
       if (params.bankId && params.bankId !== 'all') {
@@ -1333,39 +1363,9 @@ export class InspectionRequestService {
       } else {
         isGlobal = true;
       }
-    } else if (isReviewer) {
-      const memberships = await this.prisma.bankMembership.findMany({
-        where: { userId: actor.id, status: 'ACTIVE' as any },
-        select: { bankId: true, bank: { select: { name: true } } },
-      });
-      const allowedBankIds = memberships.map((m) => m.bankId);
-
-      if (params.bankId && params.bankId !== 'all') {
-        if (
-          allowedBankIds.length > 0 &&
-          !allowedBankIds.includes(params.bankId)
-        ) {
-          throw new InspectionRequestAccessDeniedException(
-            'Access denied. You can only view analytics for your assigned bank.',
-          );
-        }
-        targetBankId = params.bankId;
-        const b = await this.prisma.bank.findUnique({
-          where: { id: targetBankId },
-          select: { name: true },
-        });
-        bankName = b?.name || null;
-      } else {
-        if (allowedBankIds.length > 0) {
-          targetBankId = allowedBankIds[0];
-          const b = memberships.find((m) => m.bankId === targetBankId)?.bank;
-          bankName = b?.name || null;
-        } else {
-          isGlobal = true;
-        }
-      }
     } else {
-      // Bank Admin, Member, Manager, User, Viewer
+      // Non-global administrators (REVIEWER, MANAGER, USER, VIEWER, REPRESENTATIVE):
+      // MUST have at least one active bank membership to access any bank status or analytics
       const memberships = await this.prisma.bankMembership.findMany({
         where: { userId: actor.id, status: 'ACTIVE' as any },
         select: { bankId: true, bank: { select: { name: true } } },
@@ -1373,30 +1373,43 @@ export class InspectionRequestService {
 
       if (memberships.length === 0) {
         throw new InspectionRequestAccessDeniedException(
-          'No active bank membership found.',
+          'No active bank membership found. You are not assigned to any bank workspace.',
         );
       }
 
-      const allowedBankIds = memberships.map((m) => m.bankId);
+      allowedBankIds = memberships.map((m) => m.bankId);
+
       if (params.bankId && params.bankId !== 'all') {
         if (!allowedBankIds.includes(params.bankId)) {
           throw new InspectionRequestAccessDeniedException(
-            'Access denied. You cannot view analytics for other banks.',
+            'Access denied. You cannot view analytics or status for other banks.',
           );
         }
         targetBankId = params.bankId;
+        const b = memberships.find((m) => m.bankId === targetBankId)?.bank;
+        bankName = b?.name || null;
+        isGlobal = false;
       } else {
-        targetBankId = allowedBankIds[0];
+        // Scoped strictly to the user's assigned banks
+        if (allowedBankIds.length === 1) {
+          targetBankId = allowedBankIds[0];
+          const b = memberships.find((m) => m.bankId === targetBankId)?.bank;
+          bankName = b?.name || null;
+          isGlobal = false;
+        } else {
+          // Multiple banks assigned to user: aggregated across their banks only
+          targetBankId = undefined;
+          isGlobal = false;
+        }
       }
-
-      const b = memberships.find((m) => m.bankId === targetBankId)?.bank;
-      bankName = b?.name || null;
-      isGlobal = false;
     }
 
     const whereClause: any = {};
     if (targetBankId) {
       whereClause.bankId = targetBankId;
+    } else if (!isGlobalAdmin) {
+      // Strictly scope to user's assigned banks
+      whereClause.bankId = { in: allowedBankIds };
     }
 
     const requests = await this.prisma.inspectionRequest.findMany({
