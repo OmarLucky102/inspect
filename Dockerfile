@@ -49,7 +49,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl dumb-init ffmpeg
 
 # Configurable port (override via --build-arg PORT=<port> or env SERVER_PORT=<port>)
-ARG PORT=8000
+ARG PORT=18080
 ENV NODE_ENV=production \
     PORT=${PORT} \
     SERVER_PORT=${PORT}
