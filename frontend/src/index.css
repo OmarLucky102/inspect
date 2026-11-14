@@ -137,6 +137,235 @@ body {
   background-color: #2a3349;
 }
 
+/* ============================================================================
+ * Liquid Glass Navigation Pill (High-Fidelity Optical Refraction)
+ * Based on multi-tiered volumetric caustic shadows, specular edge refraction,
+ * and chromatic aberration dispersion fringing.
+ * ============================================================================ */
+:root {
+  --glass-specular: rgba(255, 255, 255, 0.7);
+  --glass-frost: 0.1;
+  --glass-saturation: 1.8;
+}
+
+/* Base navigation pill with soft fluid-glass hover */
+.nav-liquid-item {
+  position: relative;
+  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 1px solid transparent;
+}
+
+.nav-liquid-item:hover:not([data-active="true"]) {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(243, 241, 236, 0.75) 100%
+  );
+  border-color: rgba(20, 23, 26, 0.08);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 4px 1px rgba(255, 255, 255, 0.5),
+    0 2px 8px -2px rgba(20, 23, 26, 0.06);
+  color: #0a0a0a !important;
+}
+
+.dark .nav-liquid-item:hover:not([data-active="true"]) {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  ), rgba(22, 28, 40, 0.6);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 2px 8px rgba(0, 0, 0, 0.3),
+    0 4px 14px -4px rgba(0, 0, 0, 0.45);
+  color: #f9fafb !important;
+}
+
+/* Sliding Liquid-Glass Capsule Indicator with multi-tier caustics and chromatic dispersion */
+.nav-liquid-indicator,
+.nav-liquid-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  will-change: transform, width, height, opacity;
+  background:
+    radial-gradient(
+      ellipse 120% 80% at 50% -15%,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(240, 246, 243, 0.75) 60%,
+      rgba(230, 242, 236, 0.88) 100%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(242, 247, 244, 0.85) 48%,
+      rgba(224, 240, 233, 0.92) 100%
+    );
+  border: 1px solid rgba(14, 107, 78, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.98);
+  border-bottom-color: rgba(14, 107, 78, 0.24);
+  backdrop-filter: blur(20px) saturate(160%) contrast(104%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%) contrast(104%);
+  box-shadow:
+    /* Bevel rim specular line (top light hit) */
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.98),
+    /* Inner ambient fluid glow */
+    inset 0 0 14px 3px rgba(255, 255, 255, 0.4),
+    /* Volumetric absorption rings (from user reference) */
+    inset 0 4px 16px rgba(17, 17, 26, 0.05),
+    inset 0 8px 24px rgba(17, 17, 26, 0.04),
+    inset 0 6px 36px rgba(14, 107, 78, 0.08),
+    /* Bottom meniscus absorption */
+    inset 0 -2px 6px 0 rgba(14, 107, 78, 0.06),
+    /* Prismatic chromatic dispersion fringe (cyan/magenta edge refraction) */
+    -1px -1px 0 rgba(56, 189, 248, 0.35),
+    1px 1px 0 rgba(244, 114, 182, 0.22),
+    /* Outer soft liquid elevation */
+    0 6px 20px -3px rgba(14, 107, 78, 0.16),
+    0 2px 6px -1px rgba(20, 23, 26, 0.08);
+}
+
+/* Bottom meniscus caustic depth */
+.nav-liquid-indicator::before,
+.nav-liquid-active::before {
+  content: '';
+  position: absolute;
+  inset: auto 12% 0 12%;
+  height: 45%;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    ellipse 100% 80% at 50% 100%,
+    rgba(14, 107, 78, 0.14) 0%,
+    transparent 80%
+  );
+  filter: blur(4px);
+}
+
+/* Diagonal specular light curvature streak */
+.nav-liquid-indicator::after,
+.nav-liquid-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.4) 22%,
+    rgba(255, 255, 255, 0.08) 46%,
+    transparent 68%
+  );
+  mask-image: radial-gradient(ellipse 130% 90% at 25% 10%, black 45%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse 130% 90% at 25% 10%, black 45%, transparent 95%);
+}
+
+/* Group parent glass pill when child is active */
+.nav-liquid-group-active {
+  border: 1px solid rgba(14, 107, 78, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(240, 248, 244, 0.92) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 2px 8px rgba(14, 107, 78, 0.06);
+}
+
+/* Dark mode liquid glass styling */
+.dark .nav-liquid-indicator,
+.dark .nav-liquid-active {
+  background:
+    radial-gradient(
+      ellipse 120% 80% at 50% -15%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.04) 60%,
+      rgba(16, 185, 129, 0.16) 100%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.03) 45%,
+      rgba(16, 185, 129, 0.18) 100%
+    ),
+    rgba(18, 24, 38, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.4);
+  border-bottom-color: rgba(16, 185, 129, 0.25);
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 14px 4px rgba(16, 185, 129, 0.22),
+    inset 0 4px 16px rgba(0, 0, 0, 0.5),
+    inset 0 8px 24px rgba(0, 0, 0, 0.4),
+    inset 0 6px 40px rgba(0, 0, 0, 0.35),
+    -1px -1px 0 rgba(56, 189, 248, 0.28),
+    1px 1px 0 rgba(244, 114, 182, 0.2),
+    0 8px 26px -4px rgba(16, 185, 129, 0.36),
+    0 2px 8px -2px rgba(0, 0, 0, 0.6);
+}
+
+.dark .nav-liquid-indicator::before,
+.dark .nav-liquid-active::before {
+  background: radial-gradient(
+    ellipse 100% 80% at 50% 100%,
+    rgba(16, 185, 129, 0.22) 0%,
+    transparent 80%
+  );
+}
+
+.dark .nav-liquid-indicator::after,
+.dark .nav-liquid-active::after {
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.12) 25%,
+    rgba(255, 255, 255, 0.02) 50%,
+    transparent 70%
+  );
+}
+
+.dark .nav-liquid-group-active {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top-color: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(22, 28, 40, 0.65) 100%
+  );
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Hit impact wave when landing on target */
+.nav-liquid-impact {
+  animation: liquid-hit-pulse 0.5s cubic-bezier(0.32, 1.14, 0.38, 1);
+}
+
+@keyframes liquid-hit-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.08) contrast(104%);
+  }
+  100% {
+    filter: brightness(1) contrast(100%);
+  }
+}
+
 /* Soft status badge tints in dark mode */
 .dark .bg-purple-50 {
   background-color: rgba(168, 85, 247, 0.14) !important;

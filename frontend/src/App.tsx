@@ -46,7 +46,8 @@ export default function App() {
         <Route path="representatives" element={<RepresentativesPage />} />
         <Route path="checklists" element={<ChecklistsPage />} />
         <Route path="banks" element={<BanksPage />} />
-        <Route path="vehicle-settings" element={<VehicleSettingsPage />} />
+        <Route path="vehicle-settings" element={<Navigate to="/vehicle-settings/makes" replace />} />
+        <Route path="vehicle-settings/:tab" element={<VehicleSettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="error" element={<ErrorPage />} />
