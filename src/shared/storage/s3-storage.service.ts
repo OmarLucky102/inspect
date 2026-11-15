@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
-  GetObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { Readable } from 'stream';
 import { StorageOperationException } from '../exceptions/storage.exceptions';
 
 @Injectable()
@@ -75,26 +75,37 @@ export class S3StorageService {
     }
   }
 
-  async getPresignedUrl(
+  async getObject(
     key: string,
-    expiresInSeconds: number = 3600,
-  ): Promise<string> {
+    range?: string,
+  ): Promise<{
+    stream: Readable;
+    contentType?: string;
+    contentLength?: number;
+    contentRange?: string;
+  }> {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucket,
         Key: key,
+        Range: range,
       });
 
-      return await getSignedUrl(this.client, command, {
-        expiresIn: expiresInSeconds,
-      });
+      const response = await this.client.send(command);
+
+      return {
+        stream: response.Body as Readable,
+        contentType: response.ContentType,
+        contentLength: response.ContentLength,
+        contentRange: response.ContentRange,
+      };
     } catch (error) {
       this.logger.error(
-        `Failed to generate presigned URL for key '${key}': ${(error as Error).message}`,
+        `Failed to get object '${key}' from bucket '${this.bucket}': ${(error as Error).message}`,
         (error as Error).stack,
       );
       throw new StorageOperationException(
-        `Failed to generate presigned URL: ${(error as Error).message}`,
+        `Failed to get object: ${(error as Error).message}`,
       );
     }
   }

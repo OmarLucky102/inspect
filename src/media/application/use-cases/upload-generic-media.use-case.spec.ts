@@ -152,7 +152,7 @@ describe('UploadGenericMediaUseCase', () => {
       expect(result.status).toBe(MediaStatus.UPLOADED);
       expect(result.width).toBe(800);
       expect(result.height).toBe(800);
-      expect(result.fileUrl).toBe(uploadedKey);
+      expect(updatedMedia.fileUrl).toBe(uploadedKey);
     });
 
     it('should resolve custom category when category is provided', async () => {

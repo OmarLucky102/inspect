@@ -7,7 +7,6 @@ export class MediaResponseDto {
   uploadedById!: string;
   captureSessionId!: string | null;
   fileName!: string;
-  fileUrl!: string;
   mimeType!: string;
   fileSize!: number;
   fileHash!: string | null;
@@ -19,6 +18,7 @@ export class MediaResponseDto {
   failureReason!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
+  categoryName?: string;
 
   static fromDomain(media: Media): MediaResponseDto {
     const dto = new MediaResponseDto();
@@ -27,7 +27,6 @@ export class MediaResponseDto {
     dto.uploadedById = media.uploadedById;
     dto.captureSessionId = media.captureSessionId;
     dto.fileName = media.fileName;
-    dto.fileUrl = media.fileUrl;
     dto.mimeType = media.mimeType;
     dto.fileSize = media.fileSize;
     dto.fileHash = media.fileHash;
@@ -39,6 +38,9 @@ export class MediaResponseDto {
     dto.failureReason = media.failureReason;
     dto.createdAt = media.createdAt;
     dto.updatedAt = media.updatedAt;
+    if ((media as any).category?.name) {
+      dto.categoryName = (media as any).category.name;
+    }
     return dto;
   }
 
@@ -48,7 +50,6 @@ export class MediaResponseDto {
     uploadedById: string;
     captureSessionId: string | null;
     fileName: string;
-    fileUrl: string;
     mimeType: string;
     fileSize: number;
     fileHash: string | null;
@@ -67,7 +68,6 @@ export class MediaResponseDto {
     dto.uploadedById = media.uploadedById;
     dto.captureSessionId = media.captureSessionId;
     dto.fileName = media.fileName;
-    dto.fileUrl = media.fileUrl;
     dto.mimeType = media.mimeType;
     dto.fileSize = media.fileSize;
     dto.fileHash = media.fileHash;
@@ -79,6 +79,9 @@ export class MediaResponseDto {
     dto.failureReason = media.failureReason;
     dto.createdAt = media.createdAt;
     dto.updatedAt = media.updatedAt;
+    if ((media as any).category?.name) {
+      dto.categoryName = (media as any).category.name;
+    }
     return dto;
   }
 }
