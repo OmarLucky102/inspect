@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X,
+  XCircle,
   CircleNotch,
   User,
   Car,
@@ -20,39 +21,36 @@ import {
   Check,
   ArrowLeft,
   Phone,
+  Camera,
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { GlassButton } from '@/components/ui/glass-button';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api';
 import { ErrorView } from '@/components/errors/ErrorView';
 import { parseApiError } from '@/lib/errors/app-error';
+import { InspectionMediaGallery } from '@/features/media/components/InspectionMediaGallery';
+import { useInspectionMedia } from '@/features/media/hooks/use-inspection-media';
 import {
   fetchInspectionRequestDetails,
   fetchInspectionStatusHistory,
   updateInspectionStatus,
   assignRepresentative,
-  submitMediaReview,
   finalApproveInspection,
   requestPriceRevision,
   fetchInspectionReport,
-  fetchVehicleLookups,
 } from '../api';
 import { fetchBankMembers } from '@/features/banks/api';
 import { fetchRepresentatives } from '@/features/representatives/api';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { InspectionPhotoChecklistTab } from './InspectionPhotoChecklistTab';
+import { CompleteMediaReviewWizard } from './CompleteMediaReviewWizard';
 import {
   RepresentativeSelect,
   type RepresentativeOption,
 } from './RepresentativeSelect';
 import { LicensePlateBadge } from './LicensePlateInput';
 import { getVehicleColorHex } from '@/lib/colors';
-
-const DEFAULT_SIDE_MIRRORS = [
-  { code: 'Manual', name: 'Manual (عادي)' },
-  { code: 'Electric', name: 'Electric (كهرباء)' },
-];
 
 const DEFAULT_SUNROOF_OPTIONS = [
   { code: 'No Sunroof', name: 'No Sunroof — بدون فتحة سقف' },
@@ -69,11 +67,6 @@ const DEFAULT_SUNROOF_OPTIONS = [
     code: 'Tilt-and-Slide Sunroof',
     name: 'Tilt-and-Slide Sunroof — فتحة سقف قابلة للإمالة والانزلاق',
   },
-];
-
-const DEFAULT_TRANSMISSION_OPTIONS = [
-  { id: '', name: 'Automatic', nameAr: 'أوتوماتيك' },
-  { id: '', name: 'Manual', nameAr: 'عادي / مانيوال' },
 ];
 
 interface RequestDetailModalProps {
@@ -95,36 +88,22 @@ export function RequestDetailModal({
   const activeBankId = explicitBankId || contextBankId;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'vehicle' | 'inspection-checklist' | 'assignment' | 'history'
+    | 'overview'
+    | 'vehicle'
+    | 'inspection-checklist'
+    | 'media'
+    | 'assignment'
+    | 'history'
   >('overview');
 
   // Modals for actions
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedRepId, setSelectedRepId] = useState('');
   const [assignNotes, setAssignNotes] = useState('');
-  const [captureMode, setCaptureMode] = useState<'STANDARD' | 'ADVANCED'>(
-    'STANDARD',
-  );
 
   // Status transition modal
   const [statusAction, setStatusAction] = useState<string | null>(null);
   const [statusNote, setStatusNote] = useState('');
-
-  // Media Review Modal (Reviewer -> Propose valuation & review checklist)
-  const [isMediaReviewOpen, setIsMediaReviewOpen] = useState(false);
-  const [verifiedMileage, setVerifiedMileage] = useState<string>('');
-  const [proposedMarketingValue, setProposedMarketingValue] =
-    useState<string>('');
-  const [mediaReviewNotes, setMediaReviewNotes] = useState<string>('');
-  const [selectedTrimId, setSelectedTrimId] = useState<string>('');
-  const [selectedTransmissionTypeId, setSelectedTransmissionTypeId] =
-    useState<string>('');
-  const [selectedSideMirrors, setSelectedSideMirrors] =
-    useState<string>('Manual');
-  const [selectedSunroof, setSelectedSunroof] = useState<string>('No Sunroof');
-  const [checklistDecisions, setChecklistDecisions] = useState<
-    Record<string, { decision: 'PASS' | 'FAIL' | 'RESHOOT'; notes: string }>
-  >({});
 
   // Super Admin Price Revision Modal
   const [isPriceRevisionOpen, setIsPriceRevisionOpen] = useState(false);
@@ -138,12 +117,19 @@ export function RequestDetailModal({
   // Report download loading
   const [isDownloadingReport, setIsDownloadingReport] = useState(false);
 
-  // Query: Vehicle Lookups (Trims, Transmissions, Side Mirrors, Sunroofs)
-  const { data: vehicleLookups } = useQuery({
-    queryKey: ['vehicle-lookups'],
-    queryFn: fetchVehicleLookups,
-    staleTime: 5 * 60 * 1000,
-  });
+  // Track whether photos were uploaded locally via the dashboard wizard
+  const [hasDashboardPhotos, setHasDashboardPhotos] = useState<boolean>(false);
+
+  const handleDashboardMediaChange = useCallback(
+    (hasMedia: boolean) => {
+      setHasDashboardPhotos(hasMedia);
+    },
+    [],
+  );
+
+  const handleDashboardMediaCompleted = useCallback(() => {
+    setHasDashboardPhotos(true);
+  }, []);
 
   // Query: Full Request Details
   const {
@@ -157,6 +143,42 @@ export function RequestDetailModal({
     queryFn: () => fetchInspectionRequestDetails(activeBankId!, requestId),
     enabled: !!activeBankId && !!requestId,
   });
+
+  // Query: Live inspection media from backend
+  const inspectionId = details?.id || requestId;
+  const { data: inspectionMedia = [] } = useInspectionMedia(inspectionId);
+
+  // Check if photos exist from the representative mobile app / backend:
+  // - Field checklist items completed with photo/value evidence
+  // - Direct media records or capture sessions on details
+  const hasRepresentativePhotos = useMemo(() => {
+    if (!details) return false;
+    const hasCompletedChecklist =
+      Array.isArray(details.checklistItems) &&
+      details.checklistItems.some(
+        (item) =>
+          item.completed ||
+          (typeof item.value === 'string' && item.value.trim().length > 0) ||
+          !!item.completedAt,
+      );
+
+    const hasMediaRecords =
+      ((details as any).media && (details as any).media.length > 0) ||
+      ((details as any).photos && (details as any).photos.length > 0) ||
+      ((details as any).captureSessions &&
+        (details as any).captureSessions.some(
+          (cs: any) =>
+            (cs.media?.length ?? 0) > 0 || (cs.photos?.length ?? 0) > 0,
+        ));
+
+    return Boolean(hasCompletedChecklist || hasMediaRecords);
+  }, [details]);
+
+  // Overall check: photos exist from mobile app OR backend media OR dashboard upload
+  const hasUploadedPhotos = useMemo(() => {
+    if (hasRepresentativePhotos || hasDashboardPhotos) return true;
+    return inspectionMedia.some((m) => m.status === 'UPLOADED');
+  }, [hasRepresentativePhotos, hasDashboardPhotos, inspectionMedia]);
 
   // Query: Status History
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({
@@ -239,7 +261,7 @@ export function RequestDetailModal({
     mutationFn: (payload: {
       representativeId: string;
       notes?: string;
-      captureMode: 'STANDARD' | 'ADVANCED';
+      captureMode?: 'STANDARD' | 'ADVANCED';
     }) => assignRepresentative(activeBankId!, requestId, payload),
     onSuccess: () => {
       toast.success('Representative assigned successfully');
@@ -255,7 +277,6 @@ export function RequestDetailModal({
       setIsAssigning(false);
       setSelectedRepId('');
       setAssignNotes('');
-      setCaptureMode('STANDARD');
     },
     onError: (err) =>
       toast.error(getApiErrorMessage(err, 'Failed to assign representative')),
@@ -281,41 +302,6 @@ export function RequestDetailModal({
     },
     onError: (err) =>
       toast.error(getApiErrorMessage(err, 'Failed to update request status')),
-  });
-
-  // Mutation: Submit Media Review
-  const mediaReviewMutation = useMutation({
-    mutationFn: (payload: {
-      verifiedMileage: number;
-      proposedMarketingValue: number;
-      trimId?: string;
-      transmissionTypeId?: string;
-      sideMirrors?: string;
-      sunroofSpecification?: string;
-      notes?: string;
-      checklistItems?: Array<{
-        checklistItemId: string;
-        decision: 'PASS' | 'FAIL' | 'RESHOOT';
-        notes?: string;
-      }>;
-    }) => submitMediaReview(activeBankId!, requestId, payload),
-    onSuccess: (data) => {
-      toast.success(
-        `Review submitted! Proposed market value: EGP ${data.latestMarketingDecision?.estimatedValue.toLocaleString() || ''} — Awaiting Super Admin final approval.`,
-      );
-      void queryClient.invalidateQueries({
-        queryKey: ['inspection-requests', activeBankId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ['inspection-request-details', activeBankId, requestId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ['inspection-request-history', activeBankId, requestId],
-      });
-      setIsMediaReviewOpen(false);
-    },
-    onError: (err) =>
-      toast.error(getApiErrorMessage(err, 'Failed to submit media review')),
   });
 
   // Mutation: Final Approve (Super Admin)
@@ -377,7 +363,6 @@ export function RequestDetailModal({
     assignMutation.mutate({
       representativeId: selectedRepId,
       notes: assignNotes.trim() || undefined,
-      captureMode,
     });
   };
 
@@ -399,72 +384,6 @@ export function RequestDetailModal({
     statusMutation.mutate({
       status: statusAction,
       note: statusNote.trim() || undefined,
-    });
-  };
-
-  const handleOpenMediaReview = () => {
-    setVerifiedMileage(
-      details?.vehicle?.mileage != null ? String(details.vehicle.mileage) : '',
-    );
-    setProposedMarketingValue(
-      details?.latestMarketingDecision?.estimatedValue != null
-        ? String(details.latestMarketingDecision.estimatedValue)
-        : '',
-    );
-    setMediaReviewNotes(details?.latestMarketingDecision?.notes || '');
-    setSelectedTrimId(
-      details?.vehicle?.trim?.id || details?.originalTrim?.id || '',
-    );
-    setSelectedTransmissionTypeId(details?.vehicle?.transmissionType?.id || '');
-    setSelectedSideMirrors(details?.vehicle?.sideMirrors || 'Manual');
-    setSelectedSunroof(details?.vehicle?.sunroofSpecification || 'No Sunroof');
-    const initialDecisions: Record<
-      string,
-      { decision: 'PASS' | 'FAIL' | 'RESHOOT'; notes: string }
-    > = {};
-    if (details?.checklistItems) {
-      for (const item of details.checklistItems) {
-        initialDecisions[item.checklistItemId] = {
-          decision: (item.reviewDecision as any) || 'PASS',
-          notes: item.reviewNotes || '',
-        };
-      }
-    }
-    setChecklistDecisions(initialDecisions);
-    setIsMediaReviewOpen(true);
-  };
-
-  const handleMediaReviewSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const mileageNum = parseInt(verifiedMileage, 10);
-    const valNum = parseFloat(proposedMarketingValue);
-
-    if (isNaN(mileageNum) || mileageNum < 0) {
-      toast.error('Please enter a valid verified mileage in kilometers (KM)');
-      return;
-    }
-    if (isNaN(valNum) || valNum <= 0) {
-      toast.error('Please enter a valid proposed marketing value in EGP');
-      return;
-    }
-
-    const itemsPayload = Object.entries(checklistDecisions).map(
-      ([checklistItemId, item]) => ({
-        checklistItemId,
-        decision: item.decision,
-        notes: item.notes.trim() || undefined,
-      }),
-    );
-
-    mediaReviewMutation.mutate({
-      verifiedMileage: mileageNum,
-      proposedMarketingValue: valNum,
-      trimId: selectedTrimId || undefined,
-      transmissionTypeId: selectedTransmissionTypeId || undefined,
-      sideMirrors: selectedSideMirrors || undefined,
-      sunroofSpecification: selectedSunroof || undefined,
-      notes: mediaReviewNotes.trim() || undefined,
-      checklistItems: itemsPayload.length > 0 ? itemsPayload : undefined,
     });
   };
 
@@ -568,9 +487,9 @@ export function RequestDetailModal({
   const availableActions: Array<{
     status?: string;
     label: string;
-    variant?: 'primary' | 'outline';
+    intent?: 'emerald' | 'amber' | 'rose' | 'neutral';
+    icon?: React.ReactNode;
     action?: () => void;
-    isAssign?: boolean;
   }> = [];
 
   if (details) {
@@ -582,19 +501,22 @@ export function RequestDetailModal({
         availableActions.push({
           status: 'PENDING_ASSIGNMENT',
           label: isArabic ? 'موافقة مبدئية' : 'Initial Approve',
-          variant: 'primary',
+          intent: 'emerald',
+          icon: <CheckCircle className="size-3" weight="bold" />,
         });
         availableActions.push({
           status: 'REJECTED',
           label: isArabic ? 'رفض الطلب' : 'Reject Request',
-          variant: 'outline',
+          intent: 'rose',
+          icon: <XCircle className="size-3" weight="bold" />,
         });
       }
       if (isSuperAdmin) {
         availableActions.push({
           status: 'CANCELLED',
           label: isArabic ? 'إلغاء الطلب' : 'Cancel Request',
-          variant: 'outline',
+          intent: 'rose',
+          icon: <X className="size-3" weight="bold" />,
         });
       }
     } else if (cur === 'REJECTED') {
@@ -603,7 +525,8 @@ export function RequestDetailModal({
         availableActions.push({
           status: 'PENDING',
           label: isArabic ? 'إعادة تقديم الطلب' : 'Resubmit Request',
-          variant: 'primary',
+          intent: 'emerald',
+          icon: <CheckCircle className="size-3" weight="bold" />,
         });
       }
     } else if (cur === 'PENDING_ASSIGNMENT') {
@@ -611,16 +534,17 @@ export function RequestDetailModal({
       if (canAssign) {
         availableActions.push({
           label: isArabic ? 'تعيين مندوب' : 'Assign Representative',
-          variant: 'primary',
+          intent: 'emerald',
+          icon: <UserPlus className="size-3" weight="bold" />,
           action: () => setIsAssigning(true),
-          isAssign: true,
         });
       }
       if (isSuperAdmin) {
         availableActions.push({
           status: 'CANCELLED',
           label: isArabic ? 'إلغاء الطلب' : 'Cancel Request',
-          variant: 'outline',
+          intent: 'rose',
+          icon: <X className="size-3" weight="bold" />,
         });
       }
     } else if (cur === 'ASSIGNED') {
@@ -629,22 +553,24 @@ export function RequestDetailModal({
         availableActions.push({
           status: 'IN_PROGRESS',
           label: isArabic ? 'بدء الفحص الميداني' : 'Start Inspection',
-          variant: 'primary',
+          intent: 'emerald',
+          icon: <ShieldCheck className="size-3" weight="bold" />,
         });
       }
       if (canAssign) {
         availableActions.push({
           label: isArabic ? 'إعادة تعيين مندوب' : 'Reassign Representative',
-          variant: 'outline',
+          intent: 'neutral',
+          icon: <UserPlus className="size-3" weight="bold" />,
           action: () => setIsAssigning(true),
-          isAssign: true,
         });
       }
       if (isSuperAdmin) {
         availableActions.push({
           status: 'CANCELLED',
           label: isArabic ? 'إلغاء الطلب' : 'Cancel Request',
-          variant: 'outline',
+          intent: 'rose',
+          icon: <X className="size-3" weight="bold" />,
         });
       }
     } else if (cur === 'IN_PROGRESS') {
@@ -653,48 +579,44 @@ export function RequestDetailModal({
         availableActions.push({
           status: 'UNDER_REVIEW',
           label: isArabic ? 'إرسال لمراجعة التقييم' : 'Submit for Review',
-          variant: 'primary',
+          intent: 'emerald',
+          icon: <CheckCircle className="size-3" weight="bold" />,
         });
       }
       if (isSuperAdmin) {
         availableActions.push({
           status: 'CANCELLED',
           label: isArabic ? 'إلغاء الطلب' : 'Cancel Request',
-          variant: 'outline',
+          intent: 'rose',
+          icon: <X className="size-3" weight="bold" />,
         });
       }
     } else if (cur === 'UNDER_REVIEW') {
-      // Reviewer verifies media, reviews checklist, and proposes marketing value
-      if (isReviewer || isSuperAdmin) {
-        availableActions.push({
-          label: isArabic ? 'إتمام مراجعة الصور والتقييم' : 'Complete Media Review',
-          variant: 'primary',
-          action: handleOpenMediaReview,
-        });
+      // "Request Reshoot" should ONLY appear after photos have been uploaded
+      // (either from the representative mobile app or from dashboard upload)
+      if ((isReviewer || isSuperAdmin) && hasUploadedPhotos) {
         availableActions.push({
           status: 'IN_PROGRESS',
           label: isArabic ? 'طلب إعادة تصوير' : 'Request Reshoot',
-          variant: 'outline',
-        });
-      }
-      if (isSuperAdmin) {
-        availableActions.push({
-          status: 'CANCELLED',
-          label: isArabic ? 'إلغاء الطلب' : 'Cancel Request',
-          variant: 'outline',
+          intent: 'amber',
+          icon: <Warning className="size-3" weight="bold" />,
         });
       }
     } else if (cur === 'COMPLETED') {
       // Only Super Admin can grant final approval or request price revision
       if (isSuperAdmin) {
         availableActions.push({
-          label: isArabic ? 'اعتماد السعر والموافقة النهائية' : 'Set Price & Approve',
-          variant: 'primary',
+          label: isArabic
+            ? 'اعتماد السعر والموافقة النهائية'
+            : 'Set Price & Approve',
+          intent: 'emerald',
+          icon: <ShieldCheck className="size-3" weight="bold" />,
           action: handleOpenFinalApprove,
         });
         availableActions.push({
           label: isArabic ? 'طلب مراجعة السعر' : 'Request Price Revision',
-          variant: 'outline',
+          intent: 'amber',
+          icon: <Warning className="size-3" weight="bold" />,
           action: () => setIsPriceRevisionOpen(true),
         });
       }
@@ -702,9 +624,18 @@ export function RequestDetailModal({
       // Final inspection report download is available to all authorized users
       availableActions.push({
         label: isArabic
-          ? (isDownloadingReport ? 'جاري التحميل…' : 'تحميل تقرير الفحص')
-          : (isDownloadingReport ? 'Downloading…' : 'Download Report'),
-        variant: 'primary',
+          ? isDownloadingReport
+            ? 'جاري التحميل…'
+            : 'تحميل تقرير الفحص'
+          : isDownloadingReport
+            ? 'Downloading…'
+            : 'Download Report',
+        intent: 'neutral',
+        icon: isDownloadingReport ? (
+          <CircleNotch className="size-3 animate-spin" />
+        ) : (
+          <FileText className="size-3" weight="bold" />
+        ),
         action: handleDownloadReport,
       });
     }
@@ -751,6 +682,11 @@ export function RequestDetailModal({
           ? 'الفحص الميداني قيد التنفيذ بواسطة المندوب'
           : 'Field Inspection In Progress by Representative';
       case 'UNDER_REVIEW':
+        if (!hasUploadedPhotos) {
+          return isArabic
+            ? 'بانتظار رفع وسائط الفحص — لم يتم رفع الصور بعد (بانتظار التقاط المندوب أو الرفع من لوحة التحكم)'
+            : 'Awaiting Inspection Media — Photos not uploaded yet (awaiting mobile app capture or dashboard upload)';
+        }
         return isArabic
           ? 'تم إرسال أدلة الفحص — مراجعة الصور والتقييم قيد التنفيذ'
           : 'Inspection Evidence Submitted — Media Review In Progress by Reviewer';
@@ -767,9 +703,7 @@ export function RequestDetailModal({
           ? 'تم رفض الطلب بواسطة المراجع'
           : 'Request Rejected by Reviewer';
       case 'CANCELLED':
-        return isArabic
-          ? 'تم إلغاء طلب الفحص'
-          : 'Inspection Request Cancelled';
+        return isArabic ? 'تم إلغاء طلب الفحص' : 'Inspection Request Cancelled';
       default:
         return `${isArabic ? 'حالة الطلب:' : 'Workflow Status:'} ${cur}`;
     }
@@ -802,7 +736,11 @@ export function RequestDetailModal({
                 onClick={onClose}
                 className="mr-1 h-8 px-2.5 text-xs text-ink-soft hover:text-ink cursor-pointer gap-1"
               >
-                {isArabic ? <ArrowRight className="size-3.5" /> : <ArrowLeft className="size-3.5" />}
+                {isArabic ? (
+                  <ArrowRight className="size-3.5" />
+                ) : (
+                  <ArrowLeft className="size-3.5" />
+                )}
                 {t('common.back', 'Back')}
               </Button>
             )}
@@ -812,7 +750,11 @@ export function RequestDetailModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-mono text-lg font-bold text-ink">
-                  {details ? details.requestNumber || 'Inspection Request' : (isArabic ? 'طلب الفحص' : 'Inspection Request')}
+                  {details
+                    ? details.requestNumber || 'Inspection Request'
+                    : isArabic
+                      ? 'طلب الفحص'
+                      : 'Inspection Request'}
                 </h3>
                 {details && getStatusBadge(details.currentStatus)}
               </div>
@@ -821,8 +763,13 @@ export function RequestDetailModal({
                   ID: {requestId} • {isArabic ? 'الأولوية:' : 'Priority:'}{' '}
                   <span className="font-mono font-medium text-ink">
                     {details.priority
-                      ? t(`priorities.${details.priority.toLowerCase()}`, details.priority)
-                      : (isArabic ? 'متوسط' : 'MEDIUM')}
+                      ? t(
+                          `priorities.${details.priority.toLowerCase()}`,
+                          details.priority,
+                        )
+                      : isArabic
+                        ? 'متوسط'
+                        : 'MEDIUM'}
                   </span>
                 </p>
               ) : (
@@ -834,6 +781,22 @@ export function RequestDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {isSuperAdmin &&
+              details &&
+              !['CANCELLED', 'APPROVED', 'REJECTED'].includes(
+                details.currentStatus,
+              ) && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setStatusAction('CANCELLED')}
+                  className="h-8 gap-1.5 rounded-lg border-rose-200 bg-rose-50/60 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400 dark:hover:bg-rose-950/50 cursor-pointer"
+                >
+                  <XCircle className="size-3.5" />
+                  {isArabic ? 'إلغاء الطلب' : 'Cancel Request'}
+                </Button>
+              )}
             {!isFullPage && onClose && (
               <button
                 type="button"
@@ -863,19 +826,25 @@ export function RequestDetailModal({
                   status={isNotFound ? 404 : undefined}
                   title={
                     isNotFound
-                      ? (isArabic ? 'لم يتم العثور على طلب الفحص' : 'Inspection Request Not Found')
+                      ? isArabic
+                        ? 'لم يتم العثور على طلب الفحص'
+                        : 'Inspection Request Not Found'
                       : undefined
                   }
                   message={
                     isNotFound
-                      ? (isArabic
-                          ? 'معرّف طلب الفحص غير صالح أو غير موجود في مساحة عمل هذا البنك.'
-                          : 'The inspection request ID is invalid or does not exist in this bank workspace.')
+                      ? isArabic
+                        ? 'معرّف طلب الفحص غير صالح أو غير موجود في مساحة عمل هذا البنك.'
+                        : 'The inspection request ID is invalid or does not exist in this bank workspace.'
                       : undefined
                   }
-                  onRetry={activeBankId ? () => void refetchDetails() : undefined}
+                  onRetry={
+                    activeBankId ? () => void refetchDetails() : undefined
+                  }
                   backUrl={isFullPage ? '/requests' : undefined}
-                  backLabel={isArabic ? 'العودة لطلبات الفحص' : 'Back to Requests'}
+                  backLabel={
+                    isArabic ? 'العودة لطلبات الفحص' : 'Back to Requests'
+                  }
                   showHomeButton={isFullPage}
                 />
               </div>
@@ -891,20 +860,41 @@ export function RequestDetailModal({
           >
             {/* Quick Transition Action Ribbon */}
             <div className="flex items-center justify-between border-b border-hairline bg-accent/5 px-6 py-2.5">
-              <span className="text-xs font-medium text-ink-soft">
+              <span className="text-xs font-semibold text-ink dark:text-ink-soft">
                 {getWorkflowStatusMessage()}
               </span>
               <div className="flex items-center gap-2">
+                {/* Under Review: The primary next workflow step is Complete Media Review */}
+                {details?.currentStatus === 'UNDER_REVIEW' &&
+                  (isReviewer || isSuperAdmin) && (
+                    <CompleteMediaReviewWizard
+                      requestId={details?.requestNumber || requestId}
+                      inspectionId={details?.id || requestId}
+                      bankId={activeBankId || details?.bankId}
+                      vehicleName={
+                        details
+                          ? [
+                              details.vehicle?.manufactureYear,
+                              details.vehicle?.brand?.name,
+                              details.vehicle?.model?.name,
+                            ]
+                              .filter(Boolean)
+                              .join(' ')
+                          : undefined
+                      }
+                      initialMileage={details?.vehicle?.mileage}
+                      onMediaChange={handleDashboardMediaChange}
+                      onCompleted={handleDashboardMediaCompleted}
+                    />
+                  )}
+
                 {availableActions.map((act, idx) => (
-                  <Button
+                  <GlassButton
                     key={act.label + idx}
                     size="sm"
-                    variant={act.variant ?? 'primary'}
-                    className={
-                      act.isAssign
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : undefined
-                    }
+                    intent={act.intent ?? 'emerald'}
+                    icon={act.icon}
+                    trailingIcon={<ArrowRight className="size-3 rtl:rotate-180" />}
                     onClick={() => {
                       if (act.action) {
                         act.action();
@@ -913,9 +903,8 @@ export function RequestDetailModal({
                       }
                     }}
                   >
-                    <ArrowRight className="size-3.5 rtl:rotate-180" />
                     {act.label}
-                  </Button>
+                  </GlassButton>
                 ))}
               </div>
             </div>
@@ -939,6 +928,13 @@ export function RequestDetailModal({
                     ? `قائمة الفحص (${details.checklistItems?.length ?? 0})`
                     : `Checklist (${details.checklistItems?.length ?? 0})`,
                   icon: ListChecks,
+                },
+                {
+                  key: 'media',
+                  label: isArabic
+                    ? `وسائط الفحص (${inspectionMedia.length})`
+                    : `Media Evidence (${inspectionMedia.length})`,
+                  icon: Camera,
                 },
                 {
                   key: 'assignment',
@@ -1045,7 +1041,9 @@ export function RequestDetailModal({
                                   : 'Proposed Market Value'}
                               </p>
                               <p className="mt-1 font-mono text-xl font-bold text-ink">
-                                {details.latestMarketingDecision.estimatedValue.toLocaleString('en-US')}{' '}
+                                {details.latestMarketingDecision.estimatedValue.toLocaleString(
+                                  'en-US',
+                                )}{' '}
                                 <span className="text-xs text-ink-mute font-normal">
                                   {isArabic ? 'ج.م' : 'EGP'}
                                 </span>
@@ -1059,7 +1057,9 @@ export function RequestDetailModal({
                               </p>
                               <p className="mt-1 font-mono text-xl font-bold text-ink">
                                 {details.vehicle?.mileage != null
-                                  ? details.vehicle.mileage.toLocaleString('en-US')
+                                  ? details.vehicle.mileage.toLocaleString(
+                                      'en-US',
+                                    )
                                   : '—'}{' '}
                                 <span className="text-xs text-ink-mute font-normal">
                                   {isArabic ? 'كم' : 'KM'}
@@ -1163,12 +1163,12 @@ export function RequestDetailModal({
                           >
                             <FileText className="mr-1.5 size-4" />
                             {isArabic
-                              ? (isDownloadingReport
-                                  ? 'جاري التحميل…'
-                                  : 'تحميل التقرير')
-                              : (isDownloadingReport
-                                  ? 'Downloading…'
-                                  : 'Download Report')}
+                              ? isDownloadingReport
+                                ? 'جاري التحميل…'
+                                : 'تحميل التقرير'
+                              : isDownloadingReport
+                                ? 'Downloading…'
+                                : 'Download Report'}
                           </Button>
                         </div>
                       )}
@@ -1190,7 +1190,9 @@ export function RequestDetailModal({
                                   <>
                                     اقترح المراجع{' '}
                                     <strong className="font-mono text-ink">
-                                      {details.latestMarketingDecision?.estimatedValue.toLocaleString('en-US')}{' '}
+                                      {details.latestMarketingDecision?.estimatedValue.toLocaleString(
+                                        'en-US',
+                                      )}{' '}
                                       ج.م
                                     </strong>
                                     . يمكنك تعديل هذا السعر أو قبوله قبل إصدار
@@ -1200,7 +1202,9 @@ export function RequestDetailModal({
                                   <>
                                     Reviewer proposed{' '}
                                     <strong className="font-mono text-ink">
-                                      {details.latestMarketingDecision?.estimatedValue.toLocaleString('en-US')}{' '}
+                                      {details.latestMarketingDecision?.estimatedValue.toLocaleString(
+                                        'en-US',
+                                      )}{' '}
                                       EGP
                                     </strong>
                                     . You can modify this price or accept it
@@ -1216,7 +1220,9 @@ export function RequestDetailModal({
                                 className="border-rose-300 text-rose-700 hover:bg-rose-50"
                                 onClick={() => setIsPriceRevisionOpen(true)}
                               >
-                                {isArabic ? 'طلب مراجعة السعر' : 'Request Revision'}
+                                {isArabic
+                                  ? 'طلب مراجعة السعر'
+                                  : 'Request Revision'}
                               </Button>
                               <Button
                                 size="sm"
@@ -1247,7 +1253,9 @@ export function RequestDetailModal({
                               <>
                                 تم تقديم تقييمك المقترح بقيمة{' '}
                                 <strong className="font-mono">
-                                  {details.latestMarketingDecision?.estimatedValue.toLocaleString('en-US')}{' '}
+                                  {details.latestMarketingDecision?.estimatedValue.toLocaleString(
+                                    'en-US',
+                                  )}{' '}
                                   ج.م
                                 </strong>
                                 . هذا الطلب لم يكتمل بعد — هو بانتظار موافقة
@@ -1256,7 +1264,9 @@ export function RequestDetailModal({
                             ) : (
                               <>
                                 Your proposed valuation of EGP{' '}
-                                {details.latestMarketingDecision?.estimatedValue.toLocaleString('en-US')}{' '}
+                                {details.latestMarketingDecision?.estimatedValue.toLocaleString(
+                                  'en-US',
+                                )}{' '}
                                 has been submitted. This request is not complete
                                 yet — it is currently awaiting Super Admin
                                 authorization.
@@ -1288,7 +1298,10 @@ export function RequestDetailModal({
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'رقم الهاتف' : 'Phone'}
                           </p>
-                          <p className="mt-0.5 font-mono text-sm font-medium text-ink" dir="ltr">
+                          <p
+                            className="mt-0.5 font-mono text-sm font-medium text-ink"
+                            dir="ltr"
+                          >
                             {details.customer.phone}
                           </p>
                         </div>
@@ -1390,13 +1403,20 @@ export function RequestDetailModal({
                       <div>
                         <p className="text-[11px] text-ink-mute">
                           {details.currentStatus === 'APPROVED'
-                            ? (isArabic ? 'تاريخ الاعتماد' : 'Approved At')
+                            ? isArabic
+                              ? 'تاريخ الاعتماد'
+                              : 'Approved At'
                             : details.currentStatus === 'COMPLETED'
-                              ? (isArabic ? 'تاريخ تقديم التقييم' : 'Valuation Submitted At')
-                              : (isArabic ? 'تاريخ الاكتمال' : 'Completed At')}
+                              ? isArabic
+                                ? 'تاريخ تقديم التقييم'
+                                : 'Valuation Submitted At'
+                              : isArabic
+                                ? 'تاريخ الاكتمال'
+                                : 'Completed At'}
                         </p>
                         <p className="mt-0.5 font-mono text-xs text-ink">
-                          {details.currentStatus === 'APPROVED' && details.completedAt
+                          {details.currentStatus === 'APPROVED' &&
+                          details.completedAt
                             ? new Date(details.completedAt).toLocaleString(
                                 isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
                                 {
@@ -1432,7 +1452,9 @@ export function RequestDetailModal({
                                       minute: '2-digit',
                                     },
                                   )
-                                : (isArabic ? 'بانتظار الاعتماد النهائي' : 'Pending final approval')}
+                                : isArabic
+                                  ? 'بانتظار الاعتماد النهائي'
+                                  : 'Pending final approval'}
                         </p>
                       </div>
                     </div>
@@ -1462,7 +1484,9 @@ export function RequestDetailModal({
                   <div className="rounded-xl border border-hairline bg-white p-5 shadow-2xs">
                     <h4 className="flex items-center gap-2 text-sm font-semibold text-ink">
                       <Car className="size-4 text-accent" />
-                      {isArabic ? 'مواصفات وبيانات المركبة' : 'Vehicle Specifications'}
+                      {isArabic
+                        ? 'مواصفات وبيانات المركبة'
+                        : 'Vehicle Specifications'}
                     </h4>
                     {details.vehicle ? (
                       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -1470,7 +1494,10 @@ export function RequestDetailModal({
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'رقم الشاسيه' : 'VIN Number'}
                           </p>
-                          <p className="mt-0.5 font-mono text-sm font-bold text-ink" dir="ltr">
+                          <p
+                            className="mt-0.5 font-mono text-sm font-bold text-ink"
+                            dir="ltr"
+                          >
                             {details.vehicle.vin}
                           </p>
                         </div>
@@ -1479,26 +1506,37 @@ export function RequestDetailModal({
                             {isArabic ? 'لوحة المركبة' : 'License Plate'}
                           </p>
                           {details.vehicle.plateNumber ? (
-                            <LicensePlateBadge plateNumber={details.vehicle.plateNumber} />
+                            <LicensePlateBadge
+                              plateNumber={details.vehicle.plateNumber}
+                            />
                           ) : (
-                            <p className="mt-0.5 font-mono text-sm text-ink-mute">—</p>
+                            <p className="mt-0.5 font-mono text-sm text-ink-mute">
+                              —
+                            </p>
                           )}
                         </div>
                         <div>
                           <p className="text-[11px] text-ink-mute">
-                            {isArabic ? 'قراءة العداد المؤكدة' : 'Verified Mileage'}
+                            {isArabic
+                              ? 'قراءة العداد المؤكدة'
+                              : 'Verified Mileage'}
                           </p>
                           <p className="mt-0.5 font-mono text-sm font-bold text-accent">
                             {details.vehicle.mileage != null
                               ? `${details.vehicle.mileage.toLocaleString('en-US')} ${isArabic ? 'كم' : 'KM'}`
-                              : (isArabic ? 'بانتظار التأكيد' : 'Pending verification')}
+                              : isArabic
+                                ? 'بانتظار التأكيد'
+                                : 'Pending verification'}
                           </p>
                         </div>
                         <div>
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'رقم المحرك' : 'Motor Number'}
                           </p>
-                          <p className="mt-0.5 font-mono text-sm text-ink" dir="ltr">
+                          <p
+                            className="mt-0.5 font-mono text-sm text-ink"
+                            dir="ltr"
+                          >
                             {details.vehicle.engineNumber || '—'}
                           </p>
                         </div>
@@ -1506,7 +1544,10 @@ export function RequestDetailModal({
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'رقم التقويم' : 'Calendar Number'}
                           </p>
-                          <p className="mt-0.5 font-mono text-sm text-ink" dir="ltr">
+                          <p
+                            className="mt-0.5 font-mono text-sm text-ink"
+                            dir="ltr"
+                          >
                             {details.vehicle.calendarNumber || '—'}
                           </p>
                         </div>
@@ -1515,9 +1556,9 @@ export function RequestDetailModal({
                             {isArabic ? 'الماركة / المُصنّع' : 'Make / Brand'}
                           </p>
                           <p className="mt-0.5 text-sm font-medium text-ink">
-                            {(isArabic && details.vehicle.brand?.nameAr)
+                            {isArabic && details.vehicle.brand?.nameAr
                               ? details.vehicle.brand.nameAr
-                              : (details.vehicle.brand?.name || '—')}
+                              : details.vehicle.brand?.name || '—'}
                           </p>
                         </div>
                         <div>
@@ -1525,9 +1566,9 @@ export function RequestDetailModal({
                             {isArabic ? 'الموديل' : 'Model'}
                           </p>
                           <p className="mt-0.5 text-sm font-medium text-ink">
-                            {(isArabic && details.vehicle.model?.nameAr)
+                            {isArabic && details.vehicle.model?.nameAr
                               ? details.vehicle.model.nameAr
-                              : (details.vehicle.model?.name || '—')}
+                              : details.vehicle.model?.name || '—'}
                           </p>
                         </div>
                         <div>
@@ -1556,19 +1597,37 @@ export function RequestDetailModal({
                             )}
                             <span>
                               {isArabic
-                                ? (details.vehicle.color?.nameAr ||
-                                    (details.vehicle.color?.name === 'White' ? 'أبيض'
-                                    : details.vehicle.color?.name === 'Black' ? 'أسود'
-                                    : details.vehicle.color?.name === 'Silver' ? 'فضي'
-                                    : details.vehicle.color?.name === 'Gray' ? 'رمادي'
-                                    : details.vehicle.color?.name === 'Red' ? 'أحمر'
-                                    : details.vehicle.color?.name === 'Blue' ? 'أزرق'
-                                    : details.vehicle.color?.name === 'Dark Blue' ? 'كحلي'
-                                    : details.vehicle.color?.name === 'Gold' ? 'ذهبي'
-                                    : details.vehicle.color?.name === 'Brown' ? 'بني'
-                                    : details.vehicle.color?.name === 'Green' ? 'أخضر'
-                                    : details.vehicle.color?.name) || '—')
-                                : (details.vehicle.color?.name || '—')}
+                                ? details.vehicle.color?.nameAr ||
+                                  (details.vehicle.color?.name === 'White'
+                                    ? 'أبيض'
+                                    : details.vehicle.color?.name === 'Black'
+                                      ? 'أسود'
+                                      : details.vehicle.color?.name === 'Silver'
+                                        ? 'فضي'
+                                        : details.vehicle.color?.name === 'Gray'
+                                          ? 'رمادي'
+                                          : details.vehicle.color?.name ===
+                                              'Red'
+                                            ? 'أحمر'
+                                            : details.vehicle.color?.name ===
+                                                'Blue'
+                                              ? 'أزرق'
+                                              : details.vehicle.color?.name ===
+                                                  'Dark Blue'
+                                                ? 'كحلي'
+                                                : details.vehicle.color
+                                                      ?.name === 'Gold'
+                                                  ? 'ذهبي'
+                                                  : details.vehicle.color
+                                                        ?.name === 'Brown'
+                                                    ? 'بني'
+                                                    : details.vehicle.color
+                                                          ?.name === 'Green'
+                                                      ? 'أخضر'
+                                                      : details.vehicle.color
+                                                          ?.name) ||
+                                  '—'
+                                : details.vehicle.color?.name || '—'}
                             </span>
                           </div>
                         </div>
@@ -1578,39 +1637,57 @@ export function RequestDetailModal({
                           </p>
                           <p className="mt-0.5 text-sm text-ink">
                             {isArabic
-                              ? (details.vehicle.category?.nameAr ||
-                                  (details.vehicle.category?.name === 'Sedan' ? 'سيدان'
-                                  : details.vehicle.category?.name === 'SUV' ? 'دفع رباعي (SUV)'
-                                  : details.vehicle.category?.name === 'Hatchback' ? 'هاتشباك'
-                                  : details.vehicle.category?.name === 'Coupe' ? 'كوبيه'
-                                  : details.vehicle.category?.name === 'Crossover' ? 'كروس أوفر'
-                                  : details.vehicle.category?.name === 'Truck' ? 'شاحنة / نقل'
-                                  : details.vehicle.category?.name === 'Van' ? 'فان'
-                                  : details.vehicle.category?.name) || '—')
-                              : (details.vehicle.category?.name || '—')}
+                              ? details.vehicle.category?.nameAr ||
+                                (details.vehicle.category?.name === 'Sedan'
+                                  ? 'سيدان'
+                                  : details.vehicle.category?.name === 'SUV'
+                                    ? 'دفع رباعي (SUV)'
+                                    : details.vehicle.category?.name ===
+                                        'Hatchback'
+                                      ? 'هاتشباك'
+                                      : details.vehicle.category?.name ===
+                                          'Coupe'
+                                        ? 'كوبيه'
+                                        : details.vehicle.category?.name ===
+                                            'Crossover'
+                                          ? 'كروس أوفر'
+                                          : details.vehicle.category?.name ===
+                                              'Truck'
+                                            ? 'شاحنة / نقل'
+                                            : details.vehicle.category?.name ===
+                                                'Van'
+                                              ? 'فان'
+                                              : details.vehicle.category
+                                                  ?.name) ||
+                                '—'
+                              : details.vehicle.category?.name || '—'}
                           </p>
                         </div>
                         <div className="col-span-1 sm:col-span-2 rounded-xl bg-paper/60 p-3 border border-hairline space-y-1">
                           <p className="text-[11px] font-semibold text-ink">
-                            {isArabic ? 'الفئة والتجهيز' : 'Trim / Edition (الفئة / الإصدار)'}
+                            {isArabic
+                              ? 'الفئة والتجهيز'
+                              : 'Trim / Edition (الفئة / الإصدار)'}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
                             <div>
                               <span className="text-[10px] text-ink-mute block">
-                                {isArabic ? 'المسجل من البنك:' : 'Original (Bank):'}
+                                {isArabic
+                                  ? 'المسجل من البنك:'
+                                  : 'Original (Bank):'}
                               </span>
                               <span className="font-medium text-ink">
                                 {isArabic
-                                  ? (details.originalTrim?.nameAr ||
-                                      details.originalTrim?.name ||
-                                      details.originalTrim?.code ||
-                                      details.vehicle.trim?.nameAr ||
-                                      details.vehicle.trim?.name ||
-                                      '—')
-                                  : (details.originalTrim?.name ||
-                                      details.originalTrim?.code ||
-                                      details.vehicle.trim?.name ||
-                                      '—')}
+                                  ? details.originalTrim?.nameAr ||
+                                    details.originalTrim?.name ||
+                                    details.originalTrim?.code ||
+                                    details.vehicle.trim?.nameAr ||
+                                    details.vehicle.trim?.name ||
+                                    '—'
+                                  : details.originalTrim?.name ||
+                                    details.originalTrim?.code ||
+                                    details.vehicle.trim?.name ||
+                                    '—'}
                                 {!isArabic && details.originalTrim?.nameAr
                                   ? ` (${details.originalTrim.nameAr})`
                                   : ''}
@@ -1618,19 +1695,25 @@ export function RequestDetailModal({
                             </div>
                             <div>
                               <span className="text-[10px] text-ink-mute block">
-                                {isArabic ? 'قرار الشركة المعتمد:' : 'Current (Company Decision):'}
+                                {isArabic
+                                  ? 'قرار الشركة المعتمد:'
+                                  : 'Current (Company Decision):'}
                               </span>
                               <span className="font-semibold text-emerald-700">
                                 {isArabic
-                                  ? (details.vehicle.trim?.nameAr || details.vehicle.trim?.name || '—')
-                                  : (details.vehicle.trim?.name || '—')}
+                                  ? details.vehicle.trim?.nameAr ||
+                                    details.vehicle.trim?.name ||
+                                    '—'
+                                  : details.vehicle.trim?.name || '—'}
                                 {!isArabic && details.vehicle.trim?.nameAr
                                   ? ` (${details.vehicle.trim.nameAr})`
                                   : ''}
                                 {details.originalTrim?.id &&
                                 details.vehicle.trim?.id ===
                                   details.originalTrim.id
-                                  ? (isArabic ? ' (بدون تغيير)' : ' (unchanged)')
+                                  ? isArabic
+                                    ? ' (بدون تغيير)'
+                                    : ' (unchanged)'
                                   : ''}
                               </span>
                             </div>
@@ -1643,13 +1726,18 @@ export function RequestDetailModal({
                           </p>
                           <p className="mt-0.5 text-sm text-ink font-medium">
                             {isArabic
-                              ? (details.vehicle.transmissionType?.nameAr ||
-                                  (details.vehicle.transmissionType?.name === 'Automatic' ? 'أوتوماتيك'
-                                  : details.vehicle.transmissionType?.name === 'Manual' ? 'عادي / مانيوال'
-                                  : details.vehicle.transmissionType?.name) ||
-                                  '—')
-                              : (details.vehicle.transmissionType?.name || '—')}
-                            {!isArabic && details.vehicle.transmissionType?.nameAr
+                              ? details.vehicle.transmissionType?.nameAr ||
+                                (details.vehicle.transmissionType?.name ===
+                                'Automatic'
+                                  ? 'أوتوماتيك'
+                                  : details.vehicle.transmissionType?.name ===
+                                      'Manual'
+                                    ? 'عادي / مانيوال'
+                                    : details.vehicle.transmissionType?.name) ||
+                                '—'
+                              : details.vehicle.transmissionType?.name || '—'}
+                            {!isArabic &&
+                            details.vehicle.transmissionType?.nameAr
                               ? ` (${details.vehicle.transmissionType.nameAr})`
                               : ''}
                           </p>
@@ -1661,27 +1749,33 @@ export function RequestDetailModal({
                           </p>
                           <p className="mt-0.5 text-sm text-ink font-medium">
                             {isArabic
-                              ? (details.vehicle.sideMirrors === 'Manual'
-                                  ? 'يدوي (عادي)'
-                                  : details.vehicle.sideMirrors === 'Electric'
-                                    ? 'كهربائي'
-                                    : details.vehicle.sideMirrors || '—')
-                              : (details.vehicle.sideMirrors || '—')}
+                              ? details.vehicle.sideMirrors === 'Manual'
+                                ? 'يدوي (عادي)'
+                                : details.vehicle.sideMirrors === 'Electric'
+                                  ? 'كهربائي'
+                                  : details.vehicle.sideMirrors || '—'
+                              : details.vehicle.sideMirrors || '—'}
                           </p>
                         </div>
 
                         <div>
                           <p className="text-[11px] text-ink-mute">
-                            {isArabic ? 'مواصفات فتحة السقف' : 'Sunroof Specification'}
+                            {isArabic
+                              ? 'مواصفات فتحة السقف'
+                              : 'Sunroof Specification'}
                           </p>
                           <p className="mt-0.5 text-sm text-ink font-medium">
                             {isArabic
-                              ? (DEFAULT_SUNROOF_OPTIONS.find(
-                                  (sn) => sn.code === details.vehicle?.sunroofSpecification,
-                                )?.name?.split('—')?.[1]?.trim() ||
+                              ? DEFAULT_SUNROOF_OPTIONS.find(
+                                  (sn) =>
+                                    sn.code ===
+                                    details.vehicle?.sunroofSpecification,
+                                )
+                                  ?.name?.split('—')?.[1]
+                                  ?.trim() ||
                                 details.vehicle.sunroofSpecification ||
-                                '—')
-                              : (details.vehicle.sunroofSpecification || '—')}
+                                '—'
+                              : details.vehicle.sunroofSpecification || '—'}
                           </p>
                         </div>
                         <div>
@@ -1696,7 +1790,9 @@ export function RequestDetailModal({
                         </div>
                         <div>
                           <p className="text-[11px] text-ink-mute">
-                            {isArabic ? 'القيمة التأمينية' : 'Insurance Value (EGP)'}
+                            {isArabic
+                              ? 'القيمة التأمينية'
+                              : 'Insurance Value (EGP)'}
                           </p>
                           <p className="mt-0.5 font-mono text-sm text-ink">
                             {details.vehicle.insuranceValue != null
@@ -1774,7 +1870,10 @@ export function RequestDetailModal({
                                   <span className="text-xs font-semibold text-ink">
                                     {item.label}
                                   </span>
-                                  <span className="font-mono text-[10px] text-ink-mute" dir="ltr">
+                                  <span
+                                    className="font-mono text-[10px] text-ink-mute"
+                                    dir="ltr"
+                                  >
                                     [{item.code}]
                                   </span>
                                   {item.isMandatory && (
@@ -1793,7 +1892,9 @@ export function RequestDetailModal({
                                 )}
                                 {item.reviewNotes && (
                                   <p className="text-xs text-ink-soft italic">
-                                    {isArabic ? 'ملاحظة المراجعة:' : 'Review Note:'}{' '}
+                                    {isArabic
+                                      ? 'ملاحظة المراجعة:'
+                                      : 'Review Note:'}{' '}
                                     {item.reviewNotes}
                                   </p>
                                 )}
@@ -1820,7 +1921,9 @@ export function RequestDetailModal({
                                 )}
                                 {!item.reviewDecision && (
                                   <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-500">
-                                    {isArabic ? 'بانتظار المراجعة' : 'Pending Review'}
+                                    {isArabic
+                                      ? 'بانتظار المراجعة'
+                                      : 'Pending Review'}
                                   </span>
                                 )}
                               </div>
@@ -1829,6 +1932,13 @@ export function RequestDetailModal({
                         </div>
                       </div>
                     )}
+                </div>
+              )}
+
+              {/* TAB: MEDIA EVIDENCE */}
+              {activeTab === 'media' && (
+                <div className="space-y-6">
+                  <InspectionMediaGallery inspectionId={details.id || requestId} />
                 </div>
               )}
 
@@ -1862,7 +1972,9 @@ export function RequestDetailModal({
                             className="h-8 text-xs text-ink-soft hover:text-accent"
                           >
                             <UserPlus className="mr-1.5 size-3.5" />
-                            {isArabic ? 'تغيير المندوب' : 'Change Representative'}
+                            {isArabic
+                              ? 'تغيير المندوب'
+                              : 'Change Representative'}
                           </Button>
                         )}
                     </div>
@@ -1880,7 +1992,8 @@ export function RequestDetailModal({
                               {details.assignedRepresentative.lastName}
                             </p>
                             <p className="text-xs text-ink-mute" dir="ltr">
-                              ID: {details.assignedRepresentative.id.slice(0, 8)}...
+                              ID:{' '}
+                              {details.assignedRepresentative.id.slice(0, 8)}...
                             </p>
                           </div>
                         </div>
@@ -1889,7 +2002,10 @@ export function RequestDetailModal({
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'البريد الإلكتروني' : 'Contact Email'}
                           </p>
-                          <p className="mt-0.5 text-xs font-mono text-ink" dir="ltr">
+                          <p
+                            className="mt-0.5 text-xs font-mono text-ink"
+                            dir="ltr"
+                          >
                             {details.assignedRepresentative.email}
                           </p>
                         </div>
@@ -1898,7 +2014,10 @@ export function RequestDetailModal({
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'رقم الهاتف' : 'Phone Number'}
                           </p>
-                          <p className="mt-0.5 text-xs font-mono text-ink" dir="ltr">
+                          <p
+                            className="mt-0.5 text-xs font-mono text-ink"
+                            dir="ltr"
+                          >
                             {details.assignedRepresentative.phone || '—'}
                           </p>
                         </div>
@@ -1913,30 +2032,31 @@ export function RequestDetailModal({
                         </p>
                         <p className="mt-0.5 text-[11px] text-ink-mute max-w-sm">
                           {details.currentStatus === 'PENDING'
-                            ? (isArabic
-                                ? 'يجب أولاً منح الموافقة المبدئية من قبل المراجع قبل تكليف مندوب فحص.'
-                                : 'The request must first receive Reviewer Initial Approval before a representative can be assigned.')
+                            ? isArabic
+                              ? 'يجب أولاً منح الموافقة المبدئية من قبل المراجع قبل تكليف مندوب فحص.'
+                              : 'The request must first receive Reviewer Initial Approval before a representative can be assigned.'
                             : canAssign
-                              ? (isArabic
-                                  ? 'قم بتكليف مندوب فحص مؤهل لإجراء الفحص الميداني للسيارة.'
-                                  : 'Assign an eligible field representative to conduct the on-site inspection.')
-                              : (isArabic
-                                  ? 'سيقوم مسؤول يورو إنسبكت بتعيين مندوب فحص لهذه المعاينة.'
-                                  : 'EuroInspect Super Admin will assign a field representative for this inspection.')}
+                              ? isArabic
+                                ? 'قم بتكليف مندوب فحص مؤهل لإجراء الفحص الميداني للسيارة.'
+                                : 'Assign an eligible field representative to conduct the on-site inspection.'
+                              : isArabic
+                                ? 'سيقوم مسؤول يورو إنسبكت بتعيين مندوب فحص لهذه المعاينة.'
+                                : 'EuroInspect Super Admin will assign a field representative for this inspection.'}
                         </p>
                         {canAssign &&
                           (details.currentStatus === 'PENDING_ASSIGNMENT' ||
                             details.currentStatus === 'ASSIGNED') && (
-                            <Button
+                            <GlassButton
                               size="sm"
+                              intent="emerald"
+                              icon={<UserPlus className="size-3" weight="bold" />}
                               onClick={() => setIsAssigning(true)}
-                              className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                              className="mt-4"
                             >
-                              <UserPlus className="mr-1.5 size-4" />
                               {isArabic
                                 ? 'تكليف مندوب فحص'
                                 : 'Assign Field Representative'}
-                            </Button>
+                            </GlassButton>
                           )}
                       </div>
                     )}
@@ -1969,7 +2089,9 @@ export function RequestDetailModal({
                           <p className="mt-0.5 font-mono text-xs text-ink">
                             {new Date(
                               details.activeAssignment.assignedAt,
-                            ).toLocaleString(isArabic ? 'ar-EG-u-nu-latn' : 'en-US')}
+                            ).toLocaleString(
+                              isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
+                            )}
                           </p>
                         </div>
                         <div>
@@ -1980,8 +2102,12 @@ export function RequestDetailModal({
                             {details.activeAssignment.acceptedAt
                               ? new Date(
                                   details.activeAssignment.acceptedAt,
-                                ).toLocaleString(isArabic ? 'ar-EG-u-nu-latn' : 'en-US')
-                              : (isArabic ? 'بانتظار القبول' : 'Pending acceptance')}
+                                ).toLocaleString(
+                                  isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
+                                )
+                              : isArabic
+                                ? 'بانتظار القبول'
+                                : 'Pending acceptance'}
                           </p>
                         </div>
                         <div>
@@ -1992,7 +2118,9 @@ export function RequestDetailModal({
                             {details.activeAssignment.rejectedAt
                               ? new Date(
                                   details.activeAssignment.rejectedAt,
-                                ).toLocaleString(isArabic ? 'ar-EG-u-nu-latn' : 'en-US')
+                                ).toLocaleString(
+                                  isArabic ? 'ar-EG-u-nu-latn' : 'en-US',
+                                )
                               : '—'}
                           </p>
                         </div>
@@ -2063,7 +2191,9 @@ export function RequestDetailModal({
                                   {item.fromStatus ? (
                                     <>
                                       {getStatusBadge(item.fromStatus)}
-                                      <ArrowRight className={`size-3 text-ink-mute ${isArabic ? 'rotate-180' : ''}`} />
+                                      <ArrowRight
+                                        className={`size-3 text-ink-mute ${isArabic ? 'rotate-180' : ''}`}
+                                      />
                                     </>
                                   ) : (
                                     <span className="text-[10px] font-mono text-ink-mute uppercase">
@@ -2115,13 +2245,16 @@ export function RequestDetailModal({
             <div className="flex items-center justify-between border-t border-hairline bg-paper/30 px-6 py-3">
               <span className="font-mono text-xs text-ink-mute">
                 EuroInspect 360 ·{' '}
-                {details?.requestNumber || (isArabic ? 'طلب الفحص' : 'Inspection Request')}
+                {details?.requestNumber ||
+                  (isArabic ? 'طلب الفحص' : 'Inspection Request')}
               </span>
               <div className="flex items-center gap-2">
                 {isFullPage
                   ? onClose && (
                       <Button variant="outline" size="sm" onClick={onClose}>
-                        <ArrowLeft className={`mr-1.5 size-3.5 ${isArabic ? 'rotate-180' : ''}`} />
+                        <ArrowLeft
+                          className={`mr-1.5 size-3.5 ${isArabic ? 'rotate-180' : ''}`}
+                        />
                         {isArabic ? 'العودة إلى الطلبات' : 'Back to Requests'}
                       </Button>
                     )
@@ -2148,10 +2281,14 @@ export function RequestDetailModal({
               <X className="size-5" />
             </button>
             <h3 className="text-base font-bold text-ink">
-              {isArabic ? 'تكليف مندوب فحص ميداني' : 'Assign Field Representative'}
+              {isArabic
+                ? 'تكليف مندوب فحص ميداني'
+                : 'Assign Field Representative'}
             </h3>
             <p className="mt-1 text-xs text-ink-mute">
-              {isArabic ? 'تكليف مندوب مؤهل لمعاينة وفحص الطلب ' : 'Assign an eligible representative to inspect '}
+              {isArabic
+                ? 'تكليف مندوب مؤهل لمعاينة وفحص الطلب '
+                : 'Assign an eligible representative to inspect '}
               <span className="font-mono font-medium text-ink" dir="ltr">
                 {details?.requestNumber}
               </span>
@@ -2161,11 +2298,14 @@ export function RequestDetailModal({
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="text-xs font-medium text-ink-soft">
-                    {isArabic ? 'اختر مندوب الفحص' : 'Select Field Representative'}{' '}
+                    {isArabic
+                      ? 'اختر مندوب الفحص'
+                      : 'Select Field Representative'}{' '}
                     <span className="text-rose-500">*</span>
                   </label>
                   <span className="text-[11px] font-mono text-ink-mute">
-                    {representativeOptions.length} {isArabic ? 'متاح' : 'available'}
+                    {representativeOptions.length}{' '}
+                    {isArabic ? 'متاح' : 'available'}
                   </span>
                 </div>
 
@@ -2188,14 +2328,19 @@ export function RequestDetailModal({
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 font-mono text-xs font-bold text-accent">
-                          {selectedRepresentative.name.slice(0, 2).toUpperCase()}
+                          {selectedRepresentative.name
+                            .slice(0, 2)
+                            .toUpperCase()}
                         </span>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-ink truncate">
                               {selectedRepresentative.name}
                             </span>
-                            <span className="rounded bg-white px-1.5 py-0.2 font-mono text-[10px] font-semibold text-accent border border-accent/20" dir="ltr">
+                            <span
+                              className="rounded bg-white px-1.5 py-0.2 font-mono text-[10px] font-semibold text-accent border border-accent/20"
+                              dir="ltr"
+                            >
                               {selectedRepresentative.code}
                             </span>
                           </div>
@@ -2209,7 +2354,10 @@ export function RequestDetailModal({
                               </span>
                             )}
                             {selectedRepresentative.phone && (
-                              <span className="flex items-center gap-1 font-mono" dir="ltr">
+                              <span
+                                className="flex items-center gap-1 font-mono"
+                                dir="ltr"
+                              >
                                 <Phone className="size-3 text-ink-mute shrink-0" />
                                 <span>{selectedRepresentative.phone}</span>
                               </span>
@@ -2224,62 +2372,6 @@ export function RequestDetailModal({
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Capture Mode */}
-              <div>
-                <label className="mb-2 block text-xs font-medium text-ink-soft">
-                  {isArabic ? 'وضع التقاط الصور *' : 'Capture Mode *'}
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(
-                    [
-                      {
-                        value: 'STANDARD',
-                        label: isArabic ? 'قياسي' : 'Standard',
-                        frames: isArabic ? '16 لقطة' : '16 frames',
-                        desc: isArabic
-                          ? 'تصوير خارجي قياسي للمركبة'
-                          : 'Standard exterior capture',
-                      },
-                      {
-                        value: 'ADVANCED',
-                        label: isArabic ? 'متقدم' : 'Advanced',
-                        frames: isArabic ? '32 لقطة' : '32 frames',
-                        desc: isArabic
-                          ? 'فحص شامل خارجي + داخلي'
-                          : 'Full exterior + interior',
-                      },
-                    ] as const
-                  ).map((opt) => (
-                    <label
-                      key={opt.value}
-                      className={`flex cursor-pointer flex-col rounded-xl border-2 p-3 transition-colors ${
-                        captureMode === opt.value
-                          ? 'border-accent bg-accent/5'
-                          : 'border-hairline bg-white hover:border-accent/40'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="captureMode"
-                        value={opt.value}
-                        checked={captureMode === opt.value}
-                        onChange={() => setCaptureMode(opt.value)}
-                        className="sr-only"
-                      />
-                      <span className="text-sm font-semibold text-ink">
-                        {opt.label}
-                      </span>
-                      <span className="font-mono text-xs text-accent">
-                        {opt.frames}
-                      </span>
-                      <span className="mt-0.5 text-[11px] text-ink-mute">
-                        {opt.desc}
-                      </span>
-                    </label>
-                  ))}
-                </div>
               </div>
 
               <div>
@@ -2314,8 +2406,12 @@ export function RequestDetailModal({
                   disabled={assignMutation.isPending || !selectedRepId}
                 >
                   {assignMutation.isPending
-                    ? (isArabic ? 'جاري التكليف…' : 'Assigning…')
-                    : (isArabic ? 'تأكيد التكليف' : 'Confirm Assignment')}
+                    ? isArabic
+                      ? 'جاري التكليف…'
+                      : 'Assigning…'
+                    : isArabic
+                      ? 'تأكيد التكليف'
+                      : 'Confirm Assignment'}
                 </Button>
               </div>
             </form>
@@ -2336,50 +2432,64 @@ export function RequestDetailModal({
             </button>
             <h3 className="text-base font-bold text-ink">
               {statusAction === 'PENDING_ASSIGNMENT'
-                ? (isArabic ? 'الموافقة المبدئية على الطلب' : 'Initial Review Approval')
+                ? isArabic
+                  ? 'الموافقة المبدئية على الطلب'
+                  : 'Initial Review Approval'
                 : statusAction === 'REJECTED'
-                  ? (isArabic ? 'رفض طلب الفحص' : 'Reject Inspection Request')
+                  ? isArabic
+                    ? 'رفض طلب الفحص'
+                    : 'Reject Inspection Request'
                   : statusAction === 'IN_PROGRESS' &&
                       details?.currentStatus === 'UNDER_REVIEW'
-                    ? (isArabic ? 'طلب إعادة التصوير الميداني' : 'Request Field Reshoot')
+                    ? isArabic
+                      ? 'طلب إعادة التصوير الميداني'
+                      : 'Request Field Reshoot'
                     : statusAction === 'PENDING'
-                      ? (isArabic ? 'إعادة إرسال طلب الفحص للمراجعة' : 'Resubmit Inspection Request')
-                      : (isArabic
-                          ? `تحديث حالة الطلب إلى ${t(`statuses.${statusAction.toLowerCase()}`, statusAction)}`
-                          : `Update Request Status to ${statusAction}`)}
+                      ? isArabic
+                        ? 'إعادة إرسال طلب الفحص للمراجعة'
+                        : 'Resubmit Inspection Request'
+                      : isArabic
+                        ? `تحديث حالة الطلب إلى ${t(`statuses.${statusAction.toLowerCase()}`, statusAction)}`
+                        : `Update Request Status to ${statusAction}`}
             </h3>
             <p className="mt-1 text-xs text-ink-mute">
               {statusAction === 'PENDING_ASSIGNMENT'
-                ? (isArabic
-                    ? 'الموافقة على هذا الطلب ونقله إلى مرحلة تعيين وتكليف مندوب الفحص.'
-                    : 'Approve this request and advance it to representative assignment.')
+                ? isArabic
+                  ? 'الموافقة على هذا الطلب ونقله إلى مرحلة تعيين وتكليف مندوب الفحص.'
+                  : 'Approve this request and advance it to representative assignment.'
                 : statusAction === 'REJECTED'
-                  ? (isArabic
-                      ? 'رفض هذا الطلب وإعادته إلى مسؤول البنك مع توضيح سبب الرفض.'
-                      : 'Reject this request and return it to the Bank Admin with your reason.')
+                  ? isArabic
+                    ? 'رفض هذا الطلب وإعادته إلى مسؤول البنك مع توضيح سبب الرفض.'
+                    : 'Reject this request and return it to the Bank Admin with your reason.'
                   : statusAction === 'IN_PROGRESS' &&
                       details?.currentStatus === 'UNDER_REVIEW'
-                    ? (isArabic
-                        ? 'إعادة هذا الطلب إلى مندوب الفحص الميداني مع تعليمات إعادة التصوير.'
-                        : 'Return this request to the field representative with reshoot instructions.')
+                    ? isArabic
+                      ? 'إعادة هذا الطلب إلى مندوب الفحص الميداني مع تعليمات إعادة التصوير.'
+                      : 'Return this request to the field representative with reshoot instructions.'
                     : statusAction === 'PENDING'
-                      ? (isArabic
-                          ? 'إعادة إرسال هذا الطلب إلى قائمة انتظار المراجع للتقييم المبدئي.'
-                          : 'Resubmit this request to the Reviewer queue for initial evaluation.')
-                      : (isArabic
-                          ? `جاري تغيير حالة الطلب إلى ${t(`statuses.${statusAction.toLowerCase()}`, statusAction)}`
-                          : `Transitioning request to ${statusAction}`)}
+                      ? isArabic
+                        ? 'إعادة إرسال هذا الطلب إلى قائمة انتظار المراجع للتقييم المبدئي.'
+                        : 'Resubmit this request to the Reviewer queue for initial evaluation.'
+                      : isArabic
+                        ? `جاري تغيير حالة الطلب إلى ${t(`statuses.${statusAction.toLowerCase()}`, statusAction)}`
+                        : `Transitioning request to ${statusAction}`}
             </p>
 
             <form onSubmit={handleStatusSubmit} className="mt-5 space-y-4">
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink-soft">
                   {statusAction === 'REJECTED'
-                    ? (isArabic ? 'سبب الرفض *' : 'Rejection Reason *')
+                    ? isArabic
+                      ? 'سبب الرفض *'
+                      : 'Rejection Reason *'
                     : statusAction === 'IN_PROGRESS' &&
                         details?.currentStatus === 'UNDER_REVIEW'
-                      ? (isArabic ? 'تعليمات إعادة التصوير *' : 'Reshoot Instructions *')
-                      : (isArabic ? 'السبب / الملاحظة (اختياري)' : 'Reason / Note (Optional)')}
+                      ? isArabic
+                        ? 'تعليمات إعادة التصوير *'
+                        : 'Reshoot Instructions *'
+                      : isArabic
+                        ? 'السبب / الملاحظة (اختياري)'
+                        : 'Reason / Note (Optional)'}
                 </label>
                 <textarea
                   rows={3}
@@ -2392,17 +2502,17 @@ export function RequestDetailModal({
                   onChange={(e) => setStatusNote(e.target.value)}
                   placeholder={
                     statusAction === 'REJECTED'
-                      ? (isArabic
-                          ? 'إلزامي: حدد سبب رفض هذا الطلب بالتفصيل…'
-                          : 'Required: state the specific reason for rejecting this request…')
+                      ? isArabic
+                        ? 'إلزامي: حدد سبب رفض هذا الطلب بالتفصيل…'
+                        : 'Required: state the specific reason for rejecting this request…'
                       : statusAction === 'IN_PROGRESS' &&
                           details?.currentStatus === 'UNDER_REVIEW'
-                        ? (isArabic
-                            ? 'إلزامي: حدد الصور أو البنود المطلوب إعادة تصويرها…'
-                            : 'Required: detail which photos or items must be reshot…')
-                        : (isArabic
-                            ? 'ملاحظات أو تعليمات إضافية من المراجع…'
-                            : 'Optional reviewer notes or instructions…')
+                        ? isArabic
+                          ? 'إلزامي: حدد الصور أو البنود المطلوب إعادة تصويرها…'
+                          : 'Required: detail which photos or items must be reshot…'
+                        : isArabic
+                          ? 'ملاحظات أو تعليمات إضافية من المراجع…'
+                          : 'Optional reviewer notes or instructions…'
                   }
                   className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
                 />
@@ -2418,383 +2528,12 @@ export function RequestDetailModal({
                 </Button>
                 <Button type="submit" disabled={statusMutation.isPending}>
                   {statusMutation.isPending
-                    ? (isArabic ? 'جاري التحديث…' : 'Updating…')
-                    : (isArabic ? 'تأكيد' : 'Confirm')}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MEDIA REVIEW MODAL (Reviewer) */}
-      {isMediaReviewOpen && details && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-hairline bg-paper/40 px-6 py-4">
-              <div>
-                <h3 className="text-base font-bold text-ink">
-                  {isArabic
-                    ? 'مراجعة وسائط الفحص والتقييم السعري للمراجع'
-                    : 'Reviewer Media Review & Market Valuation'}
-                </h3>
-                <p className="text-xs text-ink-mute">
-                  {isArabic
-                    ? 'التحقق من قراءة العداد، وتقييم بنود الفحص (ناجح / راسب / إعادة تصوير)، واقتراح القيمة السوقية.'
-                    : 'Verify odometer mileage, grade checklist items (Pass/Fail/Reshoot), and propose marketing value.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="cursor-pointer text-ink-mute hover:text-ink"
-                onClick={() => setIsMediaReviewOpen(false)}
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleMediaReviewSubmit}
-              className="flex flex-1 flex-col overflow-y-auto p-6 space-y-5"
-            >
-              {/* Step 1: Trim / Edition Comparison & Decision */}
-              <div className="rounded-xl border border-hairline bg-paper/60 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-ink">
-                    {isArabic
-                      ? 'الفئة والتجهيز (Trim / Edition)'
-                      : 'Trim / Edition (الفئة / الإصدار)'}
-                  </label>
-                  <span className="text-[10px] text-ink-mute font-medium">
-                    {isArabic
-                      ? 'قرار شركتنا نهائي ومعتمد'
-                      : "Our company's decision is final"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-hairline/80 bg-white p-3">
-                    <span className="block text-[11px] font-medium text-ink-mute">
-                      {isArabic ? 'المسجل من البنك:' : 'Original (Bank):'}
-                    </span>
-                    <p className="mt-0.5 text-sm font-bold text-ink">
-                      {isArabic
-                        ? (details.originalTrim?.nameAr ||
-                            details.originalTrim?.name ||
-                            details.originalTrim?.code ||
-                            details.vehicle?.trim?.nameAr ||
-                            details.vehicle?.trim?.name ||
-                            'قياسي')
-                        : (details.originalTrim?.name ||
-                            details.originalTrim?.code ||
-                            details.vehicle?.trim?.name ||
-                            'Standard')}
-                      {!isArabic && details.originalTrim?.nameAr
-                        ? ` (${details.originalTrim.nameAr})`
-                        : ''}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-hairline/80 bg-white p-3">
-                    <label className="block text-[11px] font-medium text-ink-mute mb-1">
-                      {isArabic
-                        ? 'قرار الشركة المعتمد:'
-                        : 'Current (Company Decision):'}
-                    </label>
-                    <Select
-                      size="sm"
-                      variant="subtle"
-                      searchable="auto"
-                      clearable
-                      value={selectedTrimId}
-                      onChange={setSelectedTrimId}
-                      placeholder={
-                        isArabic
-                          ? '— اختر الفئة المؤكدة —'
-                          : '— Select Confirmed Trim —'
-                      }
-                      options={(vehicleLookups?.trims || []).map((tr) => {
-                        const origId =
-                          details.originalTrim?.id || details.vehicle?.trim?.id;
-                        const isUnchanged = tr.id === origId;
-                        return {
-                          value: tr.id,
-                          label: isArabic ? tr.nameAr || tr.name : tr.name,
-                          secondaryLabel:
-                            !isArabic && tr.nameAr ? tr.nameAr : undefined,
-                          badge: isUnchanged
-                            ? isArabic
-                              ? 'بدون تغيير'
-                              : 'unchanged'
-                            : undefined,
-                          keywords: `${tr.name} ${tr.nameAr || ''}`,
-                        };
-                      })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 2: Mechanical & Exterior Specs Verification */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    {isArabic ? 'ناقل الحركة' : 'Transmission (ناقل الحركة)'}
-                  </label>
-                  <Select
-                    size="sm"
-                    searchable="auto"
-                    clearable
-                    value={selectedTransmissionTypeId}
-                    onChange={setSelectedTransmissionTypeId}
-                    placeholder={
-                      isArabic
-                        ? '— اختر ناقل الحركة —'
-                        : '— Select Transmission —'
-                    }
-                    options={(
-                      vehicleLookups?.transmissionTypes ||
-                      DEFAULT_TRANSMISSION_OPTIONS
-                    ).map((tr) => ({
-                      value: tr.id || tr.name,
-                      label: isArabic ? tr.nameAr || tr.name : tr.name,
-                      secondaryLabel:
-                        !isArabic && tr.nameAr ? tr.nameAr : undefined,
-                      keywords: `${tr.name} ${tr.nameAr || ''}`,
-                    }))}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    {isArabic
-                      ? 'المرايا الجانبية'
-                      : 'Side Mirrors (المرايا الجانبية)'}
-                  </label>
-                  <Select
-                    size="sm"
-                    clearable={false}
-                    value={selectedSideMirrors}
-                    onChange={setSelectedSideMirrors}
-                    options={DEFAULT_SIDE_MIRRORS.map((m) => ({
-                      value: m.code,
-                      label: isArabic
-                        ? m.code === 'Manual'
-                          ? 'يدوي (عادي)'
-                          : m.code === 'Electric'
-                            ? 'كهربائي'
-                            : m.name
-                        : m.name,
-                    }))}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    {isArabic
-                      ? 'مواصفات فتحة السقف *'
-                      : 'Sunroof Specification (فتحة السقف) *'}
-                  </label>
-                  <Select
-                    size="sm"
-                    clearable={false}
-                    value={selectedSunroof}
-                    onChange={setSelectedSunroof}
-                    options={DEFAULT_SUNROOF_OPTIONS.map((sn) => ({
-                      value: sn.name,
-                      label: sn.name,
-                    }))}
-                  />
-                </div>
-              </div>
-
-              {/* Step 3: Valuation and Mileage inputs */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    {isArabic
-                      ? 'قراءة عداد المسافات (كم) *'
-                      : 'Vehicle Mileage (KM) *'}
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={verifiedMileage}
-                    onChange={(e) => setVerifiedMileage(e.target.value)}
-                    placeholder="45000"
-                    className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
-                  />
-                  <p className="mt-1 text-[11px] text-ink-mute">
-                    {isArabic
-                      ? 'القراءة المؤكدة من واقع صورة العداد المرفقة.'
-                      : 'Confirmed reading from odometer photo.'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ink-soft">
-                    {isArabic
-                      ? 'القيمة السوقية التقديرية (ج.م) *'
-                      : 'Marketing Value (EGP) *'}
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    step="any"
-                    value={proposedMarketingValue}
-                    onChange={(e) => setProposedMarketingValue(e.target.value)}
-                    placeholder="750000"
-                    className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
-                  />
-                  <p className="mt-1 text-[11px] text-ink-mute">
-                    {isArabic
-                      ? 'التقييم المقترح المرفوع للاعتماد النهائي من قبل الإدارة.'
-                      : 'Estimated valuation submitted for Super Admin authorization.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 2: Checklist Items Decisions */}
-              {details.checklistItems && details.checklistItems.length > 0 && (
-                <div>
-                  <label className="mb-2 block text-xs font-semibold text-ink">
-                    {isArabic
-                      ? 'التحقق من بنود وأدلة الفحص الميداني'
-                      : 'Checklist Items & Evidence Verification'}
-                  </label>
-                  <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-hairline bg-zinc-50/50 p-3">
-                    {details.checklistItems.map((item) => {
-                      const currentDecision =
-                        checklistDecisions[item.checklistItemId]?.decision ||
-                        'PASS';
-                      const currentNote =
-                        checklistDecisions[item.checklistItemId]?.notes || '';
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="rounded-lg border border-hairline/80 bg-white p-3 space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-xs font-semibold text-ink">
-                                {item.label}
-                              </span>
-                              <span className="ml-1.5 font-mono text-[10px] text-ink-mute" dir="ltr">
-                                ({item.code})
-                              </span>
-                              {item.isMandatory && (
-                                <span className="ml-1.5 rounded bg-rose-500/10 px-1 py-0.2 text-[9px] font-semibold text-rose-600">
-                                  {isArabic ? 'إلزامي' : 'Required'}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* 3-way toggle: PASS, FAIL, RESHOOT */}
-                            <div className="flex items-center rounded-lg border border-hairline bg-paper/40 p-0.5 text-[11px] font-medium">
-                              {(['PASS', 'FAIL', 'RESHOOT'] as const).map(
-                                (dec) => {
-                                  const isSelected = currentDecision === dec;
-                                  const colors = {
-                                    PASS: 'bg-emerald-600 text-white',
-                                    FAIL: 'bg-rose-600 text-white',
-                                    RESHOOT: 'bg-amber-600 text-white',
-                                  };
-                                  return (
-                                    <button
-                                      key={dec}
-                                      type="button"
-                                      onClick={() =>
-                                        setChecklistDecisions((prev) => ({
-                                          ...prev,
-                                          [item.checklistItemId]: {
-                                            decision: dec,
-                                            notes:
-                                              prev[item.checklistItemId]
-                                                ?.notes || '',
-                                          },
-                                        }))
-                                      }
-                                      className={`cursor-pointer rounded-md px-2 py-1 font-mono text-[10px] font-semibold transition-colors ${
-                                        isSelected
-                                          ? colors[dec]
-                                          : 'text-ink-mute hover:text-ink'
-                                      }`}
-                                    >
-                                      {dec === 'PASS'
-                                        ? (isArabic ? 'ناجح' : 'PASS')
-                                        : dec === 'FAIL'
-                                          ? (isArabic ? 'راسب' : 'FAIL')
-                                          : (isArabic ? 'إعادة تصوير' : 'RESHOOT')}
-                                    </button>
-                                  );
-                                },
-                              )}
-                            </div>
-                          </div>
-
-                          <input
-                            type="text"
-                            placeholder={
-                              isArabic
-                                ? 'ملاحظة تقييم البند (اختياري، مثلاً: خدش بسيط في الصدام)'
-                                : 'Item review note (optional, e.g. slight scratch on bumper)'
-                            }
-                            value={currentNote}
-                            onChange={(e) =>
-                              setChecklistDecisions((prev) => ({
-                                ...prev,
-                                [item.checklistItemId]: {
-                                  decision: currentDecision,
-                                  notes: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full rounded-lg border border-hairline/70 bg-white px-2.5 py-1 text-xs text-ink outline-none focus:border-accent"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Overall Review Notes */}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  {isArabic
-                    ? 'مبررات التقييم وملاحظات المراجعة (اختياري)'
-                    : 'Valuation Justification & Review Notes (Optional)'}
-                </label>
-                <textarea
-                  rows={3}
-                  value={mediaReviewNotes}
-                  onChange={(e) => setMediaReviewNotes(e.target.value)}
-                  placeholder={
-                    isArabic
-                      ? 'مثال: حالة السيارة الخارجية ممتازة؛ تم تقدير القيمة بناءً على أسعار السوق الحالية وقراءة العداد المؤكدة.'
-                      : 'e.g. Vehicle exterior in very good condition; fair market value calculated based on current market comps and verified mileage.'
-                  }
-                  className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 border-t border-hairline pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsMediaReviewOpen(false)}
-                >
-                  {isArabic ? 'إلغاء' : 'Cancel'}
-                </Button>
-                <Button type="submit" disabled={mediaReviewMutation.isPending}>
-                  {mediaReviewMutation.isPending
-                    ? (isArabic ? 'جاري إرسال المراجعة…' : 'Submitting Review…')
-                    : (isArabic
-                        ? 'إتمام المراجعة واقتراح السعر'
-                        : 'Complete Media Review & Propose Value')}
+                    ? isArabic
+                      ? 'جاري التحديث…'
+                      : 'Updating…'
+                    : isArabic
+                      ? 'تأكيد'
+                      : 'Confirm'}
                 </Button>
               </div>
             </form>
@@ -2819,7 +2558,9 @@ export function RequestDetailModal({
               </span>
               <div>
                 <h3 className="text-base font-bold text-ink">
-                  {isArabic ? 'الاعتماد النهائي للفحص' : 'Final Inspection Approval'}
+                  {isArabic
+                    ? 'الاعتماد النهائي للفحص'
+                    : 'Final Inspection Approval'}
                 </h3>
                 <p className="text-xs text-ink-mute">
                   {isArabic
@@ -2850,7 +2591,8 @@ export function RequestDetailModal({
                   {isArabic ? 'تم التقييم بواسطة:' : 'Valuation By:'}
                 </span>
                 <span className="font-medium text-ink">
-                  {details?.latestMarketingDecision?.reviewerName || (isArabic ? 'المراجع' : 'Reviewer')}
+                  {details?.latestMarketingDecision?.reviewerName ||
+                    (isArabic ? 'المراجع' : 'Reviewer')}
                 </span>
               </div>
               {details?.vehicle?.mileage != null && (
@@ -2859,7 +2601,8 @@ export function RequestDetailModal({
                     {isArabic ? 'قراءة العداد المؤكدة:' : 'Verified Mileage:'}
                   </span>
                   <span className="font-mono text-ink">
-                    {details.vehicle.mileage.toLocaleString('en-US')} {isArabic ? 'كم' : 'KM'}
+                    {details.vehicle.mileage.toLocaleString('en-US')}{' '}
+                    {isArabic ? 'كم' : 'KM'}
                   </span>
                 </div>
               )}
@@ -2878,7 +2621,9 @@ export function RequestDetailModal({
                   </label>
                   {details.latestMarketingDecision?.estimatedValue != null &&
                     finalApprovedPrice !==
-                      String(details.latestMarketingDecision.estimatedValue) && (
+                      String(
+                        details.latestMarketingDecision.estimatedValue,
+                      ) && (
                       <button
                         type="button"
                         onClick={() =>
@@ -2891,7 +2636,7 @@ export function RequestDetailModal({
                         className="text-[11px] font-semibold text-accent hover:underline cursor-pointer"
                       >
                         {isArabic
-                          ? "استعادة قيمة المراجع الأصلية"
+                          ? 'استعادة قيمة المراجع الأصلية'
                           : "Reset to Reviewer's Value"}
                       </button>
                     )}
@@ -2997,14 +2742,18 @@ export function RequestDetailModal({
                     <Check className="mr-1.5 size-4" />
                   )}
                   {finalApproveMutation.isPending
-                    ? (isArabic ? 'جاري الاعتماد…' : 'Approving…')
+                    ? isArabic
+                      ? 'جاري الاعتماد…'
+                      : 'Approving…'
                     : finalApprovedPrice &&
                         !isNaN(parseFloat(finalApprovedPrice)) &&
                         parseFloat(finalApprovedPrice) > 0
-                      ? (isArabic
-                          ? `اعتماد بقيمة ${parseFloat(finalApprovedPrice).toLocaleString('en-US')} ج.م`
-                          : `Approve with EGP ${parseFloat(finalApprovedPrice).toLocaleString('en-US')}`)
-                      : (isArabic ? 'تأكيد ومنح الاعتماد' : 'Confirm & Grant Approval')}
+                      ? isArabic
+                        ? `اعتماد بقيمة ${parseFloat(finalApprovedPrice).toLocaleString('en-US')} ج.م`
+                        : `Approve with EGP ${parseFloat(finalApprovedPrice).toLocaleString('en-US')}`
+                      : isArabic
+                        ? 'تأكيد ومنح الاعتماد'
+                        : 'Confirm & Grant Approval'}
                 </Button>
               </div>
             </form>
@@ -3042,7 +2791,9 @@ export function RequestDetailModal({
             </div>
 
             <div className="mt-4 rounded-xl bg-amber-500/5 border border-amber-300/40 p-3 text-xs text-amber-800">
-              {isArabic ? 'القيمة المقترحة الحالية: ' : 'Current proposed value: '}
+              {isArabic
+                ? 'القيمة المقترحة الحالية: '
+                : 'Current proposed value: '}
               <span className="font-mono font-bold">
                 {details?.latestMarketingDecision?.estimatedValue != null
                   ? `${details.latestMarketingDecision.estimatedValue.toLocaleString('en-US')} ${isArabic ? 'ج.م' : 'EGP'}`
@@ -3091,8 +2842,12 @@ export function RequestDetailModal({
                   }
                 >
                   {priceRevisionMutation.isPending
-                    ? (isArabic ? 'جاري إرسال الطلب…' : 'Sending Revision…')
-                    : (isArabic ? 'إرسال طلب التعديل' : 'Send Revision Request')}
+                    ? isArabic
+                      ? 'جاري إرسال الطلب…'
+                      : 'Sending Revision…'
+                    : isArabic
+                      ? 'إرسال طلب التعديل'
+                      : 'Send Revision Request'}
                 </Button>
               </div>
             </form>

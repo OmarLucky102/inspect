@@ -222,6 +222,12 @@ export interface InspectionRequestDetail {
     reviewerName: string | null
   } | null
   photoChecklist?: InspectionPhotoChecklistDto | null
+  captureSessions?: Array<{
+    id: string
+    status: string
+    startedAt: string
+    finishedAt: string | null
+  }>
 }
 
 export interface StatusHistoryChanger {

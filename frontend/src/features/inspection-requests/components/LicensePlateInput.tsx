@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { IdentificationCard, Hash, TextAa, X } from '@phosphor-icons/react';
 
+const LETTER_PLACEHOLDERS = ['ا', 'ج', 'ك', 'د'] as const;
+
 export interface LicensePlateInputProps {
   digits: string;
   letters: string;
@@ -95,7 +97,7 @@ export function LicensePlateBadge({
 
   return (
     <div
-      className={`inline-flex flex-col overflow-hidden rounded-lg border-2 border-slate-800 bg-white shadow-2xs select-none shrink-0 whitespace-nowrap ${className}`}
+      className={`inline-flex flex-col overflow-hidden rounded-lg border-2 border-slate-800 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-2xs select-none shrink-0 whitespace-nowrap ${className}`}
       dir="ltr"
       title={
         hasContent
@@ -110,11 +112,11 @@ export function LicensePlateBadge({
       </div>
 
       {/* Plate Body: Digits on Left (under EGYPT), Characters on Right (under مصر) */}
-      <div className="flex items-center justify-center divide-x divide-slate-300 px-2 py-1 text-center font-mono font-black text-slate-900 whitespace-nowrap">
+      <div className="flex items-center justify-center divide-x divide-slate-300 dark:divide-slate-700 px-2 py-1 text-center font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
         {/* Left: Digits Section (under EGYPT) */}
-        <div className="flex items-center justify-center px-2.5 text-xs font-mono font-bold tracking-widest text-slate-900 whitespace-nowrap min-w-[50px]">
+        <div className="flex items-center justify-center px-2.5 text-xs font-mono font-bold tracking-widest text-slate-900 dark:text-white whitespace-nowrap min-w-[50px]">
           {d || (
-            <span className="text-[11px] font-normal text-slate-300">
+            <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
               أرقام
             </span>
           )}
@@ -129,13 +131,13 @@ export function LicensePlateBadge({
             lettersArray.map((ch, idx) => (
               <span
                 key={idx}
-                className="inline-flex size-5 items-center justify-center rounded bg-slate-100 font-mono text-xs font-bold text-slate-900 shadow-2xs shrink-0"
+                className="inline-flex size-5 items-center justify-center rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs font-bold text-slate-900 dark:text-white shadow-2xs shrink-0"
               >
                 {ch.toUpperCase()}
               </span>
             ))
           ) : (
-            <span className="text-[11px] font-normal text-slate-300">حروف</span>
+            <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">حروف</span>
           )}
         </div>
       </div>
@@ -389,8 +391,8 @@ export function LicensePlateInput({
                   value={letterSlots[idx]}
                   onChange={(e) => handleLetterChange(idx, e.target.value)}
                   onKeyDown={(e) => handleLetterKeyDown(idx, e)}
-                  placeholder={idx === 3 ? 'اختياري' : `${idx + 1}`}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white text-center font-mono text-sm font-bold uppercase text-ink shadow-2xs outline-none transition-colors placeholder:text-ink-mute/30 hover:border-ink/20 focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
+                  placeholder={LETTER_PLACEHOLDERS[idx]}
+                  className="h-10 w-full rounded-lg border border-hairline bg-white text-center font-mono text-sm font-bold uppercase text-ink shadow-2xs outline-none transition-colors placeholder:text-ink-mute/60 hover:border-ink/20 focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
                 />
               ))}
             </div>
@@ -434,7 +436,7 @@ export function LicensePlateInput({
                   onChange={(e) => handleDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleDigitKeyDown(idx, e)}
                   placeholder={`${idx + 1}`}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white text-center font-mono text-sm font-bold text-ink shadow-2xs outline-none transition-colors placeholder:text-ink-mute/30 hover:border-ink/20 focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
+                  className="h-10 w-full rounded-lg border border-hairline bg-white text-center font-mono text-sm font-bold text-ink shadow-2xs outline-none transition-colors placeholder:text-ink-mute/60 hover:border-ink/20 focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
                 />
               ))}
             </div>

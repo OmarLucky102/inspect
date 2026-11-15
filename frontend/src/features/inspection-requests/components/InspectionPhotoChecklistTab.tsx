@@ -17,6 +17,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { GlassButton } from '@/components/ui/glass-button'
 import { Input } from '@/components/ui/input'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { getApiErrorMessage } from '@/lib/api'
@@ -618,8 +619,16 @@ export function InspectionPhotoChecklistTab({
               {t('createRequest.saveAsDraft', 'Save Checklist Draft')}
             </Button>
 
-            <Button
+            <GlassButton
               type="button"
+              intent="emerald"
+              icon={
+                isSubmittingFinal ? (
+                  <CircleNotch className="size-3 animate-spin" />
+                ) : (
+                  <ShieldCheck className="size-3" weight="bold" />
+                )
+              }
               disabled={isSubmittingFinal || updateMutation.isPending}
               onClick={() => {
                 handleSaveChecklist(undefined, () => {
@@ -627,13 +636,8 @@ export function InspectionPhotoChecklistTab({
                 })
               }}
             >
-              {isSubmittingFinal ? (
-                <CircleNotch className="me-1.5 size-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="me-1.5 size-4" />
-              )}
               {t('createRequest.submitForReview', 'Submit Inspection Request')}
-            </Button>
+            </GlassButton>
           </div>
         </div>
       ) : (
