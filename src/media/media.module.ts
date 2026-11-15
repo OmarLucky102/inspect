@@ -20,6 +20,8 @@ import { UploadGenericMediaUseCase } from './application/use-cases/upload-generi
 import { BatchUploadMediaUseCase } from './application/use-cases/batch-upload-media.use-case';
 import { UploadVideoUseCase } from './application/use-cases/upload-video.use-case';
 import { GetMediaUseCase } from './application/use-cases/get-media.use-case';
+import { GetMediaFileUseCase } from './application/use-cases/get-media-file.use-case';
+import { GetInspectionMediaUseCase } from './application/use-cases/get-inspection-media.use-case';
 import { MediaService } from './application/services/media.service';
 import { InspectionMediaContextValidator } from './application/services/inspection-media-context-validator.service';
 import { MediaRecoveryService } from './application/services/media-recovery.service';
@@ -61,6 +63,8 @@ import { MediaController } from './presentation/controllers/media.controller';
     BatchUploadMediaUseCase,
     UploadVideoUseCase,
     GetMediaUseCase,
+    GetMediaFileUseCase,
+    GetInspectionMediaUseCase,
     // Facade service
     MediaService,
     // Queue & Recovery
@@ -79,6 +83,8 @@ import { MediaController } from './presentation/controllers/media.controller';
     BatchUploadMediaUseCase,
     UploadVideoUseCase,
     GetMediaUseCase,
+    GetMediaFileUseCase,
+    GetInspectionMediaUseCase,
     MediaService,
     VideoProcessingQueueService,
     MediaRecoveryService,

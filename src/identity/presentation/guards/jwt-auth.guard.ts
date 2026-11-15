@@ -32,9 +32,15 @@ export class JwtAuthGuard implements CanActivate {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     const authHeader = request.headers.authorization;
-    if (!authHeader) return undefined;
+    if (authHeader) {
+      const [type, token] = authHeader.split(' ');
+      if (type === 'Bearer') return token;
+    }
 
-    const [type, token] = authHeader.split(' ');
-    return type === 'Bearer' ? token : undefined;
+    if (request.query && typeof request.query.token === 'string') {
+      return request.query.token;
+    }
+
+    return undefined;
   }
 }
