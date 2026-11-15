@@ -79,10 +79,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Frontend Linting
-        run: pnpm --filter admin run lint
+        run: pnpm --filter frontend run lint
 
       - name: Build Frontend
-        run: pnpm --filter admin run build
+        run: pnpm --filter frontend run build
 
   # ============================================================================
   # 3. Docker Build Verification
