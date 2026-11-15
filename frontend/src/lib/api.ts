@@ -35,6 +35,11 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (accessToken) {
     config.headers.set('Authorization', `Bearer ${accessToken}`)
   }
+  // When transmitting FormData, remove the default application/json header so the
+  // browser/Axios can automatically compute 'multipart/form-data; boundary=...'
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.delete('Content-Type')
+  }
   return config
 })
 
