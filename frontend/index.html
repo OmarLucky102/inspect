@@ -18,6 +18,64 @@
     <title>Inspect Admin</title>
   </head>
   <body>
+    <!-- Master Liquid Glass Optical Filters Definition -->
+    <svg
+      aria-hidden="true"
+      style="position: absolute; width: 0; height: 0; pointer-events: none; opacity: 0; z-index: -1;"
+    >
+      <defs>
+        <filter
+          id="btn-glass"
+          x="-15%"
+          y="-15%"
+          width="130%"
+          height="130%"
+          color-interpolation-filters="sRGB"
+        >
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.012 0.012"
+            numOctaves="2"
+            seed="42"
+            result="noise"
+          />
+          <feGaussianBlur in="noise" stdDeviation="0.02" result="blur" />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="blur"
+            scale="24"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+        <filter
+          id="container-glass"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          color-interpolation-filters="sRGB"
+        >
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.008 0.008"
+            numOctaves="2"
+            seed="92"
+            result="noise"
+          />
+          <feGaussianBlur in="noise" stdDeviation="0.02" result="blur" />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="blur"
+            scale="38"
+            xChannelSelector="R"
+            yChannelSelector="G"
+            result="disp"
+          />
+          <feGaussianBlur in="disp" stdDeviation="0.02" result="smooth" />
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
