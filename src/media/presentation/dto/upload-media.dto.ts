@@ -10,7 +10,7 @@ export class UploadMediaDto {
   captureSessionId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()

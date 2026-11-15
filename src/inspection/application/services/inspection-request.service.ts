@@ -1,6 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { MediaStatus } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
 import type { IInspectionRequestRepository } from '../../domain/repositories/inspection-request.repository.interface';
 import type { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
@@ -1116,6 +1117,25 @@ export class InspectionRequestService {
     const hasReshoot = dto.checklistItems?.some(
       (item) => item.decision === ChecklistReviewDecision.RESHOOT,
     );
+
+    if (!hasReshoot) {
+      const mediaCount = await this.prisma.media.count({
+        where: {
+          OR: [
+            { captureSession: { inspectionRequestId: requestId } },
+            { fileUrl: { contains: `/inspections/${requestId}/` } },
+          ],
+          status: MediaStatus.UPLOADED,
+          deletedAt: null,
+        },
+      });
+
+      if (mediaCount === 0) {
+        throw new BadRequestException(
+          'Cannot complete media review: No uploaded media records found for this inspection request.',
+        );
+      }
+    }
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update checklist items with review decisions

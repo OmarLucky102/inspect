@@ -27,9 +27,10 @@ export class PrismaMediaRepository implements IMediaRepository {
   async findByInspectionId(inspectionId: string): Promise<Media[]> {
     const rows = await this.prisma.media.findMany({
       where: {
-        captureSession: {
-          inspectionRequestId: inspectionId,
-        },
+        OR: [
+          { captureSession: { inspectionRequestId: inspectionId } },
+          { fileUrl: { contains: `/inspections/${inspectionId}/` } },
+        ],
         deletedAt: null,
       },
       orderBy: { sortOrder: 'asc' },

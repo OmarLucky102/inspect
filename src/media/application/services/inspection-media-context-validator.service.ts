@@ -183,12 +183,20 @@ export class InspectionMediaContextValidator {
 
   private async resolveCategoryId(categoryNameOrId?: string): Promise<string> {
     if (categoryNameOrId) {
-      const byId = await this.categoryRepository.findById(categoryNameOrId);
-      if (byId) {
-        return byId.id;
+      const trimmed = categoryNameOrId.trim();
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          trimmed,
+        );
+      if (isUuid) {
+        const byId = await this.categoryRepository.findById(trimmed);
+        if (byId) {
+          return byId.id;
+        }
       }
+      const canonicalName = trimmed.toUpperCase();
       const category =
-        await this.categoryRepository.getOrCreateDefault(categoryNameOrId);
+        await this.categoryRepository.getOrCreateDefault(canonicalName);
       return category.id;
     }
 

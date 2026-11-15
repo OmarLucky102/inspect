@@ -7,7 +7,7 @@ export class UploadVideoDto {
   captureSessionId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()

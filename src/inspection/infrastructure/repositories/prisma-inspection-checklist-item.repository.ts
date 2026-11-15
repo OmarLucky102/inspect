@@ -26,6 +26,13 @@ export class PrismaInspectionChecklistItemRepository implements IInspectionCheck
     requestId: string,
     checklistItemId: string,
   ): Promise<InspectionChecklistItem | null> {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        checklistItemId,
+      );
+    if (!isUuid) {
+      return null;
+    }
     const row = await this.prisma.inspectionChecklistItem.findUnique({
       where: {
         inspectionRequestId_checklistItemId: {

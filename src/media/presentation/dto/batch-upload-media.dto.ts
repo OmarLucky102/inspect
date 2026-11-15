@@ -1,4 +1,4 @@
-import { IsOptional, IsUUID, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class BatchUploadMediaDto {
@@ -7,7 +7,7 @@ export class BatchUploadMediaDto {
   captureSessionId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
