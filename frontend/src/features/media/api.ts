@@ -36,6 +36,7 @@ export async function uploadInspectionImage(
     form,
     {
       headers: { 'Content-Type': undefined },
+      signal: input.signal,
       onUploadProgress: (e) => {
         if (e.total && onProgress) {
           onProgress(Math.round((e.loaded / e.total) * 100));
@@ -63,6 +64,7 @@ export async function batchUploadInspectionImages(
     form,
     {
       headers: { 'Content-Type': undefined },
+      signal: input.signal,
       onUploadProgress: (e) => {
         if (e.total && onProgress) {
           onProgress(Math.round((e.loaded / e.total) * 100));
@@ -93,6 +95,7 @@ export async function uploadInspectionVideo(
     form,
     {
       headers: { 'Content-Type': undefined },
+      signal: input.signal,
       timeout: 10 * 60 * 1000, // 10 min — overrides global 15 s timeout for large video uploads
       onUploadProgress: (e) => {
         if (e.total && onProgress) {

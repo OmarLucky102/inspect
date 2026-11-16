@@ -66,6 +66,7 @@ export interface UploadImageInput {
   sortOrder?: number;
   fileHash?: string;
   checklistItemCode?: string;
+  signal?: AbortSignal;
 }
 
 export interface BatchUploadInput {
@@ -73,6 +74,7 @@ export interface BatchUploadInput {
   inspectionId: string;
   captureSessionId?: string;
   categoryId?: string;
+  signal?: AbortSignal;
 }
 
 export interface UploadVideoInput {
@@ -83,4 +85,5 @@ export interface UploadVideoInput {
   sortOrder?: number;
   fileHash?: string;
   checklistItemCode?: string;
+  signal?: AbortSignal;
 }

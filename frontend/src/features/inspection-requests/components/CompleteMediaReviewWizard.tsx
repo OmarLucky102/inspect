@@ -304,6 +304,53 @@ export function CompleteMediaReviewWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittedSuccessfully, setIsSubmittedSuccessfully] = useState(false);
 
+  // Track all created blob URLs so we can safely revoke them
+  const activeBlobUrlsRef = useRef<Set<string>>(new Set());
+  // Track active AbortControllers so in-flight requests can be aborted on deletion or unmount
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+
+  const registerBlobUrl = useCallback((url: string) => {
+    activeBlobUrlsRef.current.add(url);
+    return url;
+  }, []);
+
+  const revokeBlobUrl = useCallback((url?: string | null) => {
+    if (!url) return;
+    if (activeBlobUrlsRef.current.has(url) || url.startsWith('blob:')) {
+      activeBlobUrlsRef.current.delete(url);
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // no-op
+      }
+    }
+  }, []);
+
+  // Clean up remaining object URLs and abort in-flight requests when component unmounts
+  useEffect(() => {
+    const urls = activeBlobUrlsRef.current;
+    const abortControllers = abortControllersRef.current;
+    return () => {
+      abortControllers.forEach((controller) => {
+        try {
+          controller.abort();
+        } catch {
+          // no-op
+        }
+      });
+      abortControllers.clear();
+
+      urls.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // no-op
+        }
+      });
+      urls.clear();
+    };
+  }, []);
+
   // Synchronize exterior video uploader state
   useEffect(() => {
     if (exteriorVideoUploader.status === 'uploading') {
@@ -328,16 +375,26 @@ export function CompleteMediaReviewWizard({
           : null,
       );
     } else if (exteriorVideoUploader.status === 'done') {
-      setExteriorVideo((prev) =>
-        prev
-          ? {
-              ...prev,
-              progress: 100,
-              status: 'completed',
-              mediaId: exteriorVideoUploader.mediaId || prev.mediaId,
-            }
-          : null,
-      );
+      setExteriorVideo((prev) => {
+        if (!prev) return null;
+        if (
+          prev.previewUrl &&
+          (!prev.isRemote || prev.previewUrl.startsWith('blob:'))
+        ) {
+          revokeBlobUrl(prev.previewUrl);
+        }
+        return {
+          ...prev,
+          progress: 100,
+          status: 'completed',
+          mediaId: exteriorVideoUploader.mediaId || prev.mediaId,
+          previewUrl: exteriorVideoUploader.mediaId
+            ? getMediaFileUrl(exteriorVideoUploader.mediaId)
+            : prev.previewUrl,
+          file: undefined,
+          isRemote: true,
+        };
+      });
     } else if (exteriorVideoUploader.status === 'error') {
       setExteriorVideo((prev) =>
         prev
@@ -356,6 +413,7 @@ export function CompleteMediaReviewWizard({
     exteriorVideoUploader.uploadProgress,
     exteriorVideoUploader.mediaId,
     exteriorVideoUploader.errorMessage,
+    revokeBlobUrl,
   ]);
 
   // Synchronize interior video uploader state
@@ -382,16 +440,26 @@ export function CompleteMediaReviewWizard({
           : null,
       );
     } else if (interiorVideoUploader.status === 'done') {
-      setInteriorVideo((prev) =>
-        prev
-          ? {
-              ...prev,
-              progress: 100,
-              status: 'completed',
-              mediaId: interiorVideoUploader.mediaId || prev.mediaId,
-            }
-          : null,
-      );
+      setInteriorVideo((prev) => {
+        if (!prev) return null;
+        if (
+          prev.previewUrl &&
+          (!prev.isRemote || prev.previewUrl.startsWith('blob:'))
+        ) {
+          revokeBlobUrl(prev.previewUrl);
+        }
+        return {
+          ...prev,
+          progress: 100,
+          status: 'completed',
+          mediaId: interiorVideoUploader.mediaId || prev.mediaId,
+          previewUrl: interiorVideoUploader.mediaId
+            ? getMediaFileUrl(interiorVideoUploader.mediaId)
+            : prev.previewUrl,
+          file: undefined,
+          isRemote: true,
+        };
+      });
     } else if (interiorVideoUploader.status === 'error') {
       setInteriorVideo((prev) =>
         prev
@@ -410,41 +478,8 @@ export function CompleteMediaReviewWizard({
     interiorVideoUploader.uploadProgress,
     interiorVideoUploader.mediaId,
     interiorVideoUploader.errorMessage,
+    revokeBlobUrl,
   ]);
-
-  // Track all created blob URLs so we can safely revoke them only on unmount or manual removal
-  const activeBlobUrlsRef = useRef<Set<string>>(new Set());
-
-  const registerBlobUrl = useCallback((url: string) => {
-    activeBlobUrlsRef.current.add(url);
-    return url;
-  }, []);
-
-  const revokeBlobUrl = useCallback((url?: string | null) => {
-    if (url && activeBlobUrlsRef.current.has(url)) {
-      activeBlobUrlsRef.current.delete(url);
-      try {
-        URL.revokeObjectURL(url);
-      } catch {
-        // no-op
-      }
-    }
-  }, []);
-
-  // Clean up remaining object URLs ONLY when component unmounts (empty dependency array)
-  useEffect(() => {
-    const urls = activeBlobUrlsRef.current;
-    return () => {
-      urls.forEach((url) => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch {
-          // no-op
-        }
-      });
-      urls.clear();
-    };
-  }, []);
 
   // Hydrate already-uploaded photos and videos from backend on mount or refresh
   useEffect(() => {
@@ -557,6 +592,44 @@ export function CompleteMediaReviewWizard({
         mediaId: remoteVideo.id,
         isRemote: true,
       };
+    });
+
+    // 5. Checklist Items (Exact checklistItemCode matching)
+    setChecklistFiles((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+
+      const remoteChecklistMedia = existingMedia.filter(
+        (m) =>
+          m.status === 'UPLOADED' &&
+          (m.categoryName === 'CHECKLIST' || !!m.checklistItemCode),
+      );
+
+      for (const m of remoteChecklistMedia) {
+        if (!m.checklistItemCode) continue;
+        const slotKey = m.checklistItemCode;
+        if (
+          slotKey in updated &&
+          (!updated[slotKey] || updated[slotKey]?.isRemote)
+        ) {
+          if (updated[slotKey]?.mediaId === m.id) continue;
+          updated[slotKey] = {
+            id: `remote_chk_${m.id}`,
+            previewUrl: getMediaFileUrl(m.id),
+            name: m.fileName,
+            sizeFormatted: formatBytes(m.fileSize),
+            type: m.mimeType,
+            progress: 100,
+            status: 'completed' as const,
+            uploadedAt: new Date(m.createdAt),
+            mediaId: m.id,
+            isRemote: true,
+          };
+          changed = true;
+        }
+      }
+
+      return changed ? updated : prev;
     });
   }, [existingMedia]);
 
@@ -687,6 +760,11 @@ export function CompleteMediaReviewWizard({
     setIsUploadingExterior(true);
     setValidationError(null);
 
+    const abortController = new AbortController();
+    staged.forEach((s) =>
+      abortControllersRef.current.set(s.id, abortController),
+    );
+
     setExteriorPhotos((prev) =>
       prev.map((item) =>
         staged.some((s) => s.id === item.id)
@@ -705,6 +783,7 @@ export function CompleteMediaReviewWizard({
       const res = await batchUploader.mutateAsync({
         files: filesToUpload,
         categoryId: 'EXTERIOR',
+        signal: abortController.signal,
         onProgress: (pct) => {
           const capped = Math.min(pct, 90);
           setExteriorPhotos((prev) =>
@@ -726,8 +805,16 @@ export function CompleteMediaReviewWizard({
           if (!resItem) return { ...item, progress: 100, status: 'completed' };
 
           if (resItem.status === 'UPLOADED') {
+            if (
+              item.previewUrl &&
+              (!item.isRemote || item.previewUrl.startsWith('blob:'))
+            ) {
+              revokeBlobUrl(item.previewUrl);
+            }
             return {
               ...item,
+              previewUrl: getMediaFileUrl(resItem.id),
+              file: undefined,
               progress: 100,
               status: 'completed',
               mediaId: resItem.id,
@@ -760,14 +847,19 @@ export function CompleteMediaReviewWizard({
       );
       return false;
     } finally {
+      staged.forEach((s) => abortControllersRef.current.delete(s.id));
       setIsUploadingExterior(false);
     }
-  }, [batchUploader, exteriorPhotos]);
+  }, [batchUploader, exteriorPhotos, revokeBlobUrl]);
 
   const retryExteriorPhoto = useCallback(
     async (id: string) => {
       const target = exteriorPhotos.find((p) => p.id === id);
       if (!target || !target.file) return;
+
+      const abortController = new AbortController();
+      abortControllersRef.current.set(id, abortController);
+
       setExteriorPhotos((prev) =>
         prev.map((p) =>
           p.id === id
@@ -784,16 +876,33 @@ export function CompleteMediaReviewWizard({
         const res = await singleImageUploader.mutateAsync({
           file: target.file,
           categoryId: 'EXTERIOR',
+          signal: abortController.signal,
           onProgress: (pct) => {
             setExteriorPhotos((prev) =>
               prev.map((p) => (p.id === id ? { ...p, progress: pct } : p)),
             );
           },
         });
+
+        if (
+          target.previewUrl &&
+          (!target.isRemote || target.previewUrl.startsWith('blob:'))
+        ) {
+          revokeBlobUrl(target.previewUrl);
+        }
+
         setExteriorPhotos((prev) =>
           prev.map((p) =>
             p.id === id
-              ? { ...p, status: 'completed', progress: 100, mediaId: res.id }
+              ? {
+                  ...p,
+                  status: 'completed',
+                  progress: 100,
+                  mediaId: res.id,
+                  previewUrl: getMediaFileUrl(res.id),
+                  file: undefined,
+                  isRemote: true,
+                }
               : p,
           ),
         );
@@ -807,9 +916,11 @@ export function CompleteMediaReviewWizard({
               : p,
           ),
         );
+      } finally {
+        abortControllersRef.current.delete(id);
       }
     },
-    [exteriorPhotos, singleImageUploader],
+    [exteriorPhotos, revokeBlobUrl, singleImageUploader],
   );
 
   const [isUploadingExteriorVideo, setIsUploadingExteriorVideo] =
@@ -830,7 +941,11 @@ export function CompleteMediaReviewWizard({
         return;
       }
 
-      if (exteriorVideo && !exteriorVideo.isRemote) {
+      if (
+        exteriorVideo &&
+        (!exteriorVideo.isRemote ||
+          exteriorVideo.previewUrl.startsWith('blob:'))
+      ) {
         revokeBlobUrl(exteriorVideo.previewUrl);
       }
       const item: UploadedFileItem = {
@@ -859,6 +974,10 @@ export function CompleteMediaReviewWizard({
     }
     setIsUploadingExteriorVideo(true);
     setValidationError(null);
+
+    const abortController = new AbortController();
+    abortControllersRef.current.set(exteriorVideo.id, abortController);
+
     setExteriorVideo((prev) =>
       prev
         ? {
@@ -870,10 +989,33 @@ export function CompleteMediaReviewWizard({
         : null,
     );
     try {
-      await exteriorVideoUploader.upload({
+      const dto = await exteriorVideoUploader.upload({
         file: exteriorVideo.file,
         categoryId: 'EXTERIOR',
+        signal: abortController.signal,
       });
+
+      if (
+        exteriorVideo.previewUrl &&
+        (!exteriorVideo.isRemote ||
+          exteriorVideo.previewUrl.startsWith('blob:'))
+      ) {
+        revokeBlobUrl(exteriorVideo.previewUrl);
+      }
+
+      setExteriorVideo((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'completed',
+              progress: 100,
+              mediaId: dto.id,
+              previewUrl: getMediaFileUrl(dto.id),
+              file: undefined,
+              isRemote: true,
+            }
+          : null,
+      );
       return true;
     } catch (err: any) {
       const msg =
@@ -888,9 +1030,10 @@ export function CompleteMediaReviewWizard({
       );
       return false;
     } finally {
+      abortControllersRef.current.delete(exteriorVideo.id);
       setIsUploadingExteriorVideo(false);
     }
-  }, [exteriorVideo, exteriorVideoUploader]);
+  }, [exteriorVideo, exteriorVideoUploader, revokeBlobUrl]);
 
   const retryExteriorVideo = useCallback(async () => {
     if (!exteriorVideo || !exteriorVideo.file) return;
@@ -924,20 +1067,34 @@ export function CompleteMediaReviewWizard({
 
   const removeExteriorPhoto = useCallback(
     (id: string) => {
-      setExteriorPhotos((prev) => {
-        const target = prev.find((p) => p.id === id);
-        if (target && !target.isRemote) revokeBlobUrl(target.previewUrl);
-        return prev.filter((p) => p.id !== id);
-      });
+      const target = exteriorPhotos.find((p) => p.id === id);
+      if (target) {
+        if (target.status === 'uploading') {
+          abortControllersRef.current.get(id)?.abort();
+          abortControllersRef.current.delete(id);
+        }
+        if (!target.isRemote || target.previewUrl.startsWith('blob:')) {
+          revokeBlobUrl(target.previewUrl);
+        }
+      }
+      setExteriorPhotos((prev) => prev.filter((p) => p.id !== id));
     },
-    [revokeBlobUrl],
+    [exteriorPhotos, revokeBlobUrl],
   );
 
   const removeExteriorVideo = useCallback(() => {
     if (exteriorVideo) {
-      exteriorVideoUploader.stopPolling();
+      if (exteriorVideo.status === 'uploading') {
+        abortControllersRef.current.get(exteriorVideo.id)?.abort();
+        abortControllersRef.current.delete(exteriorVideo.id);
+      }
       exteriorVideoUploader.reset();
-      if (!exteriorVideo.isRemote) revokeBlobUrl(exteriorVideo.previewUrl);
+      if (
+        !exteriorVideo.isRemote ||
+        exteriorVideo.previewUrl.startsWith('blob:')
+      ) {
+        revokeBlobUrl(exteriorVideo.previewUrl);
+      }
       setExteriorVideo(null);
     }
   }, [exteriorVideo, exteriorVideoUploader, revokeBlobUrl]);
@@ -994,6 +1151,11 @@ export function CompleteMediaReviewWizard({
     setIsUploadingInterior(true);
     setValidationError(null);
 
+    const abortController = new AbortController();
+    staged.forEach((s) =>
+      abortControllersRef.current.set(s.id, abortController),
+    );
+
     setInteriorPhotos((prev) =>
       prev.map((item) =>
         staged.some((s) => s.id === item.id)
@@ -1012,6 +1174,7 @@ export function CompleteMediaReviewWizard({
       const res = await batchUploader.mutateAsync({
         files: filesToUpload,
         categoryId: 'INTERIOR',
+        signal: abortController.signal,
         onProgress: (pct) => {
           const capped = Math.min(pct, 90);
           setInteriorPhotos((prev) =>
@@ -1033,8 +1196,16 @@ export function CompleteMediaReviewWizard({
           if (!resItem) return { ...item, progress: 100, status: 'completed' };
 
           if (resItem.status === 'UPLOADED') {
+            if (
+              item.previewUrl &&
+              (!item.isRemote || item.previewUrl.startsWith('blob:'))
+            ) {
+              revokeBlobUrl(item.previewUrl);
+            }
             return {
               ...item,
+              previewUrl: getMediaFileUrl(resItem.id),
+              file: undefined,
               progress: 100,
               status: 'completed',
               mediaId: resItem.id,
@@ -1067,14 +1238,19 @@ export function CompleteMediaReviewWizard({
       );
       return false;
     } finally {
+      staged.forEach((s) => abortControllersRef.current.delete(s.id));
       setIsUploadingInterior(false);
     }
-  }, [batchUploader, interiorPhotos]);
+  }, [batchUploader, interiorPhotos, revokeBlobUrl]);
 
   const retryInteriorPhoto = useCallback(
     async (id: string) => {
       const target = interiorPhotos.find((p) => p.id === id);
       if (!target || !target.file) return;
+
+      const abortController = new AbortController();
+      abortControllersRef.current.set(id, abortController);
+
       setInteriorPhotos((prev) =>
         prev.map((p) =>
           p.id === id
@@ -1091,16 +1267,33 @@ export function CompleteMediaReviewWizard({
         const res = await singleImageUploader.mutateAsync({
           file: target.file,
           categoryId: 'INTERIOR',
+          signal: abortController.signal,
           onProgress: (pct) => {
             setInteriorPhotos((prev) =>
               prev.map((p) => (p.id === id ? { ...p, progress: pct } : p)),
             );
           },
         });
+
+        if (
+          target.previewUrl &&
+          (!target.isRemote || target.previewUrl.startsWith('blob:'))
+        ) {
+          revokeBlobUrl(target.previewUrl);
+        }
+
         setInteriorPhotos((prev) =>
           prev.map((p) =>
             p.id === id
-              ? { ...p, status: 'completed', progress: 100, mediaId: res.id }
+              ? {
+                  ...p,
+                  status: 'completed',
+                  progress: 100,
+                  mediaId: res.id,
+                  previewUrl: getMediaFileUrl(res.id),
+                  file: undefined,
+                  isRemote: true,
+                }
               : p,
           ),
         );
@@ -1114,9 +1307,11 @@ export function CompleteMediaReviewWizard({
               : p,
           ),
         );
+      } finally {
+        abortControllersRef.current.delete(id);
       }
     },
-    [interiorPhotos, singleImageUploader],
+    [interiorPhotos, revokeBlobUrl, singleImageUploader],
   );
 
   const [isUploadingInteriorVideo, setIsUploadingInteriorVideo] =
@@ -1136,7 +1331,11 @@ export function CompleteMediaReviewWizard({
         return;
       }
 
-      if (interiorVideo && !interiorVideo.isRemote) {
+      if (
+        interiorVideo &&
+        (!interiorVideo.isRemote ||
+          interiorVideo.previewUrl.startsWith('blob:'))
+      ) {
         revokeBlobUrl(interiorVideo.previewUrl);
       }
       const item: UploadedFileItem = {
@@ -1165,6 +1364,10 @@ export function CompleteMediaReviewWizard({
     }
     setIsUploadingInteriorVideo(true);
     setValidationError(null);
+
+    const abortController = new AbortController();
+    abortControllersRef.current.set(interiorVideo.id, abortController);
+
     setInteriorVideo((prev) =>
       prev
         ? {
@@ -1176,10 +1379,33 @@ export function CompleteMediaReviewWizard({
         : null,
     );
     try {
-      await interiorVideoUploader.upload({
+      const dto = await interiorVideoUploader.upload({
         file: interiorVideo.file,
         categoryId: 'INTERIOR',
+        signal: abortController.signal,
       });
+
+      if (
+        interiorVideo.previewUrl &&
+        (!interiorVideo.isRemote ||
+          interiorVideo.previewUrl.startsWith('blob:'))
+      ) {
+        revokeBlobUrl(interiorVideo.previewUrl);
+      }
+
+      setInteriorVideo((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'completed',
+              progress: 100,
+              mediaId: dto.id,
+              previewUrl: getMediaFileUrl(dto.id),
+              file: undefined,
+              isRemote: true,
+            }
+          : null,
+      );
       return true;
     } catch (err: any) {
       const msg =
@@ -1194,9 +1420,10 @@ export function CompleteMediaReviewWizard({
       );
       return false;
     } finally {
+      abortControllersRef.current.delete(interiorVideo.id);
       setIsUploadingInteriorVideo(false);
     }
-  }, [interiorVideo, interiorVideoUploader]);
+  }, [interiorVideo, interiorVideoUploader, revokeBlobUrl]);
 
   const retryInteriorVideo = useCallback(async () => {
     if (!interiorVideo || !interiorVideo.file) return;
@@ -1230,20 +1457,34 @@ export function CompleteMediaReviewWizard({
 
   const removeInteriorPhoto = useCallback(
     (id: string) => {
-      setInteriorPhotos((prev) => {
-        const target = prev.find((p) => p.id === id);
-        if (target && !target.isRemote) revokeBlobUrl(target.previewUrl);
-        return prev.filter((p) => p.id !== id);
-      });
+      const target = interiorPhotos.find((p) => p.id === id);
+      if (target) {
+        if (target.status === 'uploading') {
+          abortControllersRef.current.get(id)?.abort();
+          abortControllersRef.current.delete(id);
+        }
+        if (!target.isRemote || target.previewUrl.startsWith('blob:')) {
+          revokeBlobUrl(target.previewUrl);
+        }
+      }
+      setInteriorPhotos((prev) => prev.filter((p) => p.id !== id));
     },
-    [revokeBlobUrl],
+    [interiorPhotos, revokeBlobUrl],
   );
 
   const removeInteriorVideo = useCallback(() => {
     if (interiorVideo) {
-      interiorVideoUploader.stopPolling();
+      if (interiorVideo.status === 'uploading') {
+        abortControllersRef.current.get(interiorVideo.id)?.abort();
+        abortControllersRef.current.delete(interiorVideo.id);
+      }
       interiorVideoUploader.reset();
-      if (!interiorVideo.isRemote) revokeBlobUrl(interiorVideo.previewUrl);
+      if (
+        !interiorVideo.isRemote ||
+        interiorVideo.previewUrl.startsWith('blob:')
+      ) {
+        revokeBlobUrl(interiorVideo.previewUrl);
+      }
       setInteriorVideo(null);
     }
   }, [interiorVideo, interiorVideoUploader, revokeBlobUrl]);
@@ -1265,6 +1506,14 @@ export function CompleteMediaReviewWizard({
         return;
       }
 
+      if (
+        checklistFiles[itemId] &&
+        (!checklistFiles[itemId]!.isRemote ||
+          checklistFiles[itemId]!.previewUrl.startsWith('blob:'))
+      ) {
+        revokeBlobUrl(checklistFiles[itemId]!.previewUrl);
+      }
+
       const item: UploadedFileItem = {
         id: `chk_${itemId}_${Date.now()}`,
         file,
@@ -1277,14 +1526,9 @@ export function CompleteMediaReviewWizard({
         uploadedAt: new Date(),
       };
 
-      setChecklistFiles((prev) => {
-        if (prev[itemId] && !prev[itemId]!.isRemote) {
-          revokeBlobUrl(prev[itemId]!.previewUrl);
-        }
-        return { ...prev, [itemId]: item };
-      });
+      setChecklistFiles((prev) => ({ ...prev, [itemId]: item }));
     },
-    [registerBlobUrl, revokeBlobUrl],
+    [checklistFiles, registerBlobUrl, revokeBlobUrl],
   );
 
   const uploadStagedChecklistItems = useCallback(async (): Promise<boolean> => {
@@ -1301,6 +1545,9 @@ export function CompleteMediaReviewWizard({
 
     for (const [itemId, item] of stagedEntries) {
       if (!item || !item.file) continue;
+
+      const abortController = new AbortController();
+      abortControllersRef.current.set(item.id, abortController);
 
       setChecklistFiles((prev) => {
         const cur = prev[itemId];
@@ -1320,6 +1567,8 @@ export function CompleteMediaReviewWizard({
         const res = await singleImageUploader.mutateAsync({
           file: item.file,
           categoryId: 'CHECKLIST',
+          checklistItemCode: itemId,
+          signal: abortController.signal,
           onProgress: (pct) => {
             setChecklistFiles((prev) => {
               const cur = prev[itemId];
@@ -1328,6 +1577,13 @@ export function CompleteMediaReviewWizard({
             });
           },
         });
+
+        if (
+          item.previewUrl &&
+          (!item.isRemote || item.previewUrl.startsWith('blob:'))
+        ) {
+          revokeBlobUrl(item.previewUrl);
+        }
 
         setChecklistFiles((prev) => {
           const cur = prev[itemId];
@@ -1339,6 +1595,9 @@ export function CompleteMediaReviewWizard({
               status: 'completed',
               progress: 100,
               mediaId: res.id,
+              previewUrl: getMediaFileUrl(res.id),
+              file: undefined,
+              isRemote: true,
             },
           };
         });
@@ -1361,17 +1620,22 @@ export function CompleteMediaReviewWizard({
             },
           };
         });
+      } finally {
+        abortControllersRef.current.delete(item.id);
       }
     }
 
     setIsUploadingChecklist(false);
     return allOk;
-  }, [checklistFiles, singleImageUploader]);
+  }, [checklistFiles, revokeBlobUrl, singleImageUploader]);
 
   const retryChecklistItem = useCallback(
     async (itemId: string) => {
       const item = checklistFiles[itemId];
       if (!item || !item.file) return;
+
+      const abortController = new AbortController();
+      abortControllersRef.current.set(item.id, abortController);
 
       setChecklistFiles((prev) => {
         const cur = prev[itemId];
@@ -1391,6 +1655,8 @@ export function CompleteMediaReviewWizard({
         const res = await singleImageUploader.mutateAsync({
           file: item.file,
           categoryId: 'CHECKLIST',
+          checklistItemCode: itemId,
+          signal: abortController.signal,
           onProgress: (pct) => {
             setChecklistFiles((prev) => {
               const cur = prev[itemId];
@@ -1399,6 +1665,13 @@ export function CompleteMediaReviewWizard({
             });
           },
         });
+
+        if (
+          item.previewUrl &&
+          (!item.isRemote || item.previewUrl.startsWith('blob:'))
+        ) {
+          revokeBlobUrl(item.previewUrl);
+        }
 
         setChecklistFiles((prev) => {
           const cur = prev[itemId];
@@ -1410,6 +1683,9 @@ export function CompleteMediaReviewWizard({
               status: 'completed',
               progress: 100,
               mediaId: res.id,
+              previewUrl: getMediaFileUrl(res.id),
+              file: undefined,
+              isRemote: true,
             },
           };
         });
@@ -1431,21 +1707,28 @@ export function CompleteMediaReviewWizard({
             },
           };
         });
+      } finally {
+        abortControllersRef.current.delete(item.id);
       }
     },
-    [checklistFiles, singleImageUploader],
+    [checklistFiles, revokeBlobUrl, singleImageUploader],
   );
 
   const removeChecklistItem = useCallback(
     (itemId: string) => {
-      setChecklistFiles((prev) => {
-        if (prev[itemId]) {
-          revokeBlobUrl(prev[itemId]!.previewUrl);
+      const target = checklistFiles[itemId];
+      if (target) {
+        if (target.status === 'uploading') {
+          abortControllersRef.current.get(target.id)?.abort();
+          abortControllersRef.current.delete(target.id);
         }
-        return { ...prev, [itemId]: null };
-      });
+        if (!target.isRemote || target.previewUrl.startsWith('blob:')) {
+          revokeBlobUrl(target.previewUrl);
+        }
+      }
+      setChecklistFiles((prev) => ({ ...prev, [itemId]: null }));
     },
-    [revokeBlobUrl],
+    [checklistFiles, revokeBlobUrl],
   );
 
   // --- Step Navigation & Validation ---
@@ -1466,11 +1749,10 @@ export function CompleteMediaReviewWizard({
 
       if (
         exteriorVideo.status === 'uploading' ||
-        exteriorVideoUploader.status === 'uploading' ||
-        exteriorVideoUploader.status === 'processing'
+        exteriorVideoUploader.status === 'uploading'
       ) {
         setValidationError(
-          'Exterior video is still uploading or processing. Please wait until it completes.',
+          'Exterior video is still uploading. Please wait until it completes.',
         );
         return;
       }
@@ -1489,8 +1771,7 @@ export function CompleteMediaReviewWizard({
       if (
         interiorVideo &&
         (interiorVideo.status === 'uploading' ||
-          interiorVideoUploader.status === 'uploading' ||
-          interiorVideoUploader.status === 'processing')
+          interiorVideoUploader.status === 'uploading')
       ) {
         setValidationError(
           'Interior video is still uploading. Please wait or remove it.',
@@ -1524,7 +1805,7 @@ export function CompleteMediaReviewWizard({
 
     if (!exteriorVideo || exteriorVideo.status !== 'completed') {
       setValidationError(
-        'Exterior 360 walkaround video must be fully uploaded and processed before submitting review.',
+        'Exterior 360 walkaround video must be fully uploaded before submitting review.',
       );
       return;
     }
@@ -1610,6 +1891,15 @@ export function CompleteMediaReviewWizard({
   };
 
   const handleResetWizard = () => {
+    abortControllersRef.current.forEach((controller) => {
+      try {
+        controller.abort();
+      } catch {
+        // no-op
+      }
+    });
+    abortControllersRef.current.clear();
+
     activeBlobUrlsRef.current.forEach((url) => {
       try {
         URL.revokeObjectURL(url);
