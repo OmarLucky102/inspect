@@ -22,10 +22,14 @@ export async function uploadInspectionImage(
 ): Promise<MediaDto> {
   const form = new FormData();
   form.append('file', input.file);
-  if (input.captureSessionId) form.append('captureSessionId', input.captureSessionId);
+  if (input.captureSessionId)
+    form.append('captureSessionId', input.captureSessionId);
   if (input.categoryId) form.append('categoryId', input.categoryId);
-  if (input.sortOrder !== undefined) form.append('sortOrder', String(input.sortOrder));
+  if (input.sortOrder !== undefined)
+    form.append('sortOrder', String(input.sortOrder));
   if (input.fileHash) form.append('fileHash', input.fileHash);
+  if (input.checklistItemCode)
+    form.append('checklistItemCode', input.checklistItemCode);
 
   const res = await api.post<{ status: string; data: MediaDto }>(
     `/media/inspections/${input.inspectionId}`,
@@ -50,7 +54,8 @@ export async function batchUploadInspectionImages(
   input.files.forEach((file) => {
     form.append('files', file);
   });
-  if (input.captureSessionId) form.append('captureSessionId', input.captureSessionId);
+  if (input.captureSessionId)
+    form.append('captureSessionId', input.captureSessionId);
   if (input.categoryId) form.append('categoryId', input.categoryId);
 
   const res = await api.post<{ status: string; data: BatchUploadDto }>(
@@ -74,10 +79,14 @@ export async function uploadInspectionVideo(
 ): Promise<MediaDto> {
   const form = new FormData();
   form.append('file', input.file);
-  if (input.captureSessionId) form.append('captureSessionId', input.captureSessionId);
+  if (input.captureSessionId)
+    form.append('captureSessionId', input.captureSessionId);
   if (input.categoryId) form.append('categoryId', input.categoryId);
-  if (input.sortOrder !== undefined) form.append('sortOrder', String(input.sortOrder));
+  if (input.sortOrder !== undefined)
+    form.append('sortOrder', String(input.sortOrder));
   if (input.fileHash) form.append('fileHash', input.fileHash);
+  if (input.checklistItemCode)
+    form.append('checklistItemCode', input.checklistItemCode);
 
   const res = await api.post<{ status: string; data: MediaDto }>(
     `/media/inspections/${input.inspectionId}/video`,

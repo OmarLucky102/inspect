@@ -18,6 +18,7 @@ export interface MediaDto {
   createdAt: string;
   updatedAt: string;
   categoryName?: string;
+  checklistItemCode?: string | null;
 }
 
 export interface BatchMediaSuccessResult {
@@ -45,7 +46,8 @@ export interface BatchMediaFailedResult {
   retryable: boolean;
 }
 
-export type BatchMediaItemResult = BatchMediaSuccessResult | BatchMediaFailedResult;
+export type BatchMediaItemResult =
+  BatchMediaSuccessResult | BatchMediaFailedResult;
 
 export interface BatchUploadDto {
   total: number;
@@ -63,6 +65,7 @@ export interface UploadImageInput {
   categoryId?: string;
   sortOrder?: number;
   fileHash?: string;
+  checklistItemCode?: string;
 }
 
 export interface BatchUploadInput {
@@ -79,4 +82,5 @@ export interface UploadVideoInput {
   categoryId?: string;
   sortOrder?: number;
   fileHash?: string;
+  checklistItemCode?: string;
 }

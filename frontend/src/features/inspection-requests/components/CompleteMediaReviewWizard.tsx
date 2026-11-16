@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef, useId, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useId,
+  useMemo,
+} from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -79,7 +86,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'license_plate',
     title: 'License Plate (Front & Rear)',
-    description: 'Crisp image showing legal registration plates, characters, and state seal.',
+    description:
+      'Crisp image showing legal registration plates, characters, and state seal.',
     category: 'legal',
     icon: FileText,
     suggestedAngle: 'Front or Rear bumper level',
@@ -87,7 +95,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'odometer_cluster',
     title: 'Odometer & Instrument Cluster',
-    description: 'Lit instrument cluster with engine running or ignition ON showing digital mileage.',
+    description:
+      'Lit instrument cluster with engine running or ignition ON showing digital mileage.',
     category: 'mechanical',
     icon: Gauge,
     suggestedAngle: 'Dashboard direct angle',
@@ -95,7 +104,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'airbag_steering',
     title: 'Airbag & Steering Assembly',
-    description: 'Steering wheel hub, driver airbag module, and center horn pad alignment.',
+    description:
+      'Steering wheel hub, driver airbag module, and center horn pad alignment.',
     category: 'safety',
     icon: ShieldAlert,
     suggestedAngle: 'Driver seat viewpoint',
@@ -103,7 +113,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'panoramic_roof',
     title: 'Panoramic Roof / Sunroof',
-    description: 'Glass integrity, weatherstripping rubber seals, and sliding track operation.',
+    description:
+      'Glass integrity, weatherstripping rubber seals, and sliding track operation.',
     category: 'body',
     icon: Sun,
     suggestedAngle: 'Overhead roof view',
@@ -111,7 +122,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'chassis_vin',
     title: 'Chassis VIN Stamping',
-    description: 'Manufacturer stamped VIN plate on chassis firewall or door B-pillar.',
+    description:
+      'Manufacturer stamped VIN plate on chassis firewall or door B-pillar.',
     category: 'legal',
     icon: Binary,
     suggestedAngle: 'Close-up with clear macro focus',
@@ -119,7 +131,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'engine_bay',
     title: 'Engine Bay & Fluid Systems',
-    description: 'Wide shot of the engine compartment, reservoir levels, and battery terminals.',
+    description:
+      'Wide shot of the engine compartment, reservoir levels, and battery terminals.',
     category: 'mechanical',
     icon: Cpu,
     suggestedAngle: 'Top-down open hood view',
@@ -127,7 +140,8 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
   {
     id: 'tire_tread',
     title: 'Tires & Brake Assembly',
-    description: 'Tire wear indicators, sidewall DOT timestamp, and wheel rim condition.',
+    description:
+      'Tire wear indicators, sidewall DOT timestamp, and wheel rim condition.',
     category: 'safety',
     icon: CircleDot,
     suggestedAngle: '45-degree angle to front tire',
@@ -202,10 +216,14 @@ export function CompleteMediaReviewWizard({
 
   // Local media state
   const [exteriorPhotos, setExteriorPhotos] = useState<UploadedFileItem[]>([]);
-  const [exteriorVideo, setExteriorVideo] = useState<UploadedFileItem | null>(null);
+  const [exteriorVideo, setExteriorVideo] = useState<UploadedFileItem | null>(
+    null,
+  );
 
   const [interiorPhotos, setInteriorPhotos] = useState<UploadedFileItem[]>([]);
-  const [interiorVideo, setInteriorVideo] = useState<UploadedFileItem | null>(null);
+  const [interiorVideo, setInteriorVideo] = useState<UploadedFileItem | null>(
+    null,
+  );
 
   const activeInspectionId = inspectionId || requestId;
   const queryClient = useQueryClient();
@@ -258,7 +276,9 @@ export function CompleteMediaReviewWizard({
         items.push({
           id: `custom_${cf.id}`,
           title: cf.name,
-          description: cf.required ? 'Required custom evidence photo.' : 'Optional custom photo.',
+          description: cf.required
+            ? 'Required custom evidence photo.'
+            : 'Optional custom photo.',
           category: 'body',
           icon: FileCheck2,
           suggestedAngle: 'Clear contextual shot',
@@ -324,7 +344,8 @@ export function CompleteMediaReviewWizard({
           ? {
               ...prev,
               status: 'error',
-              errorMessage: exteriorVideoUploader.errorMessage || 'Video processing failed',
+              errorMessage:
+                exteriorVideoUploader.errorMessage || 'Video processing failed',
               retryable: true,
             }
           : null,
@@ -377,7 +398,8 @@ export function CompleteMediaReviewWizard({
           ? {
               ...prev,
               status: 'error',
-              errorMessage: interiorVideoUploader.errorMessage || 'Video processing failed',
+              errorMessage:
+                interiorVideoUploader.errorMessage || 'Video processing failed',
               retryable: true,
             }
           : null,
@@ -438,7 +460,8 @@ export function CompleteMediaReviewWizard({
           (m) =>
             m.status === 'UPLOADED' &&
             m.mimeType.startsWith('image/') &&
-            (m.categoryName === 'EXTERIOR' || (!m.categoryName && prev.length === 0)),
+            (m.categoryName === 'EXTERIOR' ||
+              (!m.categoryName && prev.length === 0)),
         )
         .filter((m) => !existingMediaIds.has(m.id))
         .map((m) => ({
@@ -539,7 +562,10 @@ export function CompleteMediaReviewWizard({
 
   // Derived counts for staged and completed items
   const exteriorStagedCount = useMemo(
-    () => exteriorPhotos.filter((p) => (p.status === 'staged' || p.status === 'error') && p.file).length,
+    () =>
+      exteriorPhotos.filter(
+        (p) => (p.status === 'staged' || p.status === 'error') && p.file,
+      ).length,
     [exteriorPhotos],
   );
   const exteriorCompletedCount = useMemo(
@@ -553,10 +579,14 @@ export function CompleteMediaReviewWizard({
         (exteriorVideo.status === 'error' && !!exteriorVideo.file)),
     [exteriorVideo],
   );
-  const totalStep1Staged = exteriorStagedCount + (isExteriorVideoStaged ? 1 : 0);
+  const totalStep1Staged =
+    exteriorStagedCount + (isExteriorVideoStaged ? 1 : 0);
 
   const interiorStagedCount = useMemo(
-    () => interiorPhotos.filter((p) => (p.status === 'staged' || p.status === 'error') && p.file).length,
+    () =>
+      interiorPhotos.filter(
+        (p) => (p.status === 'staged' || p.status === 'error') && p.file,
+      ).length,
     [interiorPhotos],
   );
   const interiorCompletedCount = useMemo(
@@ -570,7 +600,8 @@ export function CompleteMediaReviewWizard({
         (interiorVideo.status === 'error' && !!interiorVideo.file)),
     [interiorVideo],
   );
-  const totalStep2Staged = interiorStagedCount + (isInteriorVideoStaged ? 1 : 0);
+  const totalStep2Staged =
+    interiorStagedCount + (isInteriorVideoStaged ? 1 : 0);
 
   const checklistStagedCount = useMemo(
     () =>
@@ -580,7 +611,9 @@ export function CompleteMediaReviewWizard({
     [checklistFiles],
   );
   const checklistUploadedCount = useMemo(
-    () => Object.values(checklistFiles).filter((c) => c?.status === 'completed').length,
+    () =>
+      Object.values(checklistFiles).filter((c) => c?.status === 'completed')
+        .length,
     [checklistFiles],
   );
 
@@ -657,7 +690,12 @@ export function CompleteMediaReviewWizard({
     setExteriorPhotos((prev) =>
       prev.map((item) =>
         staged.some((s) => s.id === item.id)
-          ? { ...item, status: 'uploading', progress: 10, errorMessage: undefined }
+          ? {
+              ...item,
+              status: 'uploading',
+              progress: 10,
+              errorMessage: undefined,
+            }
           : item,
       ),
     );
@@ -708,7 +746,10 @@ export function CompleteMediaReviewWizard({
       );
       return allSucceeded;
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to upload exterior photos';
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to upload exterior photos';
       setValidationError(msg);
       setExteriorPhotos((prev) =>
         prev.map((item) =>
@@ -730,7 +771,12 @@ export function CompleteMediaReviewWizard({
       setExteriorPhotos((prev) =>
         prev.map((p) =>
           p.id === id
-            ? { ...p, status: 'uploading', progress: 10, errorMessage: undefined }
+            ? {
+                ...p,
+                status: 'uploading',
+                progress: 10,
+                errorMessage: undefined,
+              }
             : p,
         ),
       );
@@ -752,7 +798,8 @@ export function CompleteMediaReviewWizard({
           ),
         );
       } catch (err: any) {
-        const msg = err?.response?.data?.message || err?.message || 'Retry failed';
+        const msg =
+          err?.response?.data?.message || err?.message || 'Retry failed';
         setExteriorPhotos((prev) =>
           prev.map((p) =>
             p.id === id
@@ -765,7 +812,8 @@ export function CompleteMediaReviewWizard({
     [exteriorPhotos, singleImageUploader],
   );
 
-  const [isUploadingExteriorVideo, setIsUploadingExteriorVideo] = useState(false);
+  const [isUploadingExteriorVideo, setIsUploadingExteriorVideo] =
+    useState(false);
 
   const handleExteriorVideoDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -802,22 +850,41 @@ export function CompleteMediaReviewWizard({
   );
 
   const uploadExteriorVideo = useCallback(async (): Promise<boolean> => {
-    if (!exteriorVideo || !exteriorVideo.file || exteriorVideo.status === 'completed') {
+    if (
+      !exteriorVideo ||
+      !exteriorVideo.file ||
+      exteriorVideo.status === 'completed'
+    ) {
       return true;
     }
     setIsUploadingExteriorVideo(true);
     setValidationError(null);
     setExteriorVideo((prev) =>
-      prev ? { ...prev, status: 'uploading', progress: 10, errorMessage: undefined } : null,
+      prev
+        ? {
+            ...prev,
+            status: 'uploading',
+            progress: 10,
+            errorMessage: undefined,
+          }
+        : null,
     );
     try {
-      await exteriorVideoUploader.upload({ file: exteriorVideo.file, categoryId: 'EXTERIOR' });
+      await exteriorVideoUploader.upload({
+        file: exteriorVideo.file,
+        categoryId: 'EXTERIOR',
+      });
       return true;
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Exterior video upload failed';
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Exterior video upload failed';
       setValidationError(msg);
       setExteriorVideo((prev) =>
-        prev ? { ...prev, status: 'error', errorMessage: msg, retryable: true } : null,
+        prev
+          ? { ...prev, status: 'error', errorMessage: msg, retryable: true }
+          : null,
       );
       return false;
     } finally {
@@ -848,7 +915,12 @@ export function CompleteMediaReviewWizard({
       if (!videoOk) allOk = false;
     }
     return allOk;
-  }, [exteriorPhotos, uploadStagedExteriorPhotos, exteriorVideo, uploadExteriorVideo]);
+  }, [
+    exteriorPhotos,
+    uploadStagedExteriorPhotos,
+    exteriorVideo,
+    uploadExteriorVideo,
+  ]);
 
   const removeExteriorPhoto = useCallback(
     (id: string) => {
@@ -925,7 +997,12 @@ export function CompleteMediaReviewWizard({
     setInteriorPhotos((prev) =>
       prev.map((item) =>
         staged.some((s) => s.id === item.id)
-          ? { ...item, status: 'uploading', progress: 10, errorMessage: undefined }
+          ? {
+              ...item,
+              status: 'uploading',
+              progress: 10,
+              errorMessage: undefined,
+            }
           : item,
       ),
     );
@@ -976,7 +1053,10 @@ export function CompleteMediaReviewWizard({
       );
       return allSucceeded;
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to upload interior photos';
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to upload interior photos';
       setValidationError(msg);
       setInteriorPhotos((prev) =>
         prev.map((item) =>
@@ -998,7 +1078,12 @@ export function CompleteMediaReviewWizard({
       setInteriorPhotos((prev) =>
         prev.map((p) =>
           p.id === id
-            ? { ...p, status: 'uploading', progress: 10, errorMessage: undefined }
+            ? {
+                ...p,
+                status: 'uploading',
+                progress: 10,
+                errorMessage: undefined,
+              }
             : p,
         ),
       );
@@ -1020,7 +1105,8 @@ export function CompleteMediaReviewWizard({
           ),
         );
       } catch (err: any) {
-        const msg = err?.response?.data?.message || err?.message || 'Retry failed';
+        const msg =
+          err?.response?.data?.message || err?.message || 'Retry failed';
         setInteriorPhotos((prev) =>
           prev.map((p) =>
             p.id === id
@@ -1033,7 +1119,8 @@ export function CompleteMediaReviewWizard({
     [interiorPhotos, singleImageUploader],
   );
 
-  const [isUploadingInteriorVideo, setIsUploadingInteriorVideo] = useState(false);
+  const [isUploadingInteriorVideo, setIsUploadingInteriorVideo] =
+    useState(false);
 
   const handleInteriorVideoDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -1069,22 +1156,41 @@ export function CompleteMediaReviewWizard({
   );
 
   const uploadInteriorVideo = useCallback(async (): Promise<boolean> => {
-    if (!interiorVideo || !interiorVideo.file || interiorVideo.status === 'completed') {
+    if (
+      !interiorVideo ||
+      !interiorVideo.file ||
+      interiorVideo.status === 'completed'
+    ) {
       return true;
     }
     setIsUploadingInteriorVideo(true);
     setValidationError(null);
     setInteriorVideo((prev) =>
-      prev ? { ...prev, status: 'uploading', progress: 10, errorMessage: undefined } : null,
+      prev
+        ? {
+            ...prev,
+            status: 'uploading',
+            progress: 10,
+            errorMessage: undefined,
+          }
+        : null,
     );
     try {
-      await interiorVideoUploader.upload({ file: interiorVideo.file, categoryId: 'INTERIOR' });
+      await interiorVideoUploader.upload({
+        file: interiorVideo.file,
+        categoryId: 'INTERIOR',
+      });
       return true;
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Interior video upload failed';
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Interior video upload failed';
       setValidationError(msg);
       setInteriorVideo((prev) =>
-        prev ? { ...prev, status: 'error', errorMessage: msg, retryable: true } : null,
+        prev
+          ? { ...prev, status: 'error', errorMessage: msg, retryable: true }
+          : null,
       );
       return false;
     } finally {
@@ -1115,7 +1221,12 @@ export function CompleteMediaReviewWizard({
       if (!videoOk) allOk = false;
     }
     return allOk;
-  }, [interiorPhotos, uploadStagedInteriorPhotos, interiorVideo, uploadInteriorVideo]);
+  }, [
+    interiorPhotos,
+    uploadStagedInteriorPhotos,
+    interiorVideo,
+    uploadInteriorVideo,
+  ]);
 
   const removeInteriorPhoto = useCallback(
     (id: string) => {
@@ -1178,7 +1289,10 @@ export function CompleteMediaReviewWizard({
 
   const uploadStagedChecklistItems = useCallback(async (): Promise<boolean> => {
     const stagedEntries = Object.entries(checklistFiles).filter(
-      ([_, item]) => item && (item.status === 'staged' || item.status === 'error') && item.file,
+      ([_, item]) =>
+        item &&
+        (item.status === 'staged' || item.status === 'error') &&
+        item.file,
     );
     if (stagedEntries.length === 0) return true;
 
@@ -1193,7 +1307,12 @@ export function CompleteMediaReviewWizard({
         if (!cur) return prev;
         return {
           ...prev,
-          [itemId]: { ...cur, status: 'uploading', progress: 15, errorMessage: undefined },
+          [itemId]: {
+            ...cur,
+            status: 'uploading',
+            progress: 15,
+            errorMessage: undefined,
+          },
         };
       });
 
@@ -1215,19 +1334,31 @@ export function CompleteMediaReviewWizard({
           if (!cur) return prev;
           return {
             ...prev,
-            [itemId]: { ...cur, status: 'completed', progress: 100, mediaId: res.id },
+            [itemId]: {
+              ...cur,
+              status: 'completed',
+              progress: 100,
+              mediaId: res.id,
+            },
           };
         });
       } catch (err: any) {
         allOk = false;
         const msg =
-          err?.response?.data?.message || err?.message || 'Checklist photo upload failed';
+          err?.response?.data?.message ||
+          err?.message ||
+          'Checklist photo upload failed';
         setChecklistFiles((prev) => {
           const cur = prev[itemId];
           if (!cur) return prev;
           return {
             ...prev,
-            [itemId]: { ...cur, status: 'error', errorMessage: msg, retryable: true },
+            [itemId]: {
+              ...cur,
+              status: 'error',
+              errorMessage: msg,
+              retryable: true,
+            },
           };
         });
       }
@@ -1247,7 +1378,12 @@ export function CompleteMediaReviewWizard({
         if (!cur) return prev;
         return {
           ...prev,
-          [itemId]: { ...cur, status: 'uploading', progress: 10, errorMessage: undefined },
+          [itemId]: {
+            ...cur,
+            status: 'uploading',
+            progress: 10,
+            errorMessage: undefined,
+          },
         };
       });
 
@@ -1269,17 +1405,30 @@ export function CompleteMediaReviewWizard({
           if (!cur) return prev;
           return {
             ...prev,
-            [itemId]: { ...cur, status: 'completed', progress: 100, mediaId: res.id },
+            [itemId]: {
+              ...cur,
+              status: 'completed',
+              progress: 100,
+              mediaId: res.id,
+            },
           };
         });
       } catch (err: any) {
-        const msg = err?.response?.data?.message || err?.message || 'Checklist retry failed';
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Checklist retry failed';
         setChecklistFiles((prev) => {
           const cur = prev[itemId];
           if (!cur) return prev;
           return {
             ...prev,
-            [itemId]: { ...cur, status: 'error', errorMessage: msg, retryable: true },
+            [itemId]: {
+              ...cur,
+              status: 'error',
+              errorMessage: msg,
+              retryable: true,
+            },
           };
         });
       }
@@ -1326,7 +1475,9 @@ export function CompleteMediaReviewWizard({
         return;
       }
       if (exteriorVideo.status === 'error') {
-        setValidationError('Exterior video upload failed. Please retry before continuing.');
+        setValidationError(
+          'Exterior video upload failed. Please retry before continuing.',
+        );
         return;
       }
       setCurrentStep(2);
@@ -1341,7 +1492,9 @@ export function CompleteMediaReviewWizard({
           interiorVideoUploader.status === 'uploading' ||
           interiorVideoUploader.status === 'processing')
       ) {
-        setValidationError('Interior video is still uploading. Please wait or remove it.');
+        setValidationError(
+          'Interior video is still uploading. Please wait or remove it.',
+        );
         return;
       }
       setCurrentStep(3);
@@ -1397,7 +1550,9 @@ export function CompleteMediaReviewWizard({
       Object.values(checklistFiles).some((c) => c?.status === 'uploading');
 
     if (isUploadingAny) {
-      setValidationError('Please wait until all uploads finish before submitting.');
+      setValidationError(
+        'Please wait until all uploads finish before submitting.',
+      );
       return;
     }
 
@@ -1410,7 +1565,8 @@ export function CompleteMediaReviewWizard({
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const checklistDecisions = Object.entries(checklistFiles)
           .filter(
-            ([id, file]) => !!file && file.status === 'completed' && isUuid.test(id),
+            ([id, file]) =>
+              !!file && file.status === 'completed' && isUuid.test(id),
           )
           .map(([id]) => ({
             checklistItemId: id,
@@ -1443,7 +1599,10 @@ export function CompleteMediaReviewWizard({
         checklistItems: checklistFiles,
       });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to submit media review';
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to submit media review';
       setValidationError(msg);
     } finally {
       setIsSubmitting(false);
@@ -1476,7 +1635,8 @@ export function CompleteMediaReviewWizard({
   };
 
   // Checklist statistics
-  const totalPhotosCount = exteriorPhotos.length + interiorPhotos.length + checklistUploadedCount;
+  const totalPhotosCount =
+    exteriorPhotos.length + interiorPhotos.length + checklistUploadedCount;
   const totalVideosCount = (exteriorVideo ? 1 : 0) + (interiorVideo ? 1 : 0);
 
   return (
@@ -1590,7 +1750,8 @@ export function CompleteMediaReviewWizard({
                 Complete Media Review
               </SheetTitle>
               <SheetDescription className="text-xs text-neutral-500 dark:text-neutral-400">
-                {vehicleName} • Batch upload exterior/interior visual evidence and review checklist items.
+                {vehicleName} • Batch upload exterior/interior visual evidence
+                and review checklist items.
               </SheetDescription>
             </div>
 
@@ -1768,7 +1929,8 @@ export function CompleteMediaReviewWizard({
                     Step 1: Exterior Photos & Video
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                    Upload multiple high-resolution photos of all four angles and a required 360-degree walkaround exterior video.
+                    Upload multiple high-resolution photos of all four angles
+                    and a required 360-degree walkaround exterior video.
                   </p>
                 </div>
 
@@ -1781,7 +1943,9 @@ export function CompleteMediaReviewWizard({
                     </label>
                     <span className="text-xs font-medium text-neutral-500">
                       {exteriorCompletedCount} uploaded
-                      {exteriorStagedCount > 0 ? ` · ${exteriorStagedCount} staged` : ''}
+                      {exteriorStagedCount > 0
+                        ? ` · ${exteriorStagedCount} staged`
+                        : ''}
                     </span>
                   </div>
 
@@ -1798,17 +1962,25 @@ export function CompleteMediaReviewWizard({
                       <div className="flex items-center gap-2 text-xs">
                         <Sparkles className="size-4 text-emerald-500 shrink-0" />
                         <span>
-                          {totalStep1Staged} item{totalStep1Staged > 1 ? 's' : ''} staged (
-                          {exteriorStagedCount > 0 ? `${exteriorStagedCount} photo${exteriorStagedCount > 1 ? 's' : ''}` : ''}
-                          {exteriorStagedCount > 0 && isExteriorVideoStaged ? ' + ' : ''}
-                          {isExteriorVideoStaged ? '1 video' : ''} pending upload)
+                          {totalStep1Staged} item
+                          {totalStep1Staged > 1 ? 's' : ''} staged (
+                          {exteriorStagedCount > 0
+                            ? `${exteriorStagedCount} photo${exteriorStagedCount > 1 ? 's' : ''}`
+                            : ''}
+                          {exteriorStagedCount > 0 && isExteriorVideoStaged
+                            ? ' + '
+                            : ''}
+                          {isExteriorVideoStaged ? '1 video' : ''} pending
+                          upload)
                         </span>
                       </div>
                       <GlassButton
                         type="button"
                         intent="emerald"
                         size="sm"
-                        disabled={isUploadingExterior || isUploadingExteriorVideo}
+                        disabled={
+                          isUploadingExterior || isUploadingExteriorVideo
+                        }
                         onClick={uploadStep1Media}
                         className="gap-1.5"
                       >
@@ -1820,7 +1992,9 @@ export function CompleteMediaReviewWizard({
                         ) : (
                           <>
                             <UploadCloud className="size-3.5" />
-                            <span>Confirm & Upload Step 1 Media ({totalStep1Staged})</span>
+                            <span>
+                              Confirm & Upload Step 1 Media ({totalStep1Staged})
+                            </span>
                           </>
                         )}
                       </GlassButton>
@@ -1890,7 +2064,8 @@ export function CompleteMediaReviewWizard({
                     Step 2: Interior Cabin & Cargo Media
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                    Capture the front console, leather upholstery, rear seats, and cargo area. Interior video is optional.
+                    Capture the front console, leather upholstery, rear seats,
+                    and cargo area. Interior video is optional.
                   </p>
                 </div>
 
@@ -1903,7 +2078,9 @@ export function CompleteMediaReviewWizard({
                     </label>
                     <span className="text-xs font-medium text-neutral-500">
                       {interiorCompletedCount} uploaded
-                      {interiorStagedCount > 0 ? ` · ${interiorStagedCount} staged` : ''}
+                      {interiorStagedCount > 0
+                        ? ` · ${interiorStagedCount} staged`
+                        : ''}
                     </span>
                   </div>
 
@@ -1920,17 +2097,25 @@ export function CompleteMediaReviewWizard({
                       <div className="flex items-center gap-2 text-xs">
                         <Sparkles className="size-4 text-teal-500 shrink-0" />
                         <span>
-                          {totalStep2Staged} item{totalStep2Staged > 1 ? 's' : ''} staged (
-                          {interiorStagedCount > 0 ? `${interiorStagedCount} photo${interiorStagedCount > 1 ? 's' : ''}` : ''}
-                          {interiorStagedCount > 0 && isInteriorVideoStaged ? ' + ' : ''}
-                          {isInteriorVideoStaged ? '1 video' : ''} pending upload)
+                          {totalStep2Staged} item
+                          {totalStep2Staged > 1 ? 's' : ''} staged (
+                          {interiorStagedCount > 0
+                            ? `${interiorStagedCount} photo${interiorStagedCount > 1 ? 's' : ''}`
+                            : ''}
+                          {interiorStagedCount > 0 && isInteriorVideoStaged
+                            ? ' + '
+                            : ''}
+                          {isInteriorVideoStaged ? '1 video' : ''} pending
+                          upload)
                         </span>
                       </div>
                       <GlassButton
                         type="button"
                         intent="emerald"
                         size="sm"
-                        disabled={isUploadingInterior || isUploadingInteriorVideo}
+                        disabled={
+                          isUploadingInterior || isUploadingInteriorVideo
+                        }
                         onClick={uploadStep2Media}
                         className="gap-1.5"
                       >
@@ -1942,7 +2127,9 @@ export function CompleteMediaReviewWizard({
                         ) : (
                           <>
                             <UploadCloud className="size-3.5" />
-                            <span>Confirm & Upload Step 2 Media ({totalStep2Staged})</span>
+                            <span>
+                              Confirm & Upload Step 2 Media ({totalStep2Staged})
+                            </span>
                           </>
                         )}
                       </GlassButton>
@@ -2013,7 +2200,8 @@ export function CompleteMediaReviewWizard({
                       Step 3: Specific Checklist Item Dropzones
                     </h3>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                      Drop a single dedicated inspection image next to each specific compliance component.
+                      Drop a single dedicated inspection image next to each
+                      specific compliance component.
                     </p>
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 px-3 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
@@ -2030,7 +2218,9 @@ export function CompleteMediaReviewWizard({
                     <div className="flex items-center gap-2 text-xs">
                       <Sparkles className="size-4 text-cyan-500 shrink-0" />
                       <span>
-                        {checklistStagedCount} checklist photo{checklistStagedCount > 1 ? 's' : ''} staged (pending upload)
+                        {checklistStagedCount} checklist photo
+                        {checklistStagedCount > 1 ? 's' : ''} staged (pending
+                        upload)
                       </span>
                     </div>
                     <GlassButton
@@ -2049,7 +2239,9 @@ export function CompleteMediaReviewWizard({
                       ) : (
                         <>
                           <UploadCloud className="size-3.5" />
-                          <span>Confirm & Upload Checklist ({checklistStagedCount})</span>
+                          <span>
+                            Confirm & Upload Checklist ({checklistStagedCount})
+                          </span>
                         </>
                       )}
                     </GlassButton>
@@ -2114,7 +2306,9 @@ export function CompleteMediaReviewWizard({
                         <div className="w-full sm:w-auto shrink-0">
                           {!uploaded ? (
                             <ChecklistInlineDropzone
-                              onDrop={(files) => handleChecklistDrop(item.id, files)}
+                              onDrop={(files) =>
+                                handleChecklistDrop(item.id, files)
+                              }
                             />
                           ) : (
                             <ChecklistUploadedInlineCard
@@ -2153,15 +2347,17 @@ export function CompleteMediaReviewWizard({
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-xl">
                   <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-4 text-start">
                     <div className="flex items-center justify-between text-neutral-500">
-                      <span className="text-xs font-semibold">Total Photos</span>
+                      <span className="text-xs font-semibold">
+                        Total Photos
+                      </span>
                       <FileImage className="size-4 text-emerald-500" />
                     </div>
                     <p className="mt-2 text-2xl font-bold text-neutral-900 dark:text-white">
                       {totalPhotosCount}
                     </p>
                     <p className="text-[11px] text-neutral-400 mt-0.5">
-                      {exteriorPhotos.length} exterior, {interiorPhotos.length} interior,{' '}
-                      {checklistUploadedCount} checklist
+                      {exteriorPhotos.length} exterior, {interiorPhotos.length}{' '}
+                      interior, {checklistUploadedCount} checklist
                     </p>
                   </div>
 
@@ -2180,7 +2376,9 @@ export function CompleteMediaReviewWizard({
 
                   <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-4 text-start">
                     <div className="flex items-center justify-between text-neutral-500">
-                      <span className="text-xs font-semibold">Checklist Items</span>
+                      <span className="text-xs font-semibold">
+                        Checklist Items
+                      </span>
                       <ClipboardCheck className="size-4 text-cyan-500" />
                     </div>
                     <p className="mt-2 text-2xl font-bold text-neutral-900 dark:text-white">
@@ -2232,9 +2430,7 @@ export function CompleteMediaReviewWizard({
                     Back
                   </Button>
                 ) : (
-                  <span className="text-xs text-neutral-400">
-                    Step 1 of 3
-                  </span>
+                  <span className="text-xs text-neutral-400">Step 1 of 3</span>
                 )}
               </div>
 
@@ -2302,7 +2498,9 @@ export function CompleteMediaReviewWizard({
                       <>
                         <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         <span>
-                          {isUploadingChecklist ? 'Uploading Checklist...' : 'Submitting Review...'}
+                          {isUploadingChecklist
+                            ? 'Uploading Checklist...'
+                            : 'Submitting Review...'}
                         </span>
                       </>
                     ) : (
@@ -2341,13 +2539,14 @@ function BatchPhotosDropzone({
   acceptSubtext: string;
 }) {
   const inputId = useId();
-  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic'],
-    },
-    multiple: true,
-  });
+  const { getRootProps, getInputProps, isDragActive, isDragReject } =
+    useDropzone({
+      onDrop,
+      accept: {
+        'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic'],
+      },
+      multiple: true,
+    });
 
   return (
     <div
@@ -2355,7 +2554,8 @@ function BatchPhotosDropzone({
       data-drag-active={isDragActive}
       className={cn(
         'glassContainer group relative flex flex-col items-center justify-center p-8 text-center cursor-pointer select-none transition-all duration-300',
-        isDragActive && 'ring-2 ring-emerald-500/60 shadow-xl shadow-emerald-500/20',
+        isDragActive &&
+          'ring-2 ring-emerald-500/60 shadow-xl shadow-emerald-500/20',
         isDragReject && 'border-rose-500/80 bg-rose-500/10',
       )}
     >
@@ -2388,7 +2588,9 @@ function BatchPhotosDropzone({
 
       <div className="relative z-10 space-y-1">
         <p className="text-sm font-bold text-neutral-900 dark:text-white transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-          {isDragActive ? 'Release to drop photos into liquid glass vault' : emptyText}
+          {isDragActive
+            ? 'Release to drop photos into liquid glass vault'
+            : emptyText}
         </p>
         <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm">
           {acceptSubtext}
@@ -2434,7 +2636,8 @@ function SingleVideoDropzone({
       data-variant={isRequired ? 'video-required' : 'video-optional'}
       className={cn(
         'glassContainer group relative flex flex-col items-center justify-center p-8 text-center cursor-pointer select-none transition-all duration-300',
-        isDragActive && 'ring-2 ring-emerald-500/60 shadow-xl shadow-emerald-500/20',
+        isDragActive &&
+          'ring-2 ring-emerald-500/60 shadow-xl shadow-emerald-500/20',
       )}
     >
       <input id={inputId} {...getInputProps()} />
@@ -2598,10 +2801,10 @@ function PhotoThumbnailCard({
           {item.status === 'error'
             ? 'Upload error'
             : item.status === 'staged'
-            ? `${item.sizeFormatted} · Pending upload`
-            : item.isRemote
-            ? 'Uploaded'
-            : item.sizeFormatted}
+              ? `${item.sizeFormatted} · Pending upload`
+              : item.isRemote
+                ? 'Uploaded'
+                : item.sizeFormatted}
         </p>
       </div>
     </div>
@@ -2644,7 +2847,9 @@ function VideoCard({
           ) : null}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             {isUploading && !isProcessing ? (
-              <span className="text-[10px] font-mono font-bold text-white">{item.progress}%</span>
+              <span className="text-[10px] font-mono font-bold text-white">
+                {item.progress}%
+              </span>
             ) : isProcessing ? (
               <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : isError ? (
