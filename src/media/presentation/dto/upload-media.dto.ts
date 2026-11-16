@@ -22,4 +22,8 @@ export class UploadMediaDto {
   @IsOptional()
   @IsString()
   fileHash?: string;
+
+  @IsOptional()
+  @IsString()
+  checklistItemCode?: string;
 }

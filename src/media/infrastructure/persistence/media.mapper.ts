@@ -9,6 +9,7 @@ export class MediaMapper {
       categoryId: prismaMedia.categoryId,
       uploadedById: prismaMedia.uploadedById,
       captureSessionId: prismaMedia.captureSessionId,
+      checklistItemCode: (prismaMedia as any).checklistItemCode ?? null,
       fileName: prismaMedia.fileName,
       fileUrl: prismaMedia.fileUrl,
       mimeType: prismaMedia.mimeType,
@@ -33,6 +34,7 @@ export class MediaMapper {
       categoryId: media.categoryId,
       uploadedById: media.uploadedById,
       captureSessionId: media.captureSessionId,
+      checklistItemCode: media.checklistItemCode,
       fileName: media.fileName,
       fileUrl: media.fileUrl,
       mimeType: media.mimeType,
@@ -55,6 +57,7 @@ export class MediaMapper {
     return {
       categoryId: media.categoryId,
       captureSessionId: media.captureSessionId,
+      checklistItemCode: media.checklistItemCode,
       fileName: media.fileName,
       fileUrl: media.fileUrl,
       mimeType: media.mimeType,

@@ -5,6 +5,7 @@ export interface MediaProps {
   categoryId: string;
   uploadedById: string;
   captureSessionId: string | null;
+  checklistItemCode?: string | null;
   fileName: string;
   fileUrl: string;
   mimeType: string;
@@ -43,6 +44,10 @@ export class Media {
 
   get captureSessionId(): string | null {
     return this.props.captureSessionId;
+  }
+
+  get checklistItemCode(): string | null {
+    return this.props.checklistItemCode ?? null;
   }
 
   get fileName(): string {

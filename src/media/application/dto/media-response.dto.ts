@@ -16,6 +16,7 @@ export class MediaResponseDto {
   sortOrder!: number;
   status!: MediaStatus;
   failureReason!: string | null;
+  checklistItemCode?: string | null;
   createdAt!: Date;
   updatedAt!: Date;
   categoryName?: string;
@@ -26,6 +27,7 @@ export class MediaResponseDto {
     dto.categoryId = media.categoryId;
     dto.uploadedById = media.uploadedById;
     dto.captureSessionId = media.captureSessionId;
+    dto.checklistItemCode = media.checklistItemCode;
     dto.fileName = media.fileName;
     dto.mimeType = media.mimeType;
     dto.fileSize = media.fileSize;
@@ -59,6 +61,7 @@ export class MediaResponseDto {
     sortOrder: number;
     status: MediaStatus;
     failureReason: string | null;
+    checklistItemCode?: string | null;
     createdAt: Date;
     updatedAt: Date;
   }): MediaResponseDto {
@@ -67,6 +70,7 @@ export class MediaResponseDto {
     dto.categoryId = media.categoryId;
     dto.uploadedById = media.uploadedById;
     dto.captureSessionId = media.captureSessionId;
+    dto.checklistItemCode = (media as any).checklistItemCode ?? null;
     dto.fileName = media.fileName;
     dto.mimeType = media.mimeType;
     dto.fileSize = media.fileSize;
