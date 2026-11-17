@@ -15,6 +15,7 @@ import { VehicleAdminService } from '../../application/services/vehicle-admin.se
 import { CreateTrimDto } from '../dto/create-trim.dto';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { CreateSunroofTypeDto } from '../dto/create-sunroof-type.dto';
+import { CAR_INTERIOR_CONDITIONS } from '../../domain/value-objects/car-interior-condition.enum';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)
@@ -81,7 +82,16 @@ export class VehicleLookupController {
         trims,
         sideMirrorTypes,
         sunroofTypes,
+        carInteriorTypes: CAR_INTERIOR_CONDITIONS,
       },
+    };
+  }
+
+  @Get('car-interiors')
+  async getCarInteriors() {
+    return {
+      status: 'success',
+      data: CAR_INTERIOR_CONDITIONS,
     };
   }
 

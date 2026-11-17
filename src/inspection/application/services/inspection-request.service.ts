@@ -1087,6 +1087,7 @@ export class InspectionRequestService {
       transmissionTypeId?: string;
       sideMirrors?: string;
       sunroofSpecification?: string;
+      carInterior?: string;
       notes?: string;
       checklistItems?: Array<{
         checklistItemId: string;
@@ -1190,6 +1191,9 @@ export class InspectionRequestService {
                 : {}),
               ...(dto.sunroofSpecification !== undefined
                 ? { sunroofSpecification: dto.sunroofSpecification || null }
+                : {}),
+              ...(dto.carInterior !== undefined
+                ? { carInterior: dto.carInterior || null }
                 : {}),
             });
             await this.vehicleRepository.update(vehicle);
