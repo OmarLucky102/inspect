@@ -285,7 +285,6 @@ export class BatchUploadMediaUseCase {
     return {
       id: media.id,
       fileName: media.fileName,
-      fileUrl: media.fileUrl,
       status: 'UPLOADED',
       mimeType: media.mimeType,
       fileSize: media.fileSize,

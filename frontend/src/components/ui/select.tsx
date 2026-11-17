@@ -57,6 +57,8 @@ export interface SelectProps {
   emptyText?: string
   onAddNew?: () => void
   addNewText?: string
+  /** Whether to render menu in document.body portal (default: true). Set false inside modals/sheets. */
+  portal?: boolean
 }
 
 const SIZE_CLASSES: Record<NonNullable<SelectProps['size']>, string> = {
@@ -100,6 +102,7 @@ export function Select({
   emptyText,
   onAddNew,
   addNewText,
+  portal = true,
 }: SelectProps) {
   const { t } = useTranslation()
   const resolvedPlaceholder =
@@ -398,15 +401,16 @@ export function Select({
         </span>
       </button>
 
-      {isOpen &&
-        createPortal(
+      {isOpen && (() => {
+        const menuElement = (
           <div
             ref={menuRef}
             role="listbox"
-            style={menuStyle}
+            style={portal ? menuStyle : { maxHeight: 280 }}
             onKeyDown={handleKeyNavigation}
             className={cn(
               'z-[120] flex flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150',
+              !portal && 'absolute top-full mt-1.5 w-full start-0',
               menuClassName,
             )}
           >
@@ -586,9 +590,10 @@ export function Select({
                   : menuFooter}
               </div>
             )}
-          </div>,
-          document.body,
-        )}
+          </div>
+        )
+        return portal ? createPortal(menuElement, document.body) : menuElement
+      })()}
     </div>
   )
 }

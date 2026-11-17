@@ -13,6 +13,14 @@ const buttonVariants = cva(
         outline:
           'border border-hairline bg-white text-ink hover:border-ink/25 hover:bg-paper',
         ghost: 'text-ink-soft hover:bg-paper hover:text-ink',
+        glass:
+          'glassPill text-slate-900 dark:text-white shadow-md hover:scale-[1.02] active:scale-[0.98]',
+        'glass-emerald':
+          'glassPill text-slate-900 dark:text-emerald-100 shadow-md hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98]',
+        'glass-rose':
+          'glassPill text-slate-900 dark:text-rose-100 shadow-md hover:shadow-rose-500/20 hover:scale-[1.02] active:scale-[0.98]',
+        'glass-amber':
+          'glassPill text-slate-900 dark:text-amber-100 shadow-md hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98]',
       },
       size: {
         md: 'h-11 rounded-xl px-5 text-[15px]',

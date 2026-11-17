@@ -4,13 +4,11 @@ import { StorageOperationException } from '../exceptions/storage.exceptions';
 import {
   S3Client,
   PutObjectCommand,
-  GetObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 jest.mock('@aws-sdk/client-s3');
-jest.mock('@aws-sdk/s3-request-presigner');
 
 describe('S3StorageService', () => {
   let service: S3StorageService;
@@ -112,34 +110,35 @@ describe('S3StorageService', () => {
     });
   });
 
-  describe('getPresignedUrl', () => {
-    it('should return a presigned URL using getSignedUrl', async () => {
-      const mockUrl =
-        'http://localhost:8333/inspect-bucket/test/photo.jpg?signature=xyz';
-      (getSignedUrl as jest.Mock).mockResolvedValueOnce(mockUrl);
+  describe('getObject', () => {
+    it('should successfully retrieve object stream and metadata', async () => {
+      const mockStream = {} as any;
+      mockS3Send.mockResolvedValueOnce({
+        Body: mockStream,
+        ContentType: 'image/webp',
+        ContentLength: 4096,
+        ContentRange: 'bytes 0-4095/4096',
+      });
 
-      const result = await service.getPresignedUrl('test/photo.jpg', 1800);
+      const result = await service.getObject('test/photo.webp', 'bytes=0-4095');
 
-      expect(result).toBe(mockUrl);
+      expect(result.stream).toBe(mockStream);
+      expect(result.contentType).toBe('image/webp');
+      expect(result.contentLength).toBe(4096);
+      expect(result.contentRange).toBe('bytes 0-4095/4096');
       expect(GetObjectCommand).toHaveBeenCalledWith({
         Bucket: 'inspect-bucket',
-        Key: 'test/photo.jpg',
+        Key: 'test/photo.webp',
+        Range: 'bytes=0-4095',
       });
-      expect(getSignedUrl).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        { expiresIn: 1800 },
-      );
     });
 
-    it('should throw StorageOperationException if presigning fails', async () => {
-      (getSignedUrl as jest.Mock).mockRejectedValueOnce(
-        new Error('Signing failed'),
-      );
+    it('should throw StorageOperationException if S3Client fails on getObject', async () => {
+      mockS3Send.mockRejectedValueOnce(new Error('S3 get failed'));
 
-      await expect(
-        service.getPresignedUrl('test/photo.jpg', 3600),
-      ).rejects.toThrow(StorageOperationException);
+      await expect(service.getObject('test/photo.webp')).rejects.toThrow(
+        StorageOperationException,
+      );
     });
   });
 });

@@ -1,12 +1,17 @@
 # ==============================================================================
 # Stage 1: Build stage (full dependencies for compilation & migration service)
 # ==============================================================================
-FROM node:24-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
 # Install native dependencies required for building bcrypt and Prisma
-RUN apk add --no-cache libc6-compat openssl python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # Enable pnpm
 RUN npm install -g pnpm
@@ -15,7 +20,7 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 RUN pnpm install --frozen-lockfile
 
-# Copy Prisma schema and generate client for Alpine Linux
+# Copy Prisma schema and generate client
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 RUN pnpm exec prisma generate
@@ -41,12 +46,17 @@ RUN if [ -d /tmp/.prisma ]; then cp -R /tmp/.prisma node_modules/.prisma; fi
 # ==============================================================================
 # Stage 3: Production runtime stage
 # ==============================================================================
-FROM node:24-alpine AS production
+FROM node:24-bookworm-slim AS production
 
 WORKDIR /app
 
 # Install runtime dependencies and dumb-init for proper signal handling
-RUN apk add --no-cache libc6-compat openssl dumb-init ffmpeg
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    dumb-init \
+    ffmpeg \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Configurable port (override via --build-arg PORT=<port> or env SERVER_PORT=<port>)
 ARG PORT=18080

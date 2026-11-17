@@ -1,7 +1,7 @@
 # ==============================================================================
-# Stage 1: Build stage (Node.js 24 Alpine + pnpm)
+# Stage 1: Build stage (Node.js 24 Debian Linux + pnpm)
 # ==============================================================================
-FROM node:24-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -12,8 +12,8 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 COPY frontend/package.json ./frontend/
 
-# Install dependencies using frozen lockfile for frontend package (admin)
-RUN pnpm --filter admin install --frozen-lockfile
+# Install dependencies using frozen lockfile for frontend package
+RUN pnpm --filter frontend install --frozen-lockfile
 
 # Copy frontend source code and configs
 COPY frontend ./frontend

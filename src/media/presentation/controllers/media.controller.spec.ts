@@ -6,6 +6,8 @@ import { UploadGenericMediaUseCase } from '../../application/use-cases/upload-ge
 import { BatchUploadMediaUseCase } from '../../application/use-cases/batch-upload-media.use-case';
 import { UploadVideoUseCase } from '../../application/use-cases/upload-video.use-case';
 import { GetMediaUseCase } from '../../application/use-cases/get-media.use-case';
+import { GetMediaFileUseCase } from '../../application/use-cases/get-media-file.use-case';
+import { GetInspectionMediaUseCase } from '../../application/use-cases/get-inspection-media.use-case';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../identity/presentation/guards/roles.guard';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
@@ -21,6 +23,8 @@ describe('MediaController', () => {
   let batchUploadMediaUseCase: any;
   let uploadVideoUseCase: any;
   let getMediaUseCase: any;
+  let getMediaFileUseCase: any;
+  let getInspectionMediaUseCase: any;
 
   const mockFile: Express.Multer.File = {
     fieldname: 'file',
@@ -41,7 +45,6 @@ describe('MediaController', () => {
     uploadedById: 'user-uuid-1',
     captureSessionId: 'session-uuid-1',
     fileName: 'inspection-photo.jpg',
-    fileUrl: 'banks/bank-1/inspections/insp-1/media-uuid-1.jpg',
     mimeType: 'image/jpeg',
     fileSize: 2048,
     fileHash: null,
@@ -82,6 +85,14 @@ describe('MediaController', () => {
       execute: jest.fn(),
     };
 
+    getMediaFileUseCase = {
+      execute: jest.fn(),
+    };
+
+    getInspectionMediaUseCase = {
+      execute: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MediaController],
       providers: [
@@ -99,6 +110,11 @@ describe('MediaController', () => {
           useValue: uploadVideoUseCase,
         },
         { provide: GetMediaUseCase, useValue: getMediaUseCase },
+        { provide: GetMediaFileUseCase, useValue: getMediaFileUseCase },
+        {
+          provide: GetInspectionMediaUseCase,
+          useValue: getInspectionMediaUseCase,
+        },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -176,7 +192,6 @@ describe('MediaController', () => {
           {
             id: 'media-uuid-1',
             fileName: 'inspection-photo.webp',
-            fileUrl: 'banks/bank-1/inspections/insp-1/media-uuid-1.webp',
             status: 'UPLOADED',
             mimeType: 'image/webp',
             fileSize: 2048,
@@ -254,6 +269,115 @@ describe('MediaController', () => {
         status: 'success',
         data: mockResponseDto,
       });
+    });
+  });
+
+  describe('getInspectionMedia', () => {
+    it('should return all media for an inspection when type is omitted', async () => {
+      getInspectionMediaUseCase.execute.mockResolvedValue([mockResponseDto]);
+
+      const result = await controller.getInspectionMedia(
+        'insp-uuid-1',
+        {},
+        mockUser,
+      );
+
+      expect(getInspectionMediaUseCase.execute).toHaveBeenCalledWith(
+        'insp-uuid-1',
+        {
+          id: mockUser.sub,
+          role: mockUser.role,
+        },
+        {},
+      );
+      expect(result).toEqual({
+        status: 'success',
+        data: [mockResponseDto],
+      });
+    });
+
+    it('should pass type filter to use case when type query parameter is provided', async () => {
+      getInspectionMediaUseCase.execute.mockResolvedValue([mockResponseDto]);
+
+      const result = await controller.getInspectionMedia(
+        'insp-uuid-1',
+        { type: 'image' },
+        mockUser,
+      );
+
+      expect(getInspectionMediaUseCase.execute).toHaveBeenCalledWith(
+        'insp-uuid-1',
+        {
+          id: mockUser.sub,
+          role: mockUser.role,
+        },
+        { type: 'image' },
+      );
+      expect(result).toEqual({
+        status: 'success',
+        data: [mockResponseDto],
+      });
+    });
+
+    it('should pass checklistItemCodes filter to use case when checklist codes are provided', async () => {
+      getInspectionMediaUseCase.execute.mockResolvedValue([mockResponseDto]);
+
+      const result = await controller.getInspectionMedia(
+        'insp-uuid-1',
+        { checklistItemCodes: ['odometer_cluster', 'panoramic_roof'] },
+        mockUser,
+      );
+
+      expect(getInspectionMediaUseCase.execute).toHaveBeenCalledWith(
+        'insp-uuid-1',
+        {
+          id: mockUser.sub,
+          role: mockUser.role,
+        },
+        { checklistItemCodes: ['odometer_cluster', 'panoramic_roof'] },
+      );
+      expect(result).toEqual({
+        status: 'success',
+        data: [mockResponseDto],
+      });
+    });
+  });
+
+  describe('getMediaFile', () => {
+    it('should stream media file with headers', async () => {
+      const mockStream = { pipe: jest.fn() };
+      getMediaFileUseCase.execute.mockResolvedValue({
+        stream: mockStream,
+        contentType: 'image/webp',
+        contentLength: 2048,
+        fileName: 'photo.webp',
+      });
+
+      const mockRes = {
+        set: jest.fn(),
+        status: jest.fn(),
+      } as any;
+
+      await controller.getMediaFile(
+        'media-uuid-1',
+        mockUser,
+        undefined,
+        mockRes,
+      );
+
+      expect(getMediaFileUseCase.execute).toHaveBeenCalledWith(
+        'media-uuid-1',
+        { id: mockUser.sub, role: mockUser.role },
+        undefined,
+      );
+      expect(mockRes.set).toHaveBeenCalledWith({
+        'Content-Type': 'image/webp',
+        'Accept-Ranges': 'bytes',
+        'Content-Disposition': 'inline; filename="photo.webp"',
+        'Cache-Control': 'private, max-age=3600',
+      });
+      expect(mockRes.set).toHaveBeenCalledWith('Content-Length', '2048');
+      expect(mockStream.pipe).toHaveBeenCalledWith(mockRes);
     });
   });
 });

@@ -7,8 +7,24 @@ import { Sidebar } from './Sidebar';
 /** Protected shell: sidebar + sticky header + routed content. */
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('inspect_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const location = useLocation();
   const { t } = useTranslation();
+
+  const updateSidebarCollapsed = (next: boolean) => {
+    setSidebarCollapsed(next);
+    try {
+      localStorage.setItem('inspect_sidebar_collapsed', String(next));
+    } catch {
+      // Ignore storage errors in restricted browsing contexts
+    }
+  };
 
   const getRouteInfo = (path: string): { title: string; meta: string } => {
     switch (path) {
@@ -43,8 +59,29 @@ export function AdminLayout() {
           meta: t('titles.banksMeta', 'ORGANIZATION · WORKSPACES'),
         };
       case '/vehicle-settings':
+      case '/vehicle-settings/makes':
         return {
-          title: t('titles.vehicleSettings', 'Vehicle Settings'),
+          title: t('vehicleSettings.makesAndModels', 'Makes & Models'),
+          meta: t('titles.vehicleSettingsMeta', 'SYSTEM · VEHICLE LOOKUPS'),
+        };
+      case '/vehicle-settings/trims':
+        return {
+          title: t('vehicleSettings.trims', 'Vehicle Trims'),
+          meta: t('titles.vehicleSettingsMeta', 'SYSTEM · VEHICLE LOOKUPS'),
+        };
+      case '/vehicle-settings/categories':
+        return {
+          title: t('vehicleSettings.categories', 'Categories'),
+          meta: t('titles.vehicleSettingsMeta', 'SYSTEM · VEHICLE LOOKUPS'),
+        };
+      case '/vehicle-settings/sunroofs':
+        return {
+          title: t('vehicleSettings.sunroofs', 'Sunroof Specs'),
+          meta: t('titles.vehicleSettingsMeta', 'SYSTEM · VEHICLE LOOKUPS'),
+        };
+      case '/vehicle-settings/colors':
+        return {
+          title: t('vehicleSettings.colorPalette', 'Color Palette'),
           meta: t('titles.vehicleSettingsMeta', 'SYSTEM · VEHICLE LOOKUPS'),
         };
       case '/users':
@@ -88,9 +125,15 @@ export function AdminLayout() {
   }, [mobileOpen]);
 
   return (
-    <div className="min-h-[100dvh] bg-bone lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div className="flex min-w-0 flex-col">
+    <div className="min-h-[100dvh] bg-bone lg:flex">
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => updateSidebarCollapsed(!sidebarCollapsed)}
+        onExpand={() => updateSidebarCollapsed(false)}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
         <AdminHeader
           onMenu={() => setMobileOpen(true)}
           title={active.title}

@@ -139,7 +139,6 @@ describe('UploadVideoUseCase', () => {
 
       // Verify returned DTO is in PENDING state immediately
       expect(result.status).toBe(MediaStatus.PENDING);
-      expect(result.fileUrl).toBe(savedMedia.fileUrl);
 
       // Verify job was enqueued
       expect(queueService.enqueue).toHaveBeenCalledTimes(1);

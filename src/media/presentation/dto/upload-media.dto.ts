@@ -10,7 +10,7 @@ export class UploadMediaDto {
   captureSessionId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
@@ -22,4 +22,8 @@ export class UploadMediaDto {
   @IsOptional()
   @IsString()
   fileHash?: string;
+
+  @IsOptional()
+  @IsString()
+  checklistItemCode?: string;
 }

@@ -4,6 +4,7 @@ model Media {
   categoryId       String  @db.Uuid
   uploadedById     String  @db.Uuid
   captureSessionId String? @db.Uuid
+  checklistItemCode String?
 
   fileName  String
   fileUrl   String
@@ -29,6 +30,7 @@ model Media {
   @@index([categoryId])
   @@index([uploadedById])
   @@index([captureSessionId])
+  @@index([checklistItemCode])
   @@index([status])
   @@map("media")
 }

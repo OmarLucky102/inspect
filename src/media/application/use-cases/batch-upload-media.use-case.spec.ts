@@ -391,7 +391,7 @@ describe('BatchUploadMediaUseCase', () => {
       );
 
       expect(result.failed).toBe(1);
-      expect(result.results[0].errorCode).toBe('DATABASE_ERROR');
+      expect((result.results[0] as any).errorCode).toBe('DATABASE_ERROR');
     });
   });
 });

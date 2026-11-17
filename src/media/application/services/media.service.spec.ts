@@ -17,7 +17,6 @@ describe('MediaService', () => {
     uploadedById: 'user-1',
     captureSessionId: 'sess-1',
     fileName: 'photo.jpg',
-    fileUrl: 'banks/b1/inspections/i1/media-1.jpg',
     mimeType: 'image/jpeg',
     fileSize: 1024,
     fileHash: null,

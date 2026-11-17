@@ -10,7 +10,6 @@ export type BatchMediaErrorCode =
 export interface BatchMediaSuccessResult {
   id: string;
   fileName: string;
-  fileUrl: string;
   status: 'UPLOADED';
   mimeType: string;
   fileSize: number;
