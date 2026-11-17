@@ -107,11 +107,28 @@ export async function uploadInspectionVideo(
   return unwrap(res);
 }
 
+export interface FetchInspectionMediaFilter {
+  type?: MediaType;
+  checklistItemCodes?: string[];
+}
+
 export async function fetchInspectionMedia(
   inspectionId: string,
-  type?: MediaType,
+  typeOrFilter?: MediaType | FetchInspectionMediaFilter,
 ): Promise<MediaDto[]> {
-  const params = type ? { type } : {};
+  const params: Record<string, string> = {};
+  if (typeof typeOrFilter === 'string') {
+    params.type = typeOrFilter;
+  } else if (typeOrFilter) {
+    if (typeOrFilter.type) params.type = typeOrFilter.type;
+    if (
+      typeOrFilter.checklistItemCodes &&
+      typeOrFilter.checklistItemCodes.length > 0
+    ) {
+      params.checklistItemCodes = typeOrFilter.checklistItemCodes.join(',');
+    }
+  }
+
   const res = await api.get<{ status: string; data: MediaDto[] }>(
     `/media/inspections/${inspectionId}`,
     { params },

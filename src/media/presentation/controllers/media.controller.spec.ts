@@ -288,7 +288,7 @@ describe('MediaController', () => {
           id: mockUser.sub,
           role: mockUser.role,
         },
-        undefined,
+        {},
       );
       expect(result).toEqual({
         status: 'success',
@@ -311,7 +311,30 @@ describe('MediaController', () => {
           id: mockUser.sub,
           role: mockUser.role,
         },
-        'image',
+        { type: 'image' },
+      );
+      expect(result).toEqual({
+        status: 'success',
+        data: [mockResponseDto],
+      });
+    });
+
+    it('should pass checklistItemCodes filter to use case when checklist codes are provided', async () => {
+      getInspectionMediaUseCase.execute.mockResolvedValue([mockResponseDto]);
+
+      const result = await controller.getInspectionMedia(
+        'insp-uuid-1',
+        { checklistItemCodes: ['odometer_cluster', 'panoramic_roof'] },
+        mockUser,
+      );
+
+      expect(getInspectionMediaUseCase.execute).toHaveBeenCalledWith(
+        'insp-uuid-1',
+        {
+          id: mockUser.sub,
+          role: mockUser.role,
+        },
+        { checklistItemCodes: ['odometer_cluster', 'panoramic_roof'] },
       );
       expect(result).toEqual({
         status: 'success',

@@ -39,7 +39,7 @@ import { UploadMediaDto } from '../dto/upload-media.dto';
 import { GenericUploadMediaDto } from '../dto/generic-upload-media.dto';
 import { BatchUploadMediaDto } from '../dto/batch-upload-media.dto';
 import { UploadVideoDto } from '../dto/upload-video.dto';
-import { GetInspectionMediaQueryDto } from '../dto/get-inspection-media-query.dto';
+import { GetInspectionMediaFilterDto } from '../dto/get-inspection-media.filter.dto';
 
 @Controller('media')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -209,7 +209,7 @@ export class MediaController {
   )
   async getInspectionMedia(
     @Param('inspectionId', ParseUUIDPipe) inspectionId: string,
-    @Query() query: GetInspectionMediaQueryDto,
+    @Query() filter: GetInspectionMediaFilterDto,
     @CurrentUser() user: JwtPayload,
   ) {
     const data = await this.getInspectionMediaUseCase.execute(
@@ -218,7 +218,7 @@ export class MediaController {
         id: user.sub,
         role: user.role as Role,
       },
-      query?.type,
+      filter,
     );
 
     return {

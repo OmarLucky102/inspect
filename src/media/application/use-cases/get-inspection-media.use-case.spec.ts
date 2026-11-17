@@ -133,7 +133,7 @@ describe('GetInspectionMediaUseCase', () => {
       await useCase.execute(
         mockInspectionId,
         { id: 'admin-id', role: Role.SUPER_ADMIN },
-        'image',
+        { type: 'image' },
       );
 
       expect(prisma.media.findMany).toHaveBeenCalledWith(
@@ -150,7 +150,7 @@ describe('GetInspectionMediaUseCase', () => {
       await useCase.execute(
         mockInspectionId,
         { id: 'admin-id', role: Role.SUPER_ADMIN },
-        'video',
+        { type: 'video' },
       );
 
       expect(prisma.media.findMany).toHaveBeenCalledWith(
@@ -184,9 +184,47 @@ describe('GetInspectionMediaUseCase', () => {
         useCase.execute(
           mockInspectionId,
           { id: 'admin-id', role: Role.SUPER_ADMIN },
-          'audio' as any,
+          { type: 'audio' as any },
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should query checklist items at database level when checklistItemCodes are provided', async () => {
+      await useCase.execute(
+        mockInspectionId,
+        { id: 'admin-id', role: Role.SUPER_ADMIN },
+        { checklistItemCodes: ['odometer_cluster', 'panoramic_roof'] },
+      );
+
+      expect(prisma.media.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            checklistItemCode: { in: ['odometer_cluster', 'panoramic_roof'] },
+            deletedAt: null,
+          }),
+        }),
+      );
+    });
+
+    it('should filter by both type and checklistItemCodes when both are provided', async () => {
+      await useCase.execute(
+        mockInspectionId,
+        { id: 'admin-id', role: Role.SUPER_ADMIN },
+        {
+          type: 'image',
+          checklistItemCodes: ['odometer_cluster'],
+        },
+      );
+
+      expect(prisma.media.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            mimeType: { startsWith: 'image/' },
+            checklistItemCode: { in: ['odometer_cluster'] },
+            deletedAt: null,
+          }),
+        }),
+      );
     });
   });
 });

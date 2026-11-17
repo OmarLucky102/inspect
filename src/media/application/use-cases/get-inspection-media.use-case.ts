@@ -8,7 +8,7 @@ import { InspectionRequestAccessDeniedException } from '../../../shared/exceptio
 import { Role } from '../../../identity/domain/value-objects/role.enum';
 import { MembershipStatus } from '../../../organization/domain/value-objects/membership-status.enum';
 import { MediaResponseDto } from '../dto/media-response.dto';
-import { MediaTypeQuery } from '../../presentation/dto/get-inspection-media-query.dto';
+import { GetInspectionMediaFilterDto } from '../../presentation/dto/get-inspection-media.filter.dto';
 
 export interface GetInspectionMediaActor {
   id: string;
@@ -22,8 +22,10 @@ export class GetInspectionMediaUseCase {
   async execute(
     inspectionId: string,
     actor: GetInspectionMediaActor,
-    type?: MediaTypeQuery | string,
+    filter?: GetInspectionMediaFilterDto,
   ): Promise<MediaResponseDto[]> {
+    const type = filter?.type;
+
     // 1. Validate query parameter if provided
     if (type !== undefined && type !== 'image' && type !== 'video') {
       throw new BadRequestException(
@@ -65,6 +67,9 @@ export class GetInspectionMediaUseCase {
           { fileUrl: { contains: `/inspections/${inspectionId}/` } },
         ],
         ...(mimeFilter ? { mimeType: mimeFilter } : {}),
+        ...(filter?.checklistItemCodes?.length
+          ? { checklistItemCode: { in: filter.checklistItemCodes } }
+          : {}),
         deletedAt: null,
       },
       include: {
