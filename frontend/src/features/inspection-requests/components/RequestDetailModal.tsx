@@ -8,7 +8,6 @@ import {
   User,
   Car,
   Clock,
-  ListChecks,
   UserPlus,
   ShieldCheck,
   ArrowRight,
@@ -43,8 +42,8 @@ import {
 import { fetchBankMembers } from '@/features/banks/api';
 import { fetchRepresentatives } from '@/features/representatives/api';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
-import { InspectionPhotoChecklistTab } from './InspectionPhotoChecklistTab';
 import { CompleteMediaReviewWizard } from './CompleteMediaReviewWizard';
+import { CarDetailsReviewModal } from './CarDetailsReviewModal';
 import {
   RepresentativeSelect,
   type RepresentativeOption,
@@ -90,7 +89,6 @@ export function RequestDetailModal({
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'vehicle'
-    | 'inspection-checklist'
     | 'media'
     | 'assignment'
     | 'history'
@@ -108,6 +106,9 @@ export function RequestDetailModal({
   // Super Admin Price Revision Modal
   const [isPriceRevisionOpen, setIsPriceRevisionOpen] = useState(false);
   const [priceRevisionNotes, setPriceRevisionNotes] = useState<string>('');
+
+  // Reviewer / Super Admin Car Details & Pricing Modal
+  const [isCarDetailsModalOpen, setIsCarDetailsModalOpen] = useState(false);
 
   // Super Admin Final Approval Modal
   const [isFinalApproveOpen, setIsFinalApproveOpen] = useState(false);
@@ -127,10 +128,6 @@ export function RequestDetailModal({
     [],
   );
 
-  const handleDashboardMediaCompleted = useCallback(() => {
-    setHasDashboardPhotos(true);
-  }, []);
-
   // Query: Full Request Details
   const {
     data: details,
@@ -147,6 +144,21 @@ export function RequestDetailModal({
   // Query: Live inspection media from backend
   const inspectionId = details?.id || requestId;
   const { data: inspectionMedia = [] } = useInspectionMedia(inspectionId);
+
+  const handleDashboardMediaCompleted = useCallback(() => {
+    setHasDashboardPhotos(true);
+    void refetchDetails();
+    if (inspectionId) {
+      void queryClient.invalidateQueries({
+        queryKey: ['inspection-media', inspectionId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['inspection-evidence-media', inspectionId],
+      });
+    }
+    // Seamlessly transition directly to Car Details & Valuation modal
+    setIsCarDetailsModalOpen(true);
+  }, [inspectionId, queryClient, refetchDetails]);
 
   // Check if photos exist from the representative mobile app / backend:
   // - Field checklist items completed with photo/value evidence
@@ -389,7 +401,8 @@ export function RequestDetailModal({
 
   const handleOpenFinalApprove = () => {
     setFinalApprovedPrice(
-      details?.latestMarketingDecision?.estimatedValue != null
+      details?.latestMarketingDecision?.estimatedValue != null &&
+      details.latestMarketingDecision.estimatedValue > 1
         ? String(details.latestMarketingDecision.estimatedValue)
         : '',
     );
@@ -592,6 +605,19 @@ export function RequestDetailModal({
         });
       }
     } else if (cur === 'UNDER_REVIEW') {
+      // Reviewer or Super Admin submits car details & pricing review
+      // This ONLY appears after media review is finished (photos uploaded)
+      if ((isReviewer || isSuperAdmin) && hasUploadedPhotos) {
+        availableActions.push({
+          label: isArabic
+            ? 'إضافة مواصفات السيارة والتقييم'
+            : 'Add Car Details & Pricing',
+          intent: 'emerald',
+          icon: <Car className="size-3" weight="bold" />,
+          action: () => setIsCarDetailsModalOpen(true),
+        });
+      }
+
       // "Request Reshoot" should ONLY appear after photos have been uploaded
       // (either from the representative mobile app or from dashboard upload)
       if ((isReviewer || isSuperAdmin) && hasUploadedPhotos) {
@@ -864,7 +890,7 @@ export function RequestDetailModal({
                 {getWorkflowStatusMessage()}
               </span>
               <div className="flex items-center gap-2">
-                {/* Under Review: The primary next workflow step is Complete Media Review */}
+                {/* Under Review: If media review is pending, show primary wizard button; if completed, show Edit Media trigger */}
                 {details?.currentStatus === 'UNDER_REVIEW' &&
                   (isReviewer || isSuperAdmin) && (
                     <CompleteMediaReviewWizard
@@ -885,6 +911,17 @@ export function RequestDetailModal({
                       initialMileage={details?.vehicle?.mileage}
                       onMediaChange={handleDashboardMediaChange}
                       onCompleted={handleDashboardMediaCompleted}
+                      trigger={
+                        hasUploadedPhotos ? (
+                          <GlassButton
+                            size="sm"
+                            intent="neutral"
+                            icon={<Camera className="size-3" />}
+                          >
+                            {isArabic ? 'تعديل وسائط الفحص' : 'Edit Media'}
+                          </GlassButton>
+                        ) : undefined
+                      }
                     />
                   )}
 
@@ -921,13 +958,6 @@ export function RequestDetailModal({
                   key: 'vehicle',
                   label: isArabic ? 'بيانات المركبة' : 'Vehicle Details',
                   icon: Car,
-                },
-                {
-                  key: 'inspection-checklist',
-                  label: isArabic
-                    ? `قائمة الفحص (${details.checklistItems?.length ?? 0})`
-                    : `Checklist (${details.checklistItems?.length ?? 0})`,
-                  icon: ListChecks,
                 },
                 {
                   key: 'media',
@@ -1031,7 +1061,7 @@ export function RequestDetailModal({
                         </div>
                       </div>
 
-                      {details.latestMarketingDecision ? (
+                      {details.latestMarketingDecision && details.latestMarketingDecision.estimatedValue > 1 ? (
                         <div className="mt-4 space-y-4">
                           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                             <div className="rounded-xl bg-paper/50 p-3">
@@ -1056,7 +1086,7 @@ export function RequestDetailModal({
                                   : 'Verified Mileage'}
                               </p>
                               <p className="mt-1 font-mono text-xl font-bold text-ink">
-                                {details.vehicle?.mileage != null
+                                {details.vehicle?.mileage != null && details.vehicle.mileage > 1
                                   ? details.vehicle.mileage.toLocaleString(
                                       'en-US',
                                     )
@@ -1099,26 +1129,26 @@ export function RequestDetailModal({
                           </div>
 
                           {details.latestMarketingDecision.notes && (
-                            <div className="rounded-lg bg-zinc-50 border border-hairline/60 p-3">
+                            <div className="rounded-xl bg-paper/60 border border-hairline/60 p-3.5">
                               <p className="text-[11px] font-semibold text-ink">
                                 {isArabic
                                   ? 'ملاحظات تقييم المراجع:'
                                   : 'Reviewer Valuation Notes:'}
                               </p>
-                              <p className="mt-0.5 text-xs text-ink-soft">
+                              <p className="mt-1 text-xs text-ink-soft leading-relaxed">
                                 {details.latestMarketingDecision.notes}
                               </p>
                             </div>
                           )}
 
                           {details.latestMarketingDecision.rejectedReason && (
-                            <div className="rounded-lg bg-amber-500/10 border border-amber-300/60 p-3">
-                              <p className="text-[11px] font-semibold text-amber-800">
+                            <div className="rounded-xl bg-amber-500/10 border border-amber-300/60 dark:border-amber-800/60 p-3.5">
+                              <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
                                 {isArabic
                                   ? 'تعليمات الإدارة لمراجعة السعر:'
                                   : 'Super Admin Price Revision Instructions:'}
                               </p>
-                              <p className="mt-0.5 text-xs text-amber-700">
+                              <p className="mt-1 text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
                                 {details.latestMarketingDecision.rejectedReason}
                               </p>
                             </div>
@@ -1522,7 +1552,7 @@ export function RequestDetailModal({
                               : 'Verified Mileage'}
                           </p>
                           <p className="mt-0.5 font-mono text-sm font-bold text-accent">
-                            {details.vehicle.mileage != null
+                            {details.vehicle.mileage != null && details.vehicle.mileage > 1
                               ? `${details.vehicle.mileage.toLocaleString('en-US')} ${isArabic ? 'كم' : 'KM'}`
                               : isArabic
                                 ? 'بانتظار التأكيد'
@@ -1778,6 +1808,27 @@ export function RequestDetailModal({
                               : details.vehicle.sunroofSpecification || '—'}
                           </p>
                         </div>
+
+                        <div>
+                          <p className="text-[11px] text-ink-mute">
+                            {isArabic ? 'حالة الدواخل والدهان' : 'Interior / Paint'}
+                          </p>
+                          <p className="mt-0.5 text-sm text-ink font-medium">
+                            {details.vehicle.carInterior === 'FACTORY_PAINT'
+                              ? isArabic
+                                ? 'فابريكا دواخل'
+                                : 'Factory Paint'
+                              : details.vehicle.carInterior === 'INTERNAL_REPAINT'
+                                ? isArabic
+                                  ? 'رش دواخل'
+                                  : 'Internal Repaint'
+                                : details.vehicle.carInterior === 'PARTIAL_REPAINT'
+                                  ? isArabic
+                                    ? 'رش أجزاء داخلية'
+                                    : 'Partial Repaint'
+                                  : details.vehicle.carInterior || '—'}
+                          </p>
+                        </div>
                         <div>
                           <p className="text-[11px] text-ink-mute">
                             {isArabic ? 'سعة المحرك' : 'CC Power'}
@@ -1820,120 +1871,7 @@ export function RequestDetailModal({
                 </div>
               )}
 
-              {/* TAB 3: INSPECTION CHECKLIST & EVIDENCE */}
-              {activeTab === 'inspection-checklist' && (
-                <div className="space-y-6">
-                  {/* Photo Requirement Settings */}
-                  <InspectionPhotoChecklistTab
-                    requestId={details.id}
-                    bankId={details.bankId}
-                    status={details.currentStatus}
-                    initialChecklist={details.photoChecklist}
-                  />
 
-                  {/* Field Checklist Items Evidence & Review Decisions */}
-                  {details.checklistItems &&
-                    details.checklistItems.length > 0 && (
-                      <div className="rounded-xl border border-hairline bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between border-b border-hairline pb-3">
-                          <div>
-                            <h4 className="text-sm font-semibold text-ink">
-                              {isArabic
-                                ? 'أدلة وقرارات بنود الفحص الميداني'
-                                : 'Field Checklist Evidence & Decisions'}
-                            </h4>
-                            <p className="text-xs text-ink-mute">
-                              {isArabic
-                                ? 'قرارات المراجع (ناجح / راسب / إعادة تصوير) المسجلة أثناء مراجعة الوسائط'
-                                : 'Reviewer decisions (Pass / Fail / Reshoot) entered during Media Review'}
-                            </p>
-                          </div>
-                          <span className="font-mono text-xs text-ink-mute">
-                            {
-                              details.checklistItems.filter(
-                                (i) => i.reviewDecision === 'PASS',
-                              ).length
-                            }
-                            /{details.checklistItems.length}{' '}
-                            {isArabic ? 'تم اجتيازها' : 'Passed'}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 divide-y divide-hairline">
-                          {details.checklistItems.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center justify-between py-3"
-                            >
-                              <div className="space-y-0.5">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-ink">
-                                    {item.label}
-                                  </span>
-                                  <span
-                                    className="font-mono text-[10px] text-ink-mute"
-                                    dir="ltr"
-                                  >
-                                    [{item.code}]
-                                  </span>
-                                  {item.isMandatory && (
-                                    <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">
-                                      {isArabic ? 'إلزامي' : 'Required'}
-                                    </span>
-                                  )}
-                                </div>
-                                {item.value && (
-                                  <p className="text-xs text-ink-soft">
-                                    {isArabic ? 'المسجل:' : 'Captured:'}{' '}
-                                    <span className="font-mono font-medium text-ink">
-                                      {item.value}
-                                    </span>
-                                  </p>
-                                )}
-                                {item.reviewNotes && (
-                                  <p className="text-xs text-ink-soft italic">
-                                    {isArabic
-                                      ? 'ملاحظة المراجعة:'
-                                      : 'Review Note:'}{' '}
-                                    {item.reviewNotes}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div>
-                                {item.reviewDecision === 'PASS' && (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 font-mono text-xs font-semibold text-emerald-700">
-                                    <Check className="size-3" />
-                                    {isArabic ? 'ناجح' : 'PASS'}
-                                  </span>
-                                )}
-                                {item.reviewDecision === 'FAIL' && (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 font-mono text-xs font-semibold text-rose-700">
-                                    <X className="size-3" />
-                                    {isArabic ? 'راسب' : 'FAIL'}
-                                  </span>
-                                )}
-                                {item.reviewDecision === 'RESHOOT' && (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 font-mono text-xs font-semibold text-amber-700">
-                                    <Warning className="size-3" />
-                                    {isArabic ? 'إعادة تصوير' : 'RESHOOT'}
-                                  </span>
-                                )}
-                                {!item.reviewDecision && (
-                                  <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-500">
-                                    {isArabic
-                                      ? 'بانتظار المراجعة'
-                                      : 'Pending Review'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                </div>
-              )}
 
               {/* TAB: MEDIA EVIDENCE */}
               {activeTab === 'media' && (
@@ -2581,7 +2519,8 @@ export function RequestDetailModal({
                     : 'Proposed Marketing Value:'}
                 </span>
                 <span className="font-mono text-base font-bold text-ink">
-                  {details?.latestMarketingDecision?.estimatedValue != null
+                  {details?.latestMarketingDecision?.estimatedValue != null &&
+                  details.latestMarketingDecision.estimatedValue > 1
                     ? `${details.latestMarketingDecision.estimatedValue.toLocaleString('en-US')} ${isArabic ? 'ج.م' : 'EGP'}`
                     : '—'}
                 </span>
@@ -2595,7 +2534,7 @@ export function RequestDetailModal({
                     (isArabic ? 'المراجع' : 'Reviewer')}
                 </span>
               </div>
-              {details?.vehicle?.mileage != null && (
+              {details?.vehicle?.mileage != null && details.vehicle.mileage > 1 && (
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-ink-mute">
                     {isArabic ? 'قراءة العداد المؤكدة:' : 'Verified Mileage:'}
@@ -2795,7 +2734,8 @@ export function RequestDetailModal({
                 ? 'القيمة المقترحة الحالية: '
                 : 'Current proposed value: '}
               <span className="font-mono font-bold">
-                {details?.latestMarketingDecision?.estimatedValue != null
+                {details?.latestMarketingDecision?.estimatedValue != null &&
+                details.latestMarketingDecision.estimatedValue > 1
                   ? `${details.latestMarketingDecision.estimatedValue.toLocaleString('en-US')} ${isArabic ? 'ج.م' : 'EGP'}`
                   : '—'}
               </span>
@@ -2853,6 +2793,17 @@ export function RequestDetailModal({
             </form>
           </div>
         </div>
+      )}
+
+      {/* CAR DETAILS & VALUATION REVIEW MODAL */}
+      {isCarDetailsModalOpen && details && activeBankId && (
+        <CarDetailsReviewModal
+          isOpen={isCarDetailsModalOpen}
+          onClose={() => setIsCarDetailsModalOpen(false)}
+          bankId={activeBankId}
+          requestId={requestId}
+          details={details}
+        />
       )}
     </div>
   );
