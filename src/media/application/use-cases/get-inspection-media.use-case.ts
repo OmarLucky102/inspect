@@ -29,7 +29,7 @@ export class GetInspectionMediaUseCase {
     // 1. Validate query parameter if provided
     if (type !== undefined && type !== 'image' && type !== 'video') {
       throw new BadRequestException(
-        `Invalid media type '${type}'. Supported values are 'image' or 'video'.`,
+        `Invalid media type '${String(type)}'. Supported values are 'image' or 'video'.`,
       );
     }
 

@@ -55,7 +55,9 @@ describe('InspectionRequestService - submitMediaReview', () => {
       deletedAt: null,
     });
 
-  const makeRequest = (status: InspectionStatus = InspectionStatus.UNDER_REVIEW) =>
+  const makeRequest = (
+    status: InspectionStatus = InspectionStatus.UNDER_REVIEW,
+  ) =>
     new InspectionRequest({
       id: requestId,
       requestNumber: 'REQ-2026-0001',
@@ -138,7 +140,10 @@ describe('InspectionRequestService - submitMediaReview', () => {
 
     // Mock getRequestDetails return
     jest.spyOn(service, 'getRequestDetails').mockImplementation(async () => {
-      return { id: requestId, currentStatus: InspectionStatus.COMPLETED } as any;
+      return {
+        id: requestId,
+        currentStatus: InspectionStatus.COMPLETED,
+      } as any;
     });
   });
 

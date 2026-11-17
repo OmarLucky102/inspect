@@ -12,16 +12,28 @@ describe('VehicleLookupController', () => {
 
   beforeEach(() => {
     mockPrisma = {
-      vehicleBrand: { findMany: jest.fn().mockResolvedValue([{ id: 'b1', name: 'Toyota' }]) },
-      vehicleCategory: { findMany: jest.fn().mockResolvedValue([{ id: 'c1', name: 'Sedan' }]) },
-      color: { findMany: jest.fn().mockResolvedValue([{ id: 'col1', name: 'White' }]) },
-      fuelType: { findMany: jest.fn().mockResolvedValue([{ id: 'f1', name: 'Petrol' }]) },
-      transmissionType: {
-        findMany: jest.fn().mockResolvedValue([
-          { id: 't1', name: 'Automatic', nameAr: 'أوتوماتيك' },
-        ]),
+      vehicleBrand: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'b1', name: 'Toyota' }]),
       },
-      vehicleTrim: { findMany: jest.fn().mockResolvedValue([{ id: 'tr1', name: 'GLX' }]) },
+      vehicleCategory: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'c1', name: 'Sedan' }]),
+      },
+      color: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'col1', name: 'White' }]),
+      },
+      fuelType: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'f1', name: 'Petrol' }]),
+      },
+      transmissionType: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 't1', name: 'Automatic', nameAr: 'أوتوماتيك' },
+          ]),
+      },
+      vehicleTrim: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'tr1', name: 'GLX' }]),
+      },
       sideMirrorType: {
         findMany: jest.fn().mockResolvedValue([
           { code: 'MANUAL', name: 'Manual', nameAr: 'عادي' },
@@ -30,14 +42,21 @@ describe('VehicleLookupController', () => {
       },
       sunroofType: {
         findMany: jest.fn().mockResolvedValue([
-          { code: 'PANORAMIC', name: 'Panoramic Sunroof', nameAr: 'فتحة سقف بانورامية' },
+          {
+            code: 'PANORAMIC',
+            name: 'Panoramic Sunroof',
+            nameAr: 'فتحة سقف بانورامية',
+          },
         ]),
       },
     };
 
     mockVehicleAdminService = {};
 
-    controller = new VehicleLookupController(mockPrisma, mockVehicleAdminService);
+    controller = new VehicleLookupController(
+      mockPrisma,
+      mockVehicleAdminService,
+    );
   });
 
   describe('getAllLookups', () => {

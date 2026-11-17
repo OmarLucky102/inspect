@@ -131,7 +131,9 @@ describe('SubmitMediaReviewDto Validation', () => {
     const dto = plainToInstance(SubmitMediaReviewDto, payload);
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'verifiedMileage')).toBe(true);
-    expect(errors.some((e) => e.property === 'proposedMarketingValue')).toBe(true);
+    expect(errors.some((e) => e.property === 'proposedMarketingValue')).toBe(
+      true,
+    );
   });
 
   it('rejects non-UUID transmissionTypeId and trimId', async () => {

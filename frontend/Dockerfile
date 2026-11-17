@@ -1,7 +1,7 @@
 # ==============================================================================
-# Stage 1: Build stage (Node.js 24 Alpine + pnpm)
+# Stage 1: Build stage (Node.js 24 Debian Linux + pnpm)
 # ==============================================================================
-FROM node:24-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 

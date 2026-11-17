@@ -32,12 +32,15 @@ export class GetInspectionMediaFilterDto {
     return value;
   })
   @IsArray()
-  @ArrayMaxSize(15, { message: 'Cannot request more than 15 checklist items at once' })
+  @ArrayMaxSize(15, {
+    message: 'Cannot request more than 15 checklist items at once',
+  })
   @IsString({ each: true })
   @MaxLength(50, { each: true })
   @Matches(/^[a-zA-Z0-9_-]+$/, {
     each: true,
-    message: 'Checklist item codes must contain only alphanumeric characters, dashes, or underscores',
+    message:
+      'Checklist item codes must contain only alphanumeric characters, dashes, or underscores',
   })
   checklistItemCodes?: string[];
 }

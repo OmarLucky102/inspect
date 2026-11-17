@@ -7,7 +7,6 @@ import { PrismaService } from '../../../database/prisma.service';
 import { S3StorageService } from '../../../shared/storage/s3-storage.service';
 import { InspectionRequestAccessDeniedException } from '../../../shared/exceptions/inspection.exceptions';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
-import { MembershipStatus } from '../../../organization/domain/value-objects/membership-status.enum';
 
 describe('GetMediaFileUseCase', () => {
   let useCase: GetMediaFileUseCase;
