@@ -178,6 +178,7 @@ export interface InspectionRequestDetail {
     trim: { id: string; code?: string; name: string; nameAr?: string | null } | null
     sunroofSpecification?: string | null
     sideMirrors?: string | null
+    carInterior?: string | null
     calendarNumber?: string | null
     specialInstructions?: string | null
   } | null
@@ -321,6 +322,7 @@ export interface VehicleReferenceLookups {
   trims: VehicleReferenceItem[]
   sideMirrorTypes?: VehicleReferenceItem[]
   sunroofTypes?: VehicleReferenceItem[]
+  carInteriorTypes?: VehicleReferenceItem[]
 }
 
 export async function fetchVehicleLookups(): Promise<VehicleReferenceLookups> {
@@ -432,6 +434,7 @@ export interface MediaReviewPayload {
   transmissionTypeId?: string
   sideMirrors?: string
   sunroofSpecification?: string
+  carInterior?: string
   notes?: string
   checklistItems?: Array<{
     checklistItemId: string
