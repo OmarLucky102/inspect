@@ -105,13 +105,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder
+      target: production
     restart: 'no'
     env_file:
       - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-inspect}?schema=public
-    command: sh -c "pnpm exec prisma migrate deploy && pnpm exec ts-node prisma/seed.ts"
+    command: sh -c "node -e \"require('child_process').execSync('npx prisma migrate deploy', {stdio:'inherit'})\" && node -e \"require('child_process').execSync('node dist/prisma/seed.js', {stdio:'inherit'})\" || node dist/prisma/seed.js"
     depends_on:
       postgres:
         condition: service_healthy
