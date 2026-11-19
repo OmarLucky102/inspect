@@ -88,32 +88,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let mounted = true;
-    refreshRequest()
-      .then((token) => {
-        if (!mounted) return;
-        setAccessToken(token);
-        setStatus('authenticated');
-      })
-      .catch((error) => {
-        if (!mounted) return;
-        // Rapid reloads abort in-flight requests (ERR_CANCELED). Don't treat an abort as logout.
-        if (
-          axios.isCancel(error) ||
-          (error as { code?: string })?.code === 'ERR_CANCELED'
-        ) {
-          return;
-        }
+    let attempts = 0;
+    const maxAttempts = 6;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          setAccessToken(null);
-          setStatus('unauthenticated');
-        } else {
-          setStatus('unavailable');
-        }
-      });
+    const restoreSession = () => {
+      refreshRequest()
+        .then((token) => {
+          if (!mounted) return;
+          setAccessToken(token);
+          setStatus('authenticated');
+        })
+        .catch((error) => {
+          if (!mounted) return;
+          // Rapid reloads abort in-flight requests (ERR_CANCELED). Don't treat an abort as logout.
+          if (
+            axios.isCancel(error) ||
+            (error as { code?: string })?.code === 'ERR_CANCELED'
+          ) {
+            return;
+          }
+
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            setAccessToken(null);
+            setStatus('unauthenticated');
+            return;
+          }
+
+          // If backend is still booting up (502, 503, network timeout during container launch)
+          if (attempts < maxAttempts) {
+            attempts++;
+            retryTimer = setTimeout(restoreSession, 1500);
+          } else {
+            setStatus('unavailable');
+          }
+        });
+    };
+
+    restoreSession();
 
     return () => {
       mounted = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
 

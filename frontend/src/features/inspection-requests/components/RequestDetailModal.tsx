@@ -37,7 +37,7 @@ import {
   assignRepresentative,
   finalApproveInspection,
   requestPriceRevision,
-  fetchInspectionReport,
+  downloadInspectionReportPdf,
 } from '../api';
 import { fetchBankMembers } from '@/features/banks/api';
 import { fetchRepresentatives } from '@/features/representatives/api';
@@ -87,11 +87,7 @@ export function RequestDetailModal({
   const activeBankId = explicitBankId || contextBankId;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<
-    | 'overview'
-    | 'vehicle'
-    | 'media'
-    | 'assignment'
-    | 'history'
+    'overview' | 'vehicle' | 'media' | 'assignment' | 'history'
   >('overview');
 
   // Modals for actions
@@ -121,12 +117,9 @@ export function RequestDetailModal({
   // Track whether photos were uploaded locally via the dashboard wizard
   const [hasDashboardPhotos, setHasDashboardPhotos] = useState<boolean>(false);
 
-  const handleDashboardMediaChange = useCallback(
-    (hasMedia: boolean) => {
-      setHasDashboardPhotos(hasMedia);
-    },
-    [],
-  );
+  const handleDashboardMediaChange = useCallback((hasMedia: boolean) => {
+    setHasDashboardPhotos(hasMedia);
+  }, []);
 
   // Query: Full Request Details
   const {
@@ -402,7 +395,7 @@ export function RequestDetailModal({
   const handleOpenFinalApprove = () => {
     setFinalApprovedPrice(
       details?.latestMarketingDecision?.estimatedValue != null &&
-      details.latestMarketingDecision.estimatedValue > 1
+        details.latestMarketingDecision.estimatedValue > 1
         ? String(details.latestMarketingDecision.estimatedValue)
         : '',
     );
@@ -435,25 +428,35 @@ export function RequestDetailModal({
     priceRevisionMutation.mutate(priceRevisionNotes.trim());
   };
 
-  const handleDownloadReport = async () => {
+  const handleDownloadReport = async (reportLang?: 'ar' | 'en') => {
     try {
       setIsDownloadingReport(true);
-      const report = await fetchInspectionReport(activeBankId!, requestId);
-      const reportData = report?.data ?? report;
-      const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-        type: 'application/json',
-      });
+      const chosenLang = reportLang || (isArabic ? 'ar' : 'en');
+      const blob = await downloadInspectionReportPdf(
+        activeBankId!,
+        requestId,
+        chosenLang,
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `EuroInspect-360-Report-${details?.requestNumber || requestId}.json`;
+      a.download = `EuroInspect-360-Report-${details?.requestNumber || requestId}-${chosenLang}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Inspection report downloaded successfully');
+      toast.success(
+        isArabic
+          ? 'تم تحميل تقرير الفحص الفني بنجاح'
+          : 'Inspection report PDF downloaded successfully',
+      );
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to download report'));
+      toast.error(
+        getApiErrorMessage(
+          err,
+          isArabic ? 'فشل تحميل التقرير الفني' : 'Failed to download report',
+        ),
+      );
     } finally {
       setIsDownloadingReport(false);
     }
@@ -605,9 +608,20 @@ export function RequestDetailModal({
         });
       }
     } else if (cur === 'UNDER_REVIEW') {
+      const hasCompletedValuation = Boolean(
+        (details.latestMarketingDecision?.estimatedValue &&
+          details.latestMarketingDecision.estimatedValue > 0) ||
+          ((details as any).marketingDecisions &&
+            (details as any).marketingDecisions.length > 0),
+      );
+
       // Reviewer or Super Admin submits car details & pricing review
-      // This ONLY appears after media review is finished (photos uploaded)
-      if ((isReviewer || isSuperAdmin) && hasUploadedPhotos) {
+      // This ONLY appears after media review is finished (photos uploaded) AND if not yet filled
+      if (
+        (isReviewer || isSuperAdmin) &&
+        hasUploadedPhotos &&
+        !hasCompletedValuation
+      ) {
         availableActions.push({
           label: isArabic
             ? 'إضافة مواصفات السيارة والتقييم'
@@ -629,6 +643,24 @@ export function RequestDetailModal({
         });
       }
     } else if (cur === 'COMPLETED') {
+      // Final inspection report download is available once details & pricing are completed
+      availableActions.push({
+        label: isArabic
+          ? isDownloadingReport
+            ? 'جاري التحميل…'
+            : 'تحميل تقرير الفحص'
+          : isDownloadingReport
+            ? 'Downloading…'
+            : 'Download Report',
+        intent: 'neutral',
+        icon: isDownloadingReport ? (
+          <CircleNotch className="size-3 animate-spin" />
+        ) : (
+          <FileText className="size-3" weight="bold" />
+        ),
+        action: () => handleDownloadReport(),
+      });
+
       // Only Super Admin can grant final approval or request price revision
       if (isSuperAdmin) {
         availableActions.push({
@@ -662,7 +694,7 @@ export function RequestDetailModal({
         ) : (
           <FileText className="size-3" weight="bold" />
         ),
-        action: handleDownloadReport,
+        action: () => handleDownloadReport(),
       });
     }
   }
@@ -931,7 +963,9 @@ export function RequestDetailModal({
                     size="sm"
                     intent={act.intent ?? 'emerald'}
                     icon={act.icon}
-                    trailingIcon={<ArrowRight className="size-3 rtl:rotate-180" />}
+                    trailingIcon={
+                      <ArrowRight className="size-3 rtl:rotate-180" />
+                    }
                     onClick={() => {
                       if (act.action) {
                         act.action();
@@ -1061,7 +1095,8 @@ export function RequestDetailModal({
                         </div>
                       </div>
 
-                      {details.latestMarketingDecision && details.latestMarketingDecision.estimatedValue > 1 ? (
+                      {details.latestMarketingDecision &&
+                      details.latestMarketingDecision.estimatedValue > 1 ? (
                         <div className="mt-4 space-y-4">
                           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                             <div className="rounded-xl bg-paper/50 p-3">
@@ -1086,7 +1121,8 @@ export function RequestDetailModal({
                                   : 'Verified Mileage'}
                               </p>
                               <p className="mt-1 font-mono text-xl font-bold text-ink">
-                                {details.vehicle?.mileage != null && details.vehicle.mileage > 1
+                                {details.vehicle?.mileage != null &&
+                                details.vehicle.mileage > 1
                                   ? details.vehicle.mileage.toLocaleString(
                                       'en-US',
                                     )
@@ -1170,8 +1206,9 @@ export function RequestDetailModal({
                         </div>
                       )}
 
-                      {/* Report Download or Super Admin Action Strip */}
-                      {details.currentStatus === 'APPROVED' && (
+                      {/* Report Download Strip: Available in COMPLETED or APPROVED once details & pricing are submitted */}
+                      {(details.currentStatus === 'APPROVED' ||
+                        details.currentStatus === 'COMPLETED') && (
                         <div className="mt-4 flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-300/50 p-4">
                           <div>
                             <p className="text-xs font-semibold text-emerald-900">
@@ -1180,26 +1217,45 @@ export function RequestDetailModal({
                                 : 'Official Bilingual Inspection Report Ready'}
                             </p>
                             <p className="text-[11px] text-emerald-700">
-                              {isArabic
-                                ? 'تمت الموافقة النهائية. تقرير فحص يورو إنسبكت 360 متاح للتحميل الآن.'
-                                : 'Super Admin approval granted. The official EuroInspect 360 inspection report is unlocked for download.'}
+                              {details.currentStatus === 'APPROVED'
+                                ? isArabic
+                                  ? 'تمت الموافقة النهائية. تقرير فحص يورو إنسبكت 360 متاح للتحميل الآن.'
+                                  : 'Super Admin approval granted. The official EuroInspect 360 inspection report is unlocked for download.'
+                                : isArabic
+                                  ? 'تم اعتماد مواصفات السيارة والتقييم. تقرير فحص يورو إنسبكت 360 متاح للتحميل والطباعة.'
+                                  : 'Vehicle specifications & valuation submitted. The official EuroInspect 360 report is ready for download.'}
                             </p>
                           </div>
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={handleDownloadReport}
-                            disabled={isDownloadingReport}
-                          >
-                            <FileText className="mr-1.5 size-4" />
-                            {isArabic
-                              ? isDownloadingReport
-                                ? 'جاري التحميل…'
-                                : 'تحميل التقرير'
-                              : isDownloadingReport
-                                ? 'Downloading…'
-                                : 'Download Report'}
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                              onClick={() =>
+                                handleDownloadReport(isArabic ? 'ar' : 'en')
+                              }
+                              disabled={isDownloadingReport}
+                            >
+                              <FileText className="mr-1.5 size-4" />
+                              {isArabic
+                                ? isDownloadingReport
+                                  ? 'جاري التحميل…'
+                                  : 'تحميل التقرير (PDF)'
+                                : isDownloadingReport
+                                  ? 'Downloading…'
+                                  : 'Download PDF'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                              onClick={() =>
+                                handleDownloadReport(isArabic ? 'en' : 'ar')
+                              }
+                              disabled={isDownloadingReport}
+                            >
+                              {isArabic ? 'English PDF' : 'تقرير عربي'}
+                            </Button>
+                          </div>
                         </div>
                       )}
 
@@ -1552,7 +1608,8 @@ export function RequestDetailModal({
                               : 'Verified Mileage'}
                           </p>
                           <p className="mt-0.5 font-mono text-sm font-bold text-accent">
-                            {details.vehicle.mileage != null && details.vehicle.mileage > 1
+                            {details.vehicle.mileage != null &&
+                            details.vehicle.mileage > 1
                               ? `${details.vehicle.mileage.toLocaleString('en-US')} ${isArabic ? 'كم' : 'KM'}`
                               : isArabic
                                 ? 'بانتظار التأكيد'
@@ -1811,18 +1868,22 @@ export function RequestDetailModal({
 
                         <div>
                           <p className="text-[11px] text-ink-mute">
-                            {isArabic ? 'حالة الدواخل والدهان' : 'Interior / Paint'}
+                            {isArabic
+                              ? 'حالة الدواخل والدهان'
+                              : 'Interior / Paint'}
                           </p>
                           <p className="mt-0.5 text-sm text-ink font-medium">
                             {details.vehicle.carInterior === 'FACTORY_PAINT'
                               ? isArabic
                                 ? 'فابريكا دواخل'
                                 : 'Factory Paint'
-                              : details.vehicle.carInterior === 'INTERNAL_REPAINT'
+                              : details.vehicle.carInterior ===
+                                  'INTERNAL_REPAINT'
                                 ? isArabic
                                   ? 'رش دواخل'
                                   : 'Internal Repaint'
-                                : details.vehicle.carInterior === 'PARTIAL_REPAINT'
+                                : details.vehicle.carInterior ===
+                                    'PARTIAL_REPAINT'
                                   ? isArabic
                                     ? 'رش أجزاء داخلية'
                                     : 'Partial Repaint'
@@ -1871,12 +1932,12 @@ export function RequestDetailModal({
                 </div>
               )}
 
-
-
               {/* TAB: MEDIA EVIDENCE */}
               {activeTab === 'media' && (
                 <div className="space-y-6">
-                  <InspectionMediaGallery inspectionId={details.id || requestId} />
+                  <InspectionMediaGallery
+                    inspectionId={details.id || requestId}
+                  />
                 </div>
               )}
 
@@ -1987,7 +2048,9 @@ export function RequestDetailModal({
                             <GlassButton
                               size="sm"
                               intent="emerald"
-                              icon={<UserPlus className="size-3" weight="bold" />}
+                              icon={
+                                <UserPlus className="size-3" weight="bold" />
+                              }
                               onClick={() => setIsAssigning(true)}
                               className="mt-4"
                             >
@@ -2534,17 +2597,18 @@ export function RequestDetailModal({
                     (isArabic ? 'المراجع' : 'Reviewer')}
                 </span>
               </div>
-              {details?.vehicle?.mileage != null && details.vehicle.mileage > 1 && (
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-ink-mute">
-                    {isArabic ? 'قراءة العداد المؤكدة:' : 'Verified Mileage:'}
-                  </span>
-                  <span className="font-mono text-ink">
-                    {details.vehicle.mileage.toLocaleString('en-US')}{' '}
-                    {isArabic ? 'كم' : 'KM'}
-                  </span>
-                </div>
-              )}
+              {details?.vehicle?.mileage != null &&
+                details.vehicle.mileage > 1 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-ink-mute">
+                      {isArabic ? 'قراءة العداد المؤكدة:' : 'Verified Mileage:'}
+                    </span>
+                    <span className="font-mono text-ink">
+                      {details.vehicle.mileage.toLocaleString('en-US')}{' '}
+                      {isArabic ? 'كم' : 'KM'}
+                    </span>
+                  </div>
+                )}
             </div>
 
             <form
@@ -2803,6 +2867,7 @@ export function RequestDetailModal({
           bankId={activeBankId}
           requestId={requestId}
           details={details}
+          onSuccess={() => void refetchDetails()}
         />
       )}
     </div>

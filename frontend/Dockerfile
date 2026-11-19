@@ -5,15 +5,19 @@ FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Enable pnpm
-RUN npm install -g pnpm
+# Enable pnpm via corepack (pinned to packageManager in package.json)
+RUN corepack enable
+
+# Explicit deterministic pnpm store path for caching
+ENV PNPM_STORE_DIR=/root/.local/share/pnpm/store
 
 # Copy root workspace manifests & lockfile for caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 COPY frontend/package.json ./frontend/
 
-# Install dependencies using frozen lockfile for frontend package
-RUN pnpm --filter frontend install --frozen-lockfile
+# Install dependencies using frozen lockfile with shared pnpm store cache
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm --filter frontend install --frozen-lockfile
 
 # Copy frontend source code and configs
 COPY frontend ./frontend

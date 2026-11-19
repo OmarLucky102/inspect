@@ -498,6 +498,20 @@ export async function fetchInspectionReport(
   return (res.data as any).data ?? res.data
 }
 
+export async function downloadInspectionReportPdf(
+  bankId: string,
+  requestId: string,
+  lang: 'ar' | 'en' = 'ar',
+): Promise<Blob> {
+  const res = await api.get(
+    `/banks/${bankId}/inspection-requests/${requestId}/report/pdf?lang=${lang}`,
+    {
+      responseType: 'blob',
+    },
+  )
+  return res.data
+}
+
 export interface InspectionAnalyticsData {
   scope: {
     bankId: string | null

@@ -9,6 +9,7 @@ import { ConfigModule } from './config/config.module';
 import { OrganizationModule } from './organization/organization.module';
 import { InspectionModule } from './inspection/inspection.module';
 import { MediaModule } from './media/media.module';
+import { ReportingModule } from './reporting/reporting.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MediaModule } from './media/media.module';
     OrganizationModule,
     InspectionModule,
     MediaModule,
+    ReportingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
