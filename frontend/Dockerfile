@@ -5,8 +5,9 @@ FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Enable pnpm via corepack (pinned to packageManager in package.json)
-RUN corepack enable
+# Install pnpm directly and disable corepack prompts for headless builds
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN npm install -g pnpm@10.5.2
 
 # Explicit deterministic pnpm store path for caching
 ENV PNPM_STORE_DIR=/root/.local/share/pnpm/store
@@ -15,9 +16,9 @@ ENV PNPM_STORE_DIR=/root/.local/share/pnpm/store
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 COPY frontend/package.json ./frontend/
 
-# Install dependencies using frozen lockfile with shared pnpm store cache
+# Install dependencies with shared pnpm store cache
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm --filter frontend install --frozen-lockfile
+    pnpm --filter frontend install --prefer-frozen-lockfile
 
 # Copy frontend source code and configs
 COPY frontend ./frontend

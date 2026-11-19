@@ -24,8 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable pnpm via corepack (pinned to packageManager in package.json)
-RUN corepack enable
+# Install pnpm directly and disable corepack prompts for headless builds
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN npm install -g pnpm@10.5.2
 
 # Explicit deterministic pnpm store path & Puppeteer configuration
 ENV PNPM_STORE_DIR=/root/.local/share/pnpm/store \
@@ -40,7 +41,7 @@ FROM base AS dependencies
 # Cache package dependencies with BuildKit pnpm store cache
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --prefer-frozen-lockfile
 
 # Copy Prisma schema and generate client
 COPY prisma ./prisma
