@@ -64,10 +64,13 @@ ENV NODE_ENV=production \
     PORT=${PORT} \
     SERVER_PORT=${PORT}
 
+RUN chown node:node /app
+
 # Copy only what is needed to run the app
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/dist ./dist
 COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --chown=node:node --from=builder /app/package.json ./package.json
 
 USER node
