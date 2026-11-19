@@ -31,28 +31,28 @@ services:
   # ============================================================================
   # 2. SeaweedFS Object Storage Service (S3-compatible)
   # ============================================================================
-  seaweedfs:
-    image: chrislusf/seaweedfs:4.51
-    restart: unless-stopped
-    command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -ip=seaweedfs'
-    volumes:
-      - seaweedfs_data:/data
-      - ./s3.json:/etc/seaweedfs/s3.json:ro
-    ports:
-      - '8333:8333'
-      - '8889:8888'
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -q --spider http://127.0.0.1:9333/dir/status || exit 1',
-        ]
-      interval: 2s
-      timeout: 3s
-      retries: 5
-      start_period: 3s
-    networks:
-      - inspect_network
+  # seaweedfs:
+  #   image: chrislusf/seaweedfs:4.51
+  #   restart: unless-stopped
+  #   command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -ip=seaweedfs'
+  #   volumes:
+  #     - seaweedfs_data:/data
+  #     - ./s3.json:/etc/seaweedfs/s3.json:ro
+  #   ports:
+  #     - '8333:8333'
+  #     - '8889:8888'
+  #   healthcheck:
+  #     test:
+  #       [
+  #         'CMD-SHELL',
+  #         'wget -q --spider http://127.0.0.1:9333/dir/status || exit 1',
+  #       ]
+  #     interval: 2s
+  #     timeout: 3s
+  #     retries: 5
+  #     start_period: 3s
+  #   networks:
+  #     - inspect_network
 
   # ============================================================================
   # 3. NestJS Application Service
@@ -92,8 +92,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      seaweedfs:
-        condition: service_healthy
+      # seaweedfs:
+      #   condition: service_healthy
     networks:
       - inspect_network
 
@@ -158,9 +158,9 @@ volumes:
   postgres_data:
     name: inspect_postgres_data
     driver: local
-  seaweedfs_data:
-    name: inspect_seaweedfs_data
-    driver: local
+  # seaweedfs_data:
+  #   name: inspect_seaweedfs_data
+  #   driver: local
 
 networks:
   inspect_network:
