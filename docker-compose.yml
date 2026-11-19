@@ -21,10 +21,10 @@ services:
           'CMD-SHELL',
           'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-inspect}',
         ]
-      interval: 5s
-      timeout: 5s
+      interval: 2s
+      timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 3s
     networks:
       - inspect_network
 
@@ -47,10 +47,10 @@ services:
           'CMD-SHELL',
           'wget -q --spider http://127.0.0.1:9333/dir/status || exit 1',
         ]
-      interval: 10s
-      timeout: 5s
+      interval: 2s
+      timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 3s
     networks:
       - inspect_network
 
@@ -61,7 +61,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
+      target: development
       args:
         PORT: ${SERVER_PORT:-18080}
     restart: unless-stopped
@@ -79,6 +79,16 @@ services:
       - S3_ENDPOINT=${S3_ENDPOINT:-http://seaweedfs:8333}
     ports:
       - '${SERVER_PORT:-18080}:${SERVER_PORT:-18080}'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://localhost:${SERVER_PORT:-18080}/health || exit 1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
