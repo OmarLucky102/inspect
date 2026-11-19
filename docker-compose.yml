@@ -61,14 +61,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
+      target: production
       args:
         PORT: ${SERVER_PORT:-18080}
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - SERVER_PORT=${SERVER_PORT:-18080}
       - DB_HOST=postgres
       - DB_PORT=5432
