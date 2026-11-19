@@ -132,7 +132,7 @@ services:
         VITE_CDN_URL: ${VITE_CDN_URL:-https://pub-860509c206114698ad0b355f757c0bf3.r2.dev}
     restart: unless-stopped
     ports:
-      - '${FRONTEND_PORT:-80}:80'
+      - '${FRONTEND_PORT:-3000}:80'
     depends_on:
       app:
         condition: service_healthy
