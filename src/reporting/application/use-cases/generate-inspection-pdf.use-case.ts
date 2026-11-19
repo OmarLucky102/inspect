@@ -95,10 +95,13 @@ export class GenerateInspectionPdfUseCase {
       throw new InspectionRequestAccessDeniedException();
     }
 
-    // 3. Status Transition Assertion (Must be APPROVED)
-    if (inspection.currentStatus !== 'APPROVED') {
+    // 3. Status Transition Assertion (Must be APPROVED or COMPLETED)
+    if (
+      inspection.currentStatus !== 'APPROVED' &&
+      inspection.currentStatus !== 'COMPLETED'
+    ) {
       throw new InvalidStatusTransitionException(
-        'Inspection report is locked and will become available once the Super Admin grants final approval.',
+        'Inspection report is locked and will become available once vehicle details and pricing review are submitted.',
       );
     }
 

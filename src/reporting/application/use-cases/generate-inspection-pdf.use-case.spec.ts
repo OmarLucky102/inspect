@@ -226,10 +226,10 @@ describe('GenerateInspectionPdfUseCase', () => {
     );
   });
 
-  it('should throw InvalidStatusTransitionException when status is not APPROVED', async () => {
+  it('should throw InvalidStatusTransitionException when status is not APPROVED or COMPLETED', async () => {
     mockDataProvider.getInspectionReportData.mockResolvedValue({
       ...sampleInspection,
-      currentStatus: 'COMPLETED',
+      currentStatus: 'UNDER_REVIEW',
     });
 
     const input: GenerateReportPdfInput = {
@@ -241,6 +241,24 @@ describe('GenerateInspectionPdfUseCase', () => {
     await expect(useCase.execute(input)).rejects.toThrow(
       InvalidStatusTransitionException,
     );
+  });
+
+  it('should generate PDF report successfully when status is COMPLETED', async () => {
+    mockDataProvider.getInspectionReportData.mockResolvedValue({
+      ...sampleInspection,
+      currentStatus: 'COMPLETED',
+    });
+
+    const input: GenerateReportPdfInput = {
+      bankId: 'bank-uuid-1',
+      inspectionId: sampleInspection.id,
+      actor: { id: 'user-1', role: Role.MANAGER },
+      lang: 'ar',
+    };
+
+    const result = await useCase.execute(input);
+    expect(result).toBeDefined();
+    expect(result.pdfBuffer).toBeInstanceOf(Buffer);
   });
 
   it('should throw VehicleDataRequiredException when vehicle is missing', async () => {

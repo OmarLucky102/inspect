@@ -608,9 +608,20 @@ export function RequestDetailModal({
         });
       }
     } else if (cur === 'UNDER_REVIEW') {
+      const hasCompletedValuation = Boolean(
+        (details.latestMarketingDecision?.estimatedValue &&
+          details.latestMarketingDecision.estimatedValue > 0) ||
+          ((details as any).marketingDecisions &&
+            (details as any).marketingDecisions.length > 0),
+      );
+
       // Reviewer or Super Admin submits car details & pricing review
-      // This ONLY appears after media review is finished (photos uploaded)
-      if ((isReviewer || isSuperAdmin) && hasUploadedPhotos) {
+      // This ONLY appears after media review is finished (photos uploaded) AND if not yet filled
+      if (
+        (isReviewer || isSuperAdmin) &&
+        hasUploadedPhotos &&
+        !hasCompletedValuation
+      ) {
         availableActions.push({
           label: isArabic
             ? 'إضافة مواصفات السيارة والتقييم'
@@ -632,6 +643,24 @@ export function RequestDetailModal({
         });
       }
     } else if (cur === 'COMPLETED') {
+      // Final inspection report download is available once details & pricing are completed
+      availableActions.push({
+        label: isArabic
+          ? isDownloadingReport
+            ? 'جاري التحميل…'
+            : 'تحميل تقرير الفحص'
+          : isDownloadingReport
+            ? 'Downloading…'
+            : 'Download Report',
+        intent: 'neutral',
+        icon: isDownloadingReport ? (
+          <CircleNotch className="size-3 animate-spin" />
+        ) : (
+          <FileText className="size-3" weight="bold" />
+        ),
+        action: () => handleDownloadReport(),
+      });
+
       // Only Super Admin can grant final approval or request price revision
       if (isSuperAdmin) {
         availableActions.push({
@@ -1177,8 +1206,9 @@ export function RequestDetailModal({
                         </div>
                       )}
 
-                      {/* Report Download or Super Admin Action Strip */}
-                      {details.currentStatus === 'APPROVED' && (
+                      {/* Report Download Strip: Available in COMPLETED or APPROVED once details & pricing are submitted */}
+                      {(details.currentStatus === 'APPROVED' ||
+                        details.currentStatus === 'COMPLETED') && (
                         <div className="mt-4 flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-300/50 p-4">
                           <div>
                             <p className="text-xs font-semibold text-emerald-900">
@@ -1187,9 +1217,13 @@ export function RequestDetailModal({
                                 : 'Official Bilingual Inspection Report Ready'}
                             </p>
                             <p className="text-[11px] text-emerald-700">
-                              {isArabic
-                                ? 'تمت الموافقة النهائية. تقرير فحص يورو إنسبكت 360 متاح للتحميل الآن.'
-                                : 'Super Admin approval granted. The official EuroInspect 360 inspection report is unlocked for download.'}
+                              {details.currentStatus === 'APPROVED'
+                                ? isArabic
+                                  ? 'تمت الموافقة النهائية. تقرير فحص يورو إنسبكت 360 متاح للتحميل الآن.'
+                                  : 'Super Admin approval granted. The official EuroInspect 360 inspection report is unlocked for download.'
+                                : isArabic
+                                  ? 'تم اعتماد مواصفات السيارة والتقييم. تقرير فحص يورو إنسبكت 360 متاح للتحميل والطباعة.'
+                                  : 'Vehicle specifications & valuation submitted. The official EuroInspect 360 report is ready for download.'}
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -2833,6 +2867,7 @@ export function RequestDetailModal({
           bankId={activeBankId}
           requestId={requestId}
           details={details}
+          onSuccess={() => void refetchDetails()}
         />
       )}
     </div>

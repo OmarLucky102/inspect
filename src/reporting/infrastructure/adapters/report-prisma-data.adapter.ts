@@ -39,8 +39,7 @@ export class ReportPrismaDataAdapter implements IReportDataProvider {
           },
         },
         marketingDecisions: {
-          where: { approved: true },
-          orderBy: { decidedAt: 'desc' },
+          orderBy: [{ approved: 'desc' }, { decidedAt: 'desc' }],
           take: 1,
           include: {
             reviewer: {

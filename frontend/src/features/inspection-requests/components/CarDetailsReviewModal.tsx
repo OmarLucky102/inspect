@@ -288,6 +288,12 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
           : 'Vehicle details & valuation submitted successfully',
       );
       void queryClient.invalidateQueries({
+        queryKey: ['inspection-request-details', bankId, requestId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['inspection-request-details'],
+      });
+      void queryClient.invalidateQueries({
         queryKey: ['inspection-requests', requestId],
       });
       void queryClient.invalidateQueries({
@@ -295,6 +301,9 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
       });
       void queryClient.invalidateQueries({
         queryKey: ['inspection-requests', bankId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['inspection-requests'],
       });
       onSuccess?.();
       onClose();
