@@ -72,7 +72,14 @@ export async function refreshAccessToken(): Promise<string> {
   return refreshInFlight
 }
 
-const NO_RETRY = new Set(['/auth/login', '/auth/refresh', '/auth/logout'])
+const isNoRetryUrl = (url?: string): boolean => {
+  if (!url) return false
+  return (
+    url.includes('/auth/login') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/logout')
+  )
+}
 
 // Single-flight 401 recovery: try rotation once, then replay the request.
 api.interceptors.response.use(
@@ -87,7 +94,7 @@ api.interceptors.response.use(
       error.response.status !== 401 ||
       !original ||
       original._retried ||
-      (original.url && NO_RETRY.has(original.url))
+      isNoRetryUrl(original.url)
     ) {
       throw error
     }
