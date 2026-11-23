@@ -1,5 +1,7 @@
 import { ReportRenderData } from '../../domain/models/report-data.model';
 import { getCdnAsset } from '../../../shared/utils/assets.util';
+import { REPORT_FONTS_CSS } from '../assets/fonts.asset';
+import { REPORT_LOGO_BASE64 } from '../assets/logo.asset';
 
 export function resolveVehicleColor(
   colorName?: string | null,
@@ -90,16 +92,48 @@ export function resolveSunroof(
   fallbackNa: string = 'N/A',
 ): string {
   if (!sunroof || !sunroof.trim()) return fallbackNa;
-  if (!isArabic) return sunroof.trim();
 
   const raw = sunroof.trim();
+  const normalized = raw.toUpperCase().replace(/[\s-]+/g, '_');
+
+  const SUNROOF_TRANSLATIONS: Record<
+    string,
+    { ar: string; en: string }
+  > = {
+    NO_SUNROOF: { ar: 'بدون فتحة سقف', en: 'No Sunroof' },
+    NONE: { ar: 'بدون فتحة سقف', en: 'No Sunroof' },
+    WITHOUT: { ar: 'بدون فتحة سقف', en: 'No Sunroof' },
+    MANUAL: { ar: 'فتحة سقف يدوية', en: 'Manual Sunroof' },
+    ELECTRIC: { ar: 'فتحة سقف كهربائية', en: 'Electric Sunroof' },
+    PANORAMIC: { ar: 'فتحة سقف بانورامية', en: 'Panoramic Sunroof' },
+    PANORAMIC_MOONROOF: {
+      ar: 'فتحة سقف بانورامية زجاجية',
+      en: 'Panoramic Moonroof',
+    },
+    POP_UP: { ar: 'فتحة سقف قابلة للرفع', en: 'Pop-up Sunroof' },
+    SLIDING: { ar: 'فتحة سقف منزلقة', en: 'Sliding Sunroof' },
+    TILT_AND_SLIDE: {
+      ar: 'فتحة سقف قابلة للإمالة والانزلاق',
+      en: 'Tilt & Slide Sunroof',
+    },
+  };
+
+  if (SUNROOF_TRANSLATIONS[normalized]) {
+    return isArabic
+      ? SUNROOF_TRANSLATIONS[normalized].ar
+      : SUNROOF_TRANSLATIONS[normalized].en;
+  }
+
+  if (!isArabic) return raw;
+
   if (/[\u0600-\u06FF]/.test(raw)) return raw;
 
-  const lower = raw.toLowerCase();
+  const lower = raw.toLowerCase().replace(/[_-]/g, ' ');
   if (
     lower.includes('no sunroof') ||
     lower.includes('without') ||
-    lower.includes('none')
+    lower.includes('none') ||
+    lower === 'no'
   ) {
     return 'بدون فتحة سقف';
   }
@@ -304,7 +338,8 @@ export function getPhotoLabel(
 export function renderInspectionReportHtml(data: ReportRenderData): string {
   const isArabic = data.lang === 'ar';
   const dir = isArabic ? 'rtl' : 'ltr';
-  const logoSrc = data.logoUrl || getCdnAsset('logo.webp');
+  const logoSrc =
+    data.logoUrl || REPORT_LOGO_BASE64 || getCdnAsset('logo.webp');
 
   const t = {
     reportTitle: isArabic
@@ -340,17 +375,15 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
     makeModel: isArabic ? 'الماركة والموديل' : 'Make & Model',
     year: isArabic ? 'سنة الصنع' : 'Model Year',
     vin: isArabic ? 'رقم الشاسيه (VIN)' : 'Chassis Number (VIN)',
-    calendarNumber: isArabic ? 'الرقم الدفتري' : 'Calendar Number',
+    calendarNumber: isArabic ? 'عدد السلندر' : 'Cylinders',
     engineNumber: isArabic ? 'رقم المحرك' : 'Engine Number',
     mileage: isArabic ? 'قراءة العداد المعتمدة' : 'Verified Mileage',
-    transmission: isArabic ? 'ناقل الحركة' : 'Transmission',
+    transmission: isArabic ? 'الفتيس' : 'Transmission',
     engineCc: isArabic ? 'سعة المحرك / القوة' : 'Displacement / Power',
-    fuelType: isArabic ? 'نوع الوقود' : 'Fuel Type',
-    color: isArabic ? 'لون المركبة' : 'Exterior Color',
-    sunroof: isArabic ? 'مواصفات السقف' : 'Roof Specification',
-    sideMirrors: isArabic ? 'المرايا الجانبية' : 'Side Mirrors',
+    color: isArabic ? 'لون' : 'Color',
+    sunroof: isArabic ? 'سقف' : 'Roof',
+    sideMirrors: isArabic ? 'المرايا' : 'Mirrors',
     plateNumber: isArabic ? 'رقم اللوحة' : 'License Plate',
-    interior: isArabic ? 'المقصورة الداخلية' : 'Interior Condition',
     marketValue: isArabic ? 'القيمة السوقية المعتمدة' : 'Approved Market Value',
     overviewHeader: isArabic
       ? 'المعاينة البصرية والصور الشاملة للمركبة'
@@ -414,17 +447,6 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
     isArabic,
     t.na,
   );
-  const renderedFuelType = resolveFuelType(
-    data.vehicle.fuelTypeName,
-    data.vehicle.fuelTypeNameAr,
-    isArabic,
-    t.na,
-  );
-  const renderedInterior = resolveCarInterior(
-    data.vehicle.carInterior,
-    isArabic,
-    t.na,
-  );
   const renderedTrim = isArabic
     ? data.vehicle.trimNameAr || data.vehicle.trimName || t.na
     : data.vehicle.trimName || t.na;
@@ -456,11 +478,37 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
 
   const allEvidencePhotos: EvidencePhotoItem[] = [];
 
+  const ALLOWED_CHECKLIST_PHOTO_CODES = new Set([
+    'CHASSIS_NUMBER',
+    'VIN',
+    'MILEAGE',
+    'ODOMETER',
+    'ROOF',
+    'SUNROOF',
+  ]);
+
   if (
     data.photos.allInspectionPhotos &&
     data.photos.allInspectionPhotos.length > 0
   ) {
-    allEvidencePhotos.push(...data.photos.allInspectionPhotos);
+    const filtered = data.photos.allInspectionPhotos.filter((p) => {
+      const code = (p.checklistItemCode || '').toUpperCase();
+      const cat = (p.categoryName || '').toUpperCase();
+      const fn = (p.fileName || '').toUpperCase();
+      return (
+        ALLOWED_CHECKLIST_PHOTO_CODES.has(code) ||
+        /chassis|vin/i.test(code) ||
+        /chassis|vin/i.test(cat) ||
+        /chassis|vin/i.test(fn) ||
+        /odometer|mileage/i.test(code) ||
+        /odometer|mileage/i.test(cat) ||
+        /odometer|mileage/i.test(fn) ||
+        /roof|sunroof/i.test(code) ||
+        /roof|sunroof/i.test(cat) ||
+        /roof|sunroof/i.test(fn)
+      );
+    });
+    allEvidencePhotos.push(...filtered);
   } else {
     // Fallback for mock/test data
     if (data.photos.chassis) {
@@ -612,7 +660,7 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
   <meta charset="UTF-8">
   <title>EuroInspect 360 - Inspection Report - ${data.requestNumber}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+    ${REPORT_FONTS_CSS}
 
     @page {
       size: A4 portrait;
@@ -803,11 +851,15 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
       grid-column: 1 / -1;
     }
 
-    /* Vehicle Grid (4 columns x 4 rows = 16 uniform tiles) */
+    /* Vehicle Grid (4 columns x 4 rows) */
     .vehicle-tiles-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 7px;
+    }
+
+    .vehicle-tiles-grid .span-2 {
+      grid-column: span 2;
     }
 
     /* System Verification Card with Red Border */
@@ -950,22 +1002,6 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
       height: 100%;
       object-fit: contain;
       display: block;
-    }
-
-    .photo-caption {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(11, 15, 25, 0.94) 0%, rgba(11, 15, 25, 0.45) 70%, transparent 100%);
-      color: #f1f5f9;
-      font-size: 9.5px;
-      font-weight: 700;
-      padding: 7px 12px 5px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      letter-spacing: 0.3px;
     }
 
     .photo-placeholder {
@@ -1188,7 +1224,7 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
             </div>
             <div class="field-tile">
               <span class="field-label">${t.phone}</span>
-              <span class="field-value field-value-mono" dir="ltr" style="font-size: 13px; font-weight: 800; color: #0f172a;">${data.customer.phone || t.na}</span>
+              <span class="field-value field-value-mono" dir="${dir}" style="font-size: 13px; font-weight: 800; color: #0f172a; text-align: ${isArabic ? 'right' : 'left'};"><bdi dir="ltr">${data.customer.phone || t.na}</bdi></span>
             </div>
             <div class="field-tile">
               <span class="field-label">${t.city}</span>
@@ -1232,8 +1268,8 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
               <span class="field-value">${data.vehicle.manufactureYear || t.na}</span>
             </div>
 
-            <!-- Row 2: VIN, Calendar Number, Engine Number, Plate Number -->
-            <div class="field-tile">
+            <!-- Row 2: VIN (span-2), Cylinders, Engine Number -->
+            <div class="field-tile span-2">
               <span class="field-label">${t.vin}</span>
               <span class="field-value field-value-mono">${data.vehicle.vin}</span>
             </div>
@@ -1245,12 +1281,12 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
               <span class="field-label">${t.engineNumber}</span>
               <span class="field-value field-value-mono">${data.vehicle.engineNumber || t.na}</span>
             </div>
+
+            <!-- Row 3: Plate Number, Mileage, Transmission (الفتيس), Engine CC / Power -->
             <div class="field-tile">
               <span class="field-label">${t.plateNumber}</span>
               <span class="field-value">${data.vehicle.plateNumber || t.na}</span>
             </div>
-
-            <!-- Row 3: Mileage, Transmission, Engine CC / Power, Fuel Type -->
             <div class="field-tile">
               <span class="field-label">${t.mileage}</span>
               <span class="field-value field-value-accent">${formattedMileage}</span>
@@ -1263,27 +1299,19 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
               <span class="field-label">${t.engineCc}</span>
               <span class="field-value">${data.vehicle.engineCc ? `${data.vehicle.engineCc} CC` : t.na} ${data.vehicle.power ? `(${data.vehicle.power} HP)` : ''}</span>
             </div>
-            <div class="field-tile">
-              <span class="field-label">${t.fuelType}</span>
-              <span class="field-value">${renderedFuelType}</span>
-            </div>
 
-            <!-- Row 4: Color, Roof, Side Mirrors, Interior -->
+            <!-- Row 4: Color (لون), Mirrors (المرايا), Roof (السقف - span-2) -->
             <div class="field-tile">
               <span class="field-label">${t.color}</span>
               <span class="field-value">${renderedColor}</span>
             </div>
             <div class="field-tile">
-              <span class="field-label">${t.sunroof}</span>
-              <span class="field-value">${renderedSunroof}</span>
-            </div>
-            <div class="field-tile">
               <span class="field-label">${t.sideMirrors}</span>
               <span class="field-value">${renderedSideMirrors}</span>
             </div>
-            <div class="field-tile">
-              <span class="field-label">${t.interior}</span>
-              <span class="field-value">${renderedInterior}</span>
+            <div class="field-tile span-2">
+              <span class="field-label">${t.sunroof}</span>
+              <span class="field-value">${renderedSunroof}</span>
             </div>
           </div>
 
@@ -1340,15 +1368,10 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
               <div class="photo-cell">
                 ${
                   photoUrl
-                    ? `<img src="${photoUrl}" alt="${perspectiveLabels[idx]}" />
-                       <div class="photo-caption">
-                         <span>${perspectiveLabels[idx]}</span>
-                         <span style="color: #34d399; font-size: 8.5px;">✔ Verified</span>
-                       </div>`
+                    ? `<img src="${photoUrl}" alt="Exterior Photo ${idx + 1}" />`
                     : `<div class="photo-placeholder">
                          <span style="font-size: 24px;">📷</span>
                          <span>${t.photoNotAvail}</span>
-                         <span style="font-size: 8.5px; opacity: 0.7;">${perspectiveLabels[idx]}</span>
                        </div>`
                 }
               </div>
