@@ -33,6 +33,7 @@ import {
   Play,
   Check,
   UploadCloud,
+  Info,
 } from 'lucide-react';
 import {
   Sheet,
@@ -688,28 +689,12 @@ export function CompleteMediaReviewWizard({
     [checklistFiles],
   );
 
-  // Dedicated Step Completion Gates (Strict Progression)
-  const isStep1Complete = useMemo(() => {
-    const hasPhotos = exteriorCompletedCount > 0;
-    const videoOk = !exteriorVideo || exteriorVideo.status === 'completed';
-    return Boolean(hasPhotos && videoOk);
-  }, [exteriorCompletedCount, exteriorVideo]);
-
-  const isStep2Complete = useMemo(() => {
-    const hasPhotos = interiorCompletedCount > 0;
-    const videoOk = !interiorVideo || interiorVideo.status === 'completed';
-    return Boolean(isStep1Complete && hasPhotos && videoOk);
-  }, [isStep1Complete, interiorCompletedCount, interiorVideo]);
-
-  const isStep3Complete = useMemo(() => {
+  const isAllChecklistCompleted = useMemo(() => {
     if (activeChecklistItems.length === 0) return false;
-    return Boolean(
-      isStep2Complete &&
-      activeChecklistItems.every(
-        (item) => checklistFiles[item.id]?.status === 'completed',
-      ),
+    return activeChecklistItems.every(
+      (item) => checklistFiles[item.id]?.status === 'completed',
     );
-  }, [isStep2Complete, activeChecklistItems, checklistFiles]);
+  }, [activeChecklistItems, checklistFiles]);
 
   // Notify parent component whenever media files are successfully uploaded
   useEffect(() => {
@@ -1756,18 +1741,19 @@ export function CompleteMediaReviewWizard({
   const handleNext = async () => {
     setValidationError(null);
     if (currentStep === 1) {
-      // Step 1 Validation:
-      // Exterior photos are strictly REQUIRED (video is optional)
-      if (exteriorPhotos.length === 0 && exteriorCompletedCount === 0) {
-        setValidationError(
-          'At least one exterior photo is required before proceeding to interior media.',
-        );
-        return;
-      }
+      // Upload staged Step 1 media (photos + optional video) if any were selected
+      const hasStagedStep1 =
+        exteriorPhotos.some(
+          (p) => p.status === 'staged' || p.status === 'error',
+        ) ||
+        (exteriorVideo &&
+          (exteriorVideo.status === 'staged' ||
+            exteriorVideo.status === 'error'));
 
-      // Upload staged Step 1 media (photos + optional video)
-      const ok = await uploadStep1Media();
-      if (!ok) return;
+      if (hasStagedStep1) {
+        const ok = await uploadStep1Media();
+        if (!ok) return;
+      }
 
       if (
         exteriorVideo &&
@@ -1786,39 +1772,21 @@ export function CompleteMediaReviewWizard({
         return;
       }
 
-      const completedExteriorPhotos = exteriorPhotos.filter(
-        (p) => p.status === 'completed',
-      ).length;
-      if (completedExteriorPhotos === 0 && exteriorCompletedCount === 0) {
-        setValidationError(
-          'At least one exterior photo must be successfully uploaded before proceeding.',
-        );
-        return;
-      }
-
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // Step 2 Validation:
-      // 1. Step 1 must remain complete
-      if (!isStep1Complete) {
-        setValidationError(
-          'Step 1 (Exterior Media) is incomplete. Please complete Step 1 first.',
-        );
-        setCurrentStep(1);
-        return;
-      }
+      // Upload staged Step 2 media (photos + optional video) if any were selected
+      const hasStagedStep2 =
+        interiorPhotos.some(
+          (p) => p.status === 'staged' || p.status === 'error',
+        ) ||
+        (interiorVideo &&
+          (interiorVideo.status === 'staged' ||
+            interiorVideo.status === 'error'));
 
-      // 2. Interior photos are strictly REQUIRED
-      if (interiorPhotos.length === 0 && interiorCompletedCount === 0) {
-        setValidationError(
-          'At least one interior photo is required before proceeding to the checklist.',
-        );
-        return;
+      if (hasStagedStep2) {
+        const ok = await uploadStep2Media();
+        if (!ok) return;
       }
-
-      // Upload staged Step 2 media (photos + optional video)
-      const ok = await uploadStep2Media();
-      if (!ok) return;
 
       if (
         interiorVideo &&
@@ -1830,13 +1798,9 @@ export function CompleteMediaReviewWizard({
         );
         return;
       }
-
-      const completedInteriorPhotos = interiorPhotos.filter(
-        (p) => p.status === 'completed',
-      ).length;
-      if (completedInteriorPhotos === 0) {
+      if (interiorVideo && interiorVideo.status !== 'completed') {
         setValidationError(
-          'At least one interior photo must be successfully uploaded before proceeding.',
+          'Interior video must be successfully uploaded before continuing, or remove it.',
         );
         return;
       }
@@ -1854,24 +1818,7 @@ export function CompleteMediaReviewWizard({
   const handleSubmitReview = async () => {
     setValidationError(null);
 
-    // 1. Enforce Step 1 and Step 2 prerequisites
-    if (!isStep1Complete) {
-      setValidationError(
-        'Step 1 (Exterior Media) is incomplete. Please upload exterior video and photos.',
-      );
-      setCurrentStep(1);
-      return;
-    }
-
-    if (!isStep2Complete) {
-      setValidationError(
-        'Step 2 (Interior Media) is incomplete. Please upload interior photos.',
-      );
-      setCurrentStep(2);
-      return;
-    }
-
-    // 2. Upload any staged checklist photos before final submission
+    // 1. Upload any staged checklist photos before final submission
     const hasStagedChecklist = Object.values(checklistFiles).some(
       (c) => c && (c.status === 'staged' || c.status === 'error') && c.file,
     );
@@ -1885,19 +1832,32 @@ export function CompleteMediaReviewWizard({
       }
     }
 
-    // 3. Strict Checklist Requirement: ALL active checklist items MUST be uploaded!
-    const missingChecklistItems = activeChecklistItems.filter((item) => {
-      const file = checklistFiles[item.id];
-      return !file || file.status !== 'completed';
-    });
+    // 2. Upload any staged exterior photos/video if pending
+    const hasStagedStep1 =
+      exteriorPhotos.some((p) => p.status === 'staged' || p.status === 'error') ||
+      (exteriorVideo && (exteriorVideo.status === 'staged' || exteriorVideo.status === 'error'));
+    if (hasStagedStep1) {
+      const step1Ok = await uploadStep1Media();
+      if (!step1Ok) {
+        setValidationError(
+          'Some exterior media failed to upload. Please retry or remove them.',
+        );
+        return;
+      }
+    }
 
-    if (missingChecklistItems.length > 0) {
-      setValidationError(
-        `All checklist photos are mandatory before submitting. Missing (${missingChecklistItems.length}): ${missingChecklistItems
-          .map((item) => item.title)
-          .join(', ')}`,
-      );
-      return;
+    // 3. Upload any staged interior photos/video if pending
+    const hasStagedStep2 =
+      interiorPhotos.some((p) => p.status === 'staged' || p.status === 'error') ||
+      (interiorVideo && (interiorVideo.status === 'staged' || interiorVideo.status === 'error'));
+    if (hasStagedStep2) {
+      const step2Ok = await uploadStep2Media();
+      if (!step2Ok) {
+        setValidationError(
+          'Some interior media failed to upload. Please retry or remove them.',
+        );
+        return;
+      }
     }
 
     if (exteriorVideo && exteriorVideo.status !== 'completed') {
@@ -1910,20 +1870,6 @@ export function CompleteMediaReviewWizard({
     if (interiorVideo && interiorVideo.status !== 'completed') {
       setValidationError(
         'Interior video must be fully uploaded before submitting review, or remove it.',
-      );
-      return;
-    }
-
-    if (exteriorCompletedCount === 0) {
-      setValidationError(
-        'At least one exterior photo is required before submitting review.',
-      );
-      return;
-    }
-
-    if (interiorCompletedCount === 0) {
-      setValidationError(
-        'At least one interior photo is required before submitting review.',
       );
       return;
     }
@@ -2146,7 +2092,7 @@ export function CompleteMediaReviewWizard({
                       'flex items-center gap-2.5 rounded-xl p-2 sm:p-2.5 text-left transition-all duration-200 cursor-pointer border',
                       currentStep === 1
                         ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                        : isStep1Complete
+                        : exteriorCompletedCount > 0
                           ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15'
                           : 'bg-neutral-100/70 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100',
                     )}
@@ -2156,12 +2102,12 @@ export function CompleteMediaReviewWizard({
                         'flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all',
                         currentStep === 1
                           ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-500/30'
-                          : isStep1Complete
+                          : exteriorCompletedCount > 0
                             ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                             : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500',
                       )}
                     >
-                      {isStep1Complete ? (
+                      {exteriorCompletedCount > 0 ? (
                         <Check className="size-4 stroke-[2.5]" />
                       ) : (
                         <Car className="size-4" />
@@ -2177,22 +2123,17 @@ export function CompleteMediaReviewWizard({
                     </div>
                   </button>
 
-                  {/* Step 2 Pill (Requires Step 1 Complete) */}
+                  {/* Step 2 Pill */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (isStep1Complete) setCurrentStep(2);
-                    }}
-                    disabled={!isStep1Complete}
+                    onClick={() => setCurrentStep(2)}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-xl p-2 sm:p-2.5 text-left transition-all duration-200 border',
-                      !isStep1Complete
-                        ? 'opacity-40 cursor-not-allowed bg-transparent border-transparent text-neutral-400'
-                        : currentStep === 2
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-xs cursor-pointer'
-                          : isStep2Complete
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15 cursor-pointer'
-                            : 'bg-neutral-100/70 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 cursor-pointer',
+                      'flex items-center gap-2.5 rounded-xl p-2 sm:p-2.5 text-left transition-all duration-200 cursor-pointer border',
+                      currentStep === 2
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                        : interiorCompletedCount > 0
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15'
+                          : 'bg-neutral-100/70 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100',
                     )}
                   >
                     <div
@@ -2200,14 +2141,12 @@ export function CompleteMediaReviewWizard({
                         'flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all',
                         currentStep === 2
                           ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-500/30'
-                          : isStep2Complete
+                          : interiorCompletedCount > 0
                             ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                            : isStep1Complete
-                              ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
-                              : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400',
+                            : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500',
                       )}
                     >
-                      {isStep2Complete ? (
+                      {interiorCompletedCount > 0 ? (
                         <Check className="size-4 stroke-[2.5]" />
                       ) : (
                         <Armchair className="size-4" />
@@ -2223,22 +2162,17 @@ export function CompleteMediaReviewWizard({
                     </div>
                   </button>
 
-                  {/* Step 3 Pill (Requires Step 2 Complete) */}
+                  {/* Step 3 Pill */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (isStep2Complete) setCurrentStep(3);
-                    }}
-                    disabled={!isStep2Complete}
+                    onClick={() => setCurrentStep(3)}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-xl p-2 sm:p-2.5 text-left transition-all duration-200 border',
-                      !isStep2Complete
-                        ? 'opacity-40 cursor-not-allowed bg-transparent border-transparent text-neutral-400'
-                        : currentStep === 3
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-xs cursor-pointer'
-                          : isStep3Complete
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15 cursor-pointer'
-                            : 'bg-neutral-100/70 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 cursor-pointer',
+                      'flex items-center gap-2.5 rounded-xl p-2 sm:p-2.5 text-left transition-all duration-200 cursor-pointer border',
+                      currentStep === 3
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                        : isAllChecklistCompleted || checklistUploadedCount > 0
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15'
+                          : 'bg-neutral-100/70 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100',
                     )}
                   >
                     <div
@@ -2246,14 +2180,12 @@ export function CompleteMediaReviewWizard({
                         'flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all',
                         currentStep === 3
                           ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-500/30'
-                          : isStep3Complete
+                          : isAllChecklistCompleted || checklistUploadedCount > 0
                             ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                            : isStep2Complete
-                              ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
-                              : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400',
+                            : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500',
                       )}
                     >
-                      {isStep3Complete ? (
+                      {isAllChecklistCompleted || checklistUploadedCount > 0 ? (
                         <Check className="size-4 stroke-[2.5]" />
                       ) : (
                         <ClipboardCheck className="size-4" />
@@ -2320,8 +2252,8 @@ export function CompleteMediaReviewWizard({
                     Step 1: Exterior Photos & Video
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                    Upload multiple high-resolution photos of all four angles.
-                    Exterior walkaround video is optional.
+                    Upload photos of vehicle exterior angles (Optional).
+                    Exterior walkaround video is also optional.
                   </p>
                 </div>
 
@@ -2410,8 +2342,8 @@ export function CompleteMediaReviewWizard({
                     Step 2: Interior Cabin & Cargo Media
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                    Capture the front console, leather upholstery, rear seats,
-                    and cargo area. Interior video is optional.
+                    Capture the front console, upholstery, rear seats,
+                    and cargo area (Optional). Interior video is also optional.
                   </p>
                 </div>
 
@@ -2515,12 +2447,12 @@ export function CompleteMediaReviewWizard({
 
                 {/* Mandatory Checklist Requirement Warning Banner */}
                 {checklistUploadedCount < activeChecklistItems.length ? (
-                  <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200">
-                    <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-900 dark:text-blue-200">
+                    <Info className="size-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                     <div>
-                      <span className="font-semibold">Checklist Photos are Mandatory:</span>{' '}
-                      You must upload photos for all {activeChecklistItems.length} checklist items ({activeChecklistItems.length - checklistUploadedCount} remaining).
-                      The media review cannot be submitted with missing checklist items.
+                      <span className="font-semibold">Checklist Photos (Optional):</span>{' '}
+                      You can upload photos for any of the {activeChecklistItems.length} checklist items ({checklistUploadedCount} uploaded).
+                      You can upload partial checklist items or proceed without uploading all of them.
                     </div>
                   </div>
                 ) : (
@@ -2774,18 +2706,9 @@ export function CompleteMediaReviewWizard({
                 {currentStep === 3 && (
                   <Button
                     type="button"
-                    disabled={
-                      isSubmitting ||
-                      isUploadingChecklist ||
-                      (!isStep3Complete && checklistStagedCount === 0)
-                    }
+                    disabled={isSubmitting || isUploadingChecklist}
                     onClick={handleSubmitReview}
-                    className={cn(
-                      'rounded-xl text-white cursor-pointer gap-2 text-xs px-6 shadow-md font-semibold transition-all',
-                      !isStep3Complete && checklistStagedCount === 0
-                        ? 'bg-neutral-400 dark:bg-neutral-700 opacity-60 cursor-not-allowed shadow-none'
-                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25',
-                    )}
+                    className="rounded-xl text-white cursor-pointer gap-2 text-xs px-6 shadow-md font-semibold transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25"
                   >
                     {isSubmitting || isUploadingChecklist ? (
                       <>
@@ -2796,22 +2719,21 @@ export function CompleteMediaReviewWizard({
                             : 'Submitting Review...'}
                         </span>
                       </>
-                    ) : !isStep3Complete && checklistStagedCount === 0 ? (
-                      <>
-                        <AlertCircle className="size-4" />
-                        <span>
-                          Upload All Checklist Items ({checklistUploadedCount}/{activeChecklistItems.length})
-                        </span>
-                      </>
-                    ) : checklistStagedCount > 0 && checklistUploadedCount + checklistStagedCount === activeChecklistItems.length ? (
+                    ) : checklistStagedCount > 0 ? (
                       <>
                         <UploadCloud className="size-4" />
-                        <span>Upload Checklist & Submit ({activeChecklistItems.length}/{activeChecklistItems.length})</span>
+                        <span>
+                          Upload Checklist & Submit ({checklistUploadedCount + checklistStagedCount}/{activeChecklistItems.length})
+                        </span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="size-4" />
-                        <span>Submit Media Review</span>
+                        <span>
+                          {checklistUploadedCount > 0
+                            ? `Submit Media Review (${checklistUploadedCount} checklist photos)`
+                            : 'Submit Media Review'}
+                        </span>
                       </>
                     )}
                   </Button>
