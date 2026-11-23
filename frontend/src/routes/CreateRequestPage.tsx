@@ -52,6 +52,17 @@ import { useTranslation } from 'react-i18next';
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const CYLINDER_OPTIONS = [
+  { value: '1', label: '1' },
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4', label: '4' },
+  { value: '5', label: '5' },
+  { value: '6', label: '6' },
+  { value: '7', label: '7' },
+  { value: '8', label: '8' },
+];
+
 export function CreateRequestPage() {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
@@ -1141,21 +1152,28 @@ function CreateRequestContent() {
 
             {/* Vehicle Specifications Grid */}
             <div className="grid gap-4 sm:grid-cols-3">
-              {/* 3. Calendar Number */}
+              {/* 3. Cylinders */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink-soft">
-                  {t('createRequest.calendarNumber', 'Calendar Number')}
+                  {t('createRequest.cylinders', t('createRequest.calendarNumber', 'Cylinders'))}
                 </label>
-                <Input
-                  dir="ltr"
-                  placeholder={t('createRequest.calendarNumberPlaceholder', 'e.g. CAL-2026-904')}
+                <Select
+                  size="lg"
+                  clearable={true}
+                  placeholder={t(
+                    'createRequest.cylindersPlaceholder',
+                    t('createRequest.calendarNumberPlaceholder', 'Select Cylinders (1-8)'),
+                  )}
                   value={vehicleForm.calendarNumber}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setVehicleForm({
                       ...vehicleForm,
-                      calendarNumber: e.target.value,
+                      calendarNumber:
+                        typeof val === 'string' ? val : val ? String(val) : '',
                     })
                   }
+                  triggerClassName="font-mono"
+                  options={CYLINDER_OPTIONS}
                 />
               </div>
 

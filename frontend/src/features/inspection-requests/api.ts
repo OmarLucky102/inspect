@@ -179,7 +179,8 @@ export interface InspectionRequestDetail {
     sunroofSpecification?: string | null
     sideMirrors?: string | null
     carInterior?: string | null
-    calendarNumber?: string | null
+    calendarNumber?: string
+    cylinders?: string | null
     specialInstructions?: string | null
   } | null
   assignedRepresentative: {
@@ -353,6 +354,7 @@ export interface VehicleInfoPayload {
   sideMirrors?: string
   carInterior?: string
   calendarNumber?: string
+  cylinders?: string
   specialInstructions?: string
 
   captureMode?: 'STANDARD' | 'ADVANCED'
