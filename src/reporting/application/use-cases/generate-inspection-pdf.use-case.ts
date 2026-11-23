@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   InternalServerErrorException,
+  Optional,
 } from '@nestjs/common';
 import { REPORT_STORAGE_SERVICE } from '../../domain/interfaces/report-storage.interface';
 import type { IReportStorageService } from '../../domain/interfaces/report-storage.interface';
@@ -13,6 +14,8 @@ import type { IPdfGeneratorService } from '../../domain/interfaces/pdf-generator
 import { QR_CODE_GENERATOR_SERVICE } from '../../domain/interfaces/qr-code-generator.interface';
 import type { IQrCodeGeneratorService } from '../../domain/interfaces/qr-code-generator.interface';
 import { ReportIdGeneratorService } from '../services/report-id-generator.service';
+import type { IImageProcessorService } from '../../../media/domain/services/image-processor.service.interface';
+import { REPORT_LOGO_BASE64 } from '../../infrastructure/assets/logo.asset';
 import {
   InspectionRawData,
   ReportMediaItem,
@@ -61,6 +64,9 @@ export class GenerateInspectionPdfUseCase {
     @Inject(QR_CODE_GENERATOR_SERVICE)
     private readonly qrCodeGenerator: IQrCodeGeneratorService,
     private readonly idGenerator: ReportIdGeneratorService,
+    @Optional()
+    @Inject('IImageProcessorService')
+    private readonly imageProcessor?: IImageProcessorService,
   ) {}
 
   async execute(input: GenerateReportPdfInput): Promise<GeneratedReportResult> {
@@ -157,7 +163,7 @@ export class GenerateInspectionPdfUseCase {
       reviewerNotes: inspection.marketingDecision?.notes || inspection.notes,
       reviewerName: inspection.marketingDecision?.reviewerName,
       photos,
-      logoUrl: getCdnAsset('logo.webp'),
+      logoUrl: REPORT_LOGO_BASE64,
     };
 
     // 9. Render HTML Template
@@ -210,26 +216,6 @@ export class GenerateInspectionPdfUseCase {
       /roof|sunroof/i.test(m.categoryName || '') ||
       /roof|sunroof/i.test(m.fileName || '');
 
-    const isAirbag = (m: ReportMediaItem) =>
-      /airbag|steering/i.test(m.checklistItemCode || '') ||
-      /airbag|steering/i.test(m.categoryName || '') ||
-      /airbag|steering/i.test(m.fileName || '');
-
-    const isLicense = (m: ReportMediaItem) =>
-      /license|plate/i.test(m.checklistItemCode || '') ||
-      /license|plate/i.test(m.categoryName || '') ||
-      /license|plate/i.test(m.fileName || '');
-
-    const isEngine = (m: ReportMediaItem) =>
-      /engine/i.test(m.checklistItemCode || '') ||
-      /engine/i.test(m.categoryName || '') ||
-      /engine/i.test(m.fileName || '');
-
-    const isTires = (m: ReportMediaItem) =>
-      /tire|brake|wheel/i.test(m.checklistItemCode || '') ||
-      /tire|brake|wheel/i.test(m.categoryName || '') ||
-      /tire|brake|wheel/i.test(m.fileName || '');
-
     const isExterior = (m: ReportMediaItem) =>
       /exterior/i.test(m.checklistItemCode || '') ||
       /exterior/i.test(m.categoryName || '') ||
@@ -249,7 +235,8 @@ export class GenerateInspectionPdfUseCase {
       (m) => !exteriorItems.includes(m),
     );
 
-    // 2. Define checklist slots (standard ~6 items + any custom checklist items added by user/bank)
+    // 2. Define checklist slots — strictly Chassis, Odometer, and Roof ONLY.
+    // All other checklist photos are ignored and never downloaded from SeaweedFS.
     interface ChecklistSlot {
       code: string;
       title: string;
@@ -276,76 +263,7 @@ export class GenerateInspectionPdfUseCase {
         titleAr: 'معاينة سقف المركبة وفتحة السقف',
         match: isRoof,
       },
-      {
-        code: 'AIRBAG',
-        title: 'Airbag & Steering Assembly Audit',
-        titleAr: 'الوسائد الهوائية وأنظمة الأمان',
-        match: isAirbag,
-      },
-      {
-        code: 'LICENSE',
-        title: 'License Plates & Legal Registration',
-        titleAr: 'اللوحات المعدنية وأوراق الترخيص',
-        match: isLicense,
-      },
-      {
-        code: 'ENGINE_BAY',
-        title: 'Engine Bay Integrity & Fluid Levels',
-        titleAr: 'حالة حوض المحرك والسوائل',
-        match: isEngine,
-      },
-      {
-        code: 'TIRES_BRAKES',
-        title: 'Brakes System & Tire Tread',
-        titleAr: 'منظومة الفرامل والإطارات',
-        match: isTires,
-      },
     ];
-
-    // Append custom fields from photoChecklist
-    for (const cf of inspection.photoChecklist?.customFields || []) {
-      const cfCode = `custom_${cf.id}`;
-      slots.push({
-        code: cfCode,
-        title: cf.name,
-        titleAr: cf.name,
-        match: (m: ReportMediaItem) =>
-          m.checklistItemCode === cfCode ||
-          m.checklistItemCode === cf.id ||
-          (!!m.categoryName &&
-            m.categoryName.toLowerCase() === cf.name.toLowerCase()) ||
-          (!!m.fileName &&
-            m.fileName.toLowerCase().includes(cf.name.toLowerCase())),
-      });
-    }
-
-    // Append custom checklist items from inspection.checklistItems
-    const standardCodes = new Set([
-      'CHASSIS_NUMBER',
-      'VIN',
-      'MILEAGE',
-      'ROOF',
-      'AIRBAG',
-      'LICENSE',
-      'ENGINE_BAY',
-      'TIRES_BRAKES',
-      'OTHER',
-    ]);
-    for (const ci of inspection.checklistItems || []) {
-      if (!standardCodes.has(ci.code)) {
-        slots.push({
-          code: ci.code,
-          title: ci.label,
-          titleAr: ci.labelAr || ci.label,
-          match: (m: ReportMediaItem) =>
-            m.checklistItemCode === ci.code ||
-            (!!m.categoryName &&
-              m.categoryName.toLowerCase() === ci.label.toLowerCase()) ||
-            (!!m.fileName &&
-              m.fileName.toLowerCase().includes(ci.code.toLowerCase())),
-        });
-      }
-    }
 
     // Match each slot to AT MOST ONE media item from nonExteriorMedia
     const usedMediaIds = new Set<string>();
@@ -429,8 +347,11 @@ export class GenerateInspectionPdfUseCase {
   private async mediaToBase64(item: ReportMediaItem): Promise<string | null> {
     try {
       const file = await this.storageService.getFileBuffer(item.fileUrl);
-      const mime = file.mimeType || item.mimeType || 'image/jpeg';
-      return `data:${mime};base64,${file.buffer.toString('base64')}`;
+      let buffer = file.buffer;
+      if (this.imageProcessor) {
+        buffer = await this.imageProcessor.optimizeForReport(file.buffer);
+      }
+      return `data:image/jpeg;base64,${buffer.toString('base64')}`;
     } catch (error) {
       this.logger.warn(
         `Failed to hydrate media item '${item.id}' with storage key '${item.fileUrl}': ${(error as Error).message}`,

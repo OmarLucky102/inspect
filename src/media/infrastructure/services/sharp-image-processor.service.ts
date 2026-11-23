@@ -10,6 +10,8 @@ import { InvalidImageFormatException } from '../../../shared/exceptions/media.ex
 export const MAX_IMAGE_DIMENSION = 2048;
 export const WEBP_OUTPUT_QUALITY = 80;
 export const WEBP_COMPRESSION_EFFORT = 4;
+export const REPORT_IMAGE_MAX_DIMENSION = 800;
+export const REPORT_IMAGE_JPEG_QUALITY = 80;
 
 @Injectable()
 export class SharpImageProcessorService implements IImageProcessorService {
@@ -98,6 +100,33 @@ export class SharpImageProcessorService implements IImageProcessorService {
       throw new InvalidImageFormatException(
         'Invalid or corrupted image format',
       );
+    }
+  }
+
+  async optimizeForReport(fileBuffer: Buffer): Promise<Buffer> {
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw new InvalidImageFormatException('Image buffer is empty');
+    }
+
+    try {
+      return await sharp(fileBuffer)
+        .rotate()
+        .resize({
+          width: REPORT_IMAGE_MAX_DIMENSION,
+          height: REPORT_IMAGE_MAX_DIMENSION,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({
+          quality: REPORT_IMAGE_JPEG_QUALITY,
+          progressive: true,
+        })
+        .toBuffer();
+    } catch (error) {
+      this.logger.warn(
+        `Failed to optimize image for report with Sharp: ${(error as Error).message}`,
+      );
+      return fileBuffer;
     }
   }
 

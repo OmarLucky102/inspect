@@ -335,30 +335,36 @@ describe('GenerateInspectionPdfUseCase', () => {
     );
   });
 
-  it('should hydrate custom checklist item photos when added by user', async () => {
-    const inspectionWithCustomChecklist = {
+  it('should only hydrate chassis, odometer, and roof checklist photos and ignore all others', async () => {
+    const inspectionWithExtraChecklistPhotos = {
       ...sampleInspection,
-      photoChecklist: {
-        licensePhoto: true,
-        airbagPhoto: true,
-        roofPhoto: true,
-        odometerPhoto: true,
-        chassisPhoto: true,
-        customFields: [{ id: 'kit-123', name: 'Emergency Kit Verification' }],
-      },
       media: [
         ...sampleInspection.media,
+        {
+          id: 'media-airbag-1',
+          fileUrl: 'inspections/req-1/airbag.jpg',
+          mimeType: 'image/jpeg',
+          checklistItemCode: 'AIRBAG',
+          sortOrder: 5,
+        },
+        {
+          id: 'media-engine-1',
+          fileUrl: 'inspections/req-1/engine.jpg',
+          mimeType: 'image/jpeg',
+          checklistItemCode: 'ENGINE_BAY',
+          sortOrder: 6,
+        },
         {
           id: 'media-custom-1',
           fileUrl: 'inspections/req-1/emergency_kit.jpg',
           mimeType: 'image/jpeg',
           checklistItemCode: 'custom_kit-123',
-          sortOrder: 5,
+          sortOrder: 7,
         },
       ],
     };
     mockDataProvider.getInspectionReportData.mockResolvedValue(
-      inspectionWithCustomChecklist,
+      inspectionWithExtraChecklistPhotos,
     );
 
     const input: GenerateReportPdfInput = {
@@ -370,9 +376,15 @@ describe('GenerateInspectionPdfUseCase', () => {
 
     const result = await useCase.execute(input);
     expect(result).toBeDefined();
-    // 5 calls: 1 exterior + 3 standard checklist + 1 custom checklist photo
-    expect(mockStorageService.getFileBuffer).toHaveBeenCalledTimes(5);
-    expect(mockStorageService.getFileBuffer).toHaveBeenCalledWith(
+    // Strictly 4 calls: 1 exterior + 3 checklist items (chassis, odometer, roof). Airbag, Engine, Custom are ignored!
+    expect(mockStorageService.getFileBuffer).toHaveBeenCalledTimes(4);
+    expect(mockStorageService.getFileBuffer).not.toHaveBeenCalledWith(
+      'inspections/req-1/airbag.jpg',
+    );
+    expect(mockStorageService.getFileBuffer).not.toHaveBeenCalledWith(
+      'inspections/req-1/engine.jpg',
+    );
+    expect(mockStorageService.getFileBuffer).not.toHaveBeenCalledWith(
       'inspections/req-1/emergency_kit.jpg',
     );
   });
