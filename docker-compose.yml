@@ -13,8 +13,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-inspect}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5433:5432'
+    # ports:
+    #   - '5433:5432'
     healthcheck:
       test:
         [
