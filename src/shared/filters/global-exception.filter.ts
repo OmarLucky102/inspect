@@ -61,13 +61,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return new BaseException(message, status);
     }
 
-    // Unknown / programming error
-    return new BaseException(
+    // Unknown / programming error — do NOT expose internal message in production.
+    // We wrap it but mark it non-operational so sendErrorProd hides the details.
+    const wrapper = new BaseException(
       exception instanceof Error
         ? exception.message
         : 'Something went very wrong',
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
+    (wrapper as any).isOperational = false;
+    return wrapper;
   }
 
   // ─── Map Prisma / JWT errors → BaseException ──────────────────────────────
