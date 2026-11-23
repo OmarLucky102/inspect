@@ -225,10 +225,16 @@ export class VehicleDto {
   carInterior?: string;
 
   @Transform(trimString)
-  @IsString({ message: 'Calendar number must be a string' })
-  @MaxLength(100, { message: 'Calendar number must not exceed 100 characters' })
+  @IsString({ message: 'Cylinders must be a string' })
+  @MaxLength(100, { message: 'Cylinders must not exceed 100 characters' })
   @IsOptional()
   calendarNumber?: string;
+
+  @Transform(trimString)
+  @IsString({ message: 'Cylinders must be a string' })
+  @MaxLength(100, { message: 'Cylinders must not exceed 100 characters' })
+  @IsOptional()
+  cylinders?: string;
 
   @Transform(trimString)
   @IsString({ message: 'Special instructions must be a string' })

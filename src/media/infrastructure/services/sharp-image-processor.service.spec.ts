@@ -126,5 +126,31 @@ describe('SharpImageProcessorService', () => {
       expect(result.width).toBe(64);
       expect(result.height).toBe(64);
     });
+
+    it('should resize large image to max 800x800 and convert to JPEG for reports', async () => {
+      const largeBuffer = await sharp({
+        create: {
+          width: 1600,
+          height: 1200,
+          channels: 3,
+          background: { r: 100, g: 150, b: 200 },
+        },
+      })
+        .png()
+        .toBuffer();
+
+      const optimizedBuffer = await service.optimizeForReport(largeBuffer);
+      const meta = await sharp(optimizedBuffer).metadata();
+
+      expect(meta.format).toBe('jpeg');
+      expect(meta.width).toBe(800);
+      expect(meta.height).toBe(600);
+    });
+
+    it('should throw InvalidImageFormatException when optimizing empty buffer', async () => {
+      await expect(
+        service.optimizeForReport(Buffer.alloc(0)),
+      ).rejects.toThrow();
+    });
   });
 });

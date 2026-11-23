@@ -65,6 +65,7 @@ export interface VehicleDataInput {
   sideMirrors?: string;
   carInterior?: string;
   calendarNumber?: string;
+  cylinders?: string;
   specialInstructions?: string;
   registrationDate?: Date;
   captureMode?: CaptureMode;
@@ -558,7 +559,7 @@ export class InspectionRequestService {
         sunroofSpecification: vData.sunroofSpecification || null,
         sideMirrors: vData.sideMirrors || null,
         carInterior: vData.carInterior || null,
-        calendarNumber: vData.calendarNumber || null,
+        calendarNumber: vData.cylinders ?? (vData.calendarNumber || null),
         specialInstructions: vData.specialInstructions || null,
         status: 'ACTIVE',
         brandId: vData.brandId,
@@ -606,9 +607,11 @@ export class InspectionRequestService {
             ? vData.carInterior || null
             : vehicle.carInterior,
         calendarNumber:
-          vData.calendarNumber !== undefined
-            ? vData.calendarNumber || null
-            : vehicle.calendarNumber,
+          vData.cylinders !== undefined
+            ? vData.cylinders || null
+            : vData.calendarNumber !== undefined
+              ? vData.calendarNumber || null
+              : vehicle.calendarNumber,
         specialInstructions:
           vData.specialInstructions !== undefined
             ? vData.specialInstructions || null

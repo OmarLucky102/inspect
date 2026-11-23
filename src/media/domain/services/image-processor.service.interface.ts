@@ -22,4 +22,5 @@ export interface IImageProcessorService {
     fileBuffer: Buffer,
     originalMimeType: string,
   ): Promise<ProcessedImageResult>;
+  optimizeForReport(fileBuffer: Buffer): Promise<Buffer>;
 }

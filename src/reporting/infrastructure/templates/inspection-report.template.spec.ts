@@ -101,12 +101,17 @@ describe('renderInspectionReportHtml', () => {
     expect(htmlAr).toContain('CAL-2023-776');
     expect(htmlAr).toContain('ENG-M264-998877');
     expect(htmlAr).toContain('أوتوماتيك');
-    expect(htmlAr).toContain('بنزين');
     expect(htmlAr).toContain('أسود');
     expect(htmlAr).toContain('فتحة سقف بانورامية زجاجية');
     expect(htmlAr).toContain('كهربائية قابلة للطي');
     expect(htmlAr).toContain('أ ب ج 1234');
-    expect(htmlAr).toContain('جلد');
+    expect(htmlAr).toContain('الفتيس');
+    expect(htmlAr).toContain('عدد السلندر');
+    expect(htmlAr).toContain('لون');
+    expect(htmlAr).toContain('سقف');
+    expect(htmlAr).toContain('المرايا');
+    expect(htmlAr).not.toContain('نوع الوقود');
+    expect(htmlAr).not.toContain('المقصورة الداخلية');
   });
 
   it('should translate sideMirrors to كهربائية and gear to مانيوال and use colorNameAr when provided', () => {
@@ -131,25 +136,71 @@ describe('renderInspectionReportHtml', () => {
     expect(htmlAr).toContain('فتحة سقف كهربائية');
   });
 
+  it('should translate NO_SUNROOF to Arabic in Arabic report and format phone direction properly', () => {
+    const noSunroofData: ReportRenderData = {
+      ...mockRenderData,
+      lang: 'ar',
+      customer: {
+        ...mockRenderData.customer,
+        phone: '+201001234567',
+      },
+      vehicle: {
+        ...mockRenderData.vehicle,
+        sunroofSpecification: 'NO_SUNROOF',
+      },
+    };
+
+    const htmlAr = renderInspectionReportHtml(noSunroofData);
+    expect(htmlAr).toContain('بدون فتحة سقف');
+    expect(htmlAr).not.toContain('NO_SUNROOF');
+    expect(htmlAr).toContain('dir="rtl"');
+    expect(htmlAr).toContain('text-align: right;');
+    expect(htmlAr).toContain('<bdi dir="ltr">+201001234567</bdi>');
+
+    const htmlEn = renderInspectionReportHtml({
+      ...noSunroofData,
+      lang: 'en',
+    });
+    expect(htmlEn).toContain('No Sunroof');
+    expect(htmlEn).not.toContain('NO_SUNROOF');
+    expect(htmlEn).toContain('text-align: left;');
+  });
+
   it('should keep English terms in English reports', () => {
     const htmlEn = renderInspectionReportHtml({
       ...mockRenderData,
       lang: 'en',
     });
     expect(htmlEn).toContain('Automatic 9G-Tronic');
-    expect(htmlEn).toContain('Gasoline 95');
     expect(htmlEn).toContain('Obsidian Black');
     expect(htmlEn).toContain('Panoramic Moonroof');
     expect(htmlEn).toContain('Electric Folding');
+    expect(htmlEn).toContain('Transmission');
+    expect(htmlEn).toContain('Cylinders');
+    expect(htmlEn).toContain('Color');
+    expect(htmlEn).toContain('Roof');
+    expect(htmlEn).toContain('Mirrors');
+    expect(htmlEn).not.toContain('Fuel Type');
+    expect(htmlEn).not.toContain('Interior Condition');
+    expect(htmlEn).not.toContain('Roof Specification');
+    expect(htmlEn).not.toContain('Side Mirrors');
+    expect(htmlEn).not.toContain('Exterior Color');
   });
 
-  it('should embed the official logo from the CDN at the top of the report', () => {
-    const html = renderInspectionReportHtml(mockRenderData);
-    expect(html).toContain('logo.webp');
-    expect(html).toContain('class="brand-logo-img"');
-    expect(html).toContain(
+  it('should embed the official logo at the top of the report', () => {
+    const htmlWithCustomLogo = renderInspectionReportHtml({
+      ...mockRenderData,
+      logoUrl: 'https://pub-860509c206114698ad0b355f757c0bf3.r2.dev/logo.webp',
+    });
+    expect(htmlWithCustomLogo).toContain('logo.webp');
+    expect(htmlWithCustomLogo).toContain('class="brand-logo-img"');
+    expect(htmlWithCustomLogo).toContain(
       'https://pub-860509c206114698ad0b355f757c0bf3.r2.dev/logo.webp',
     );
+
+    const htmlDefault = renderInspectionReportHtml(mockRenderData);
+    expect(htmlDefault).toContain('class="brand-logo-img"');
+    expect(htmlDefault).toContain('data:image/png;base64,');
   });
 
   it('should use the Red brand identity styling', () => {
@@ -175,12 +226,12 @@ describe('renderInspectionReportHtml', () => {
     expect(html).toContain('vehicle-tiles-grid');
   });
 
-  it('should render Page 2 exterior vehicle photos without crop (object-fit: contain)', () => {
+  it('should render Page 2 exterior vehicle photos without crop and without corner overlay captions', () => {
     const html = renderInspectionReportHtml(mockRenderData);
     expect(html).toContain('object-fit: contain;');
-    expect(html).toContain('photo-caption');
-    expect(html).toContain('الزاوية الأمامية للمركبة');
-    expect(html).toContain('الزاوية الخلفية للمركبة');
+    expect(html).not.toContain('photo-caption');
+    expect(html).not.toContain('الجانب الأيمن بالكامل');
+    expect(html).not.toContain('الزاوية الأمامية للمركبة');
   });
 
   it('should not contain the certified reviewer assessment card on Page 2', () => {
@@ -220,7 +271,7 @@ describe('renderInspectionReportHtml', () => {
     expect(html).not.toContain('علامات تلاعب أو لحام');
   });
 
-  it('should render all inspection photos dynamically grouped 2 per page', () => {
+  it('should render only chassis, odometer, and roof evidence photos (ignoring engine, interior, tires, etc.)', () => {
     const dataWithMultiplePhotos: ReportRenderData = {
       ...mockRenderData,
       photos: {
@@ -239,37 +290,39 @@ describe('renderInspectionReportHtml', () => {
           {
             id: '3',
             url: 'data:image/jpeg;base64,3',
-            checklistItemCode: 'ENGINE',
+            checklistItemCode: 'ROOF',
           },
           {
             id: '4',
             url: 'data:image/jpeg;base64,4',
-            checklistItemCode: 'INTERIOR',
+            checklistItemCode: 'ENGINE',
           },
           {
             id: '5',
             url: 'data:image/jpeg;base64,5',
-            checklistItemCode: 'TIRES',
+            checklistItemCode: 'INTERIOR',
           },
           {
             id: '6',
             url: 'data:image/jpeg;base64,6',
-            checklistItemCode: 'TRUNK',
+            checklistItemCode: 'TIRES',
           },
         ],
       },
     };
 
     const html = renderInspectionReportHtml(dataWithMultiplePhotos);
-    expect(html).toContain('صفحة 1 من 5');
-    expect(html).toContain('صفحة 2 من 5');
-    expect(html).toContain('صفحة 3 من 5');
-    expect(html).toContain('صفحة 4 من 5');
-    expect(html).toContain('صفحة 5 من 5');
+    expect(html).toContain('صفحة 1 من 4');
+    expect(html).toContain('صفحة 2 من 4');
+    expect(html).toContain('صفحة 3 من 4');
+    expect(html).toContain('صفحة 4 من 4');
     expect(html).toContain('evidence-photo-card');
     expect(html).toContain('توثيق رقم الشاسيه المحفور (VIN)');
     expect(html).toContain('توثيق قراءة العداد الرقمي المضيء');
-    expect(html).toContain('المقصورة الداخلية والفرش والتابلوه');
+    expect(html).toContain('معاينة سقف المركبة وفتحة السقف');
+    expect(html).not.toContain('حوض المحرك ومنظومة الحركة');
+    expect(html).not.toContain('المقصورة الداخلية والفرش والتابلوه');
+    expect(html).not.toContain('حالة الإطارات وجنوط المركبة');
   });
 
   it('should render standard checklist items and include custom items added by user', () => {

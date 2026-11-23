@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SharedModule } from '../shared/shared.module';
 import { IdentityModule } from '../identity/identity.module';
 import { OrganizationModule } from '../organization/organization.module';
+import { MediaModule } from '../media/media.module';
 import { REPORT_STORAGE_SERVICE } from './domain/interfaces/report-storage.interface';
 import { REPORT_DATA_PROVIDER } from './domain/interfaces/report-data-provider.interface';
 import { PDF_GENERATOR_SERVICE } from './domain/interfaces/pdf-generator.interface';
@@ -15,7 +16,7 @@ import { GenerateInspectionPdfUseCase } from './application/use-cases/generate-i
 import { ReportController } from './presentation/controllers/report.controller';
 
 @Module({
-  imports: [SharedModule, IdentityModule, OrganizationModule],
+  imports: [SharedModule, IdentityModule, OrganizationModule, MediaModule],
   controllers: [ReportController],
   providers: [
     {

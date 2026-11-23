@@ -1629,7 +1629,7 @@ export function RequestDetailModal({
                         </div>
                         <div>
                           <p className="text-[11px] text-ink-mute">
-                            {isArabic ? 'رقم التقويم' : 'Calendar Number'}
+                            {isArabic ? 'عدد السلندر' : 'Cylinders'}
                           </p>
                           <p
                             className="mt-0.5 font-mono text-sm text-ink"
