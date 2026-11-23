@@ -96,10 +96,7 @@ export function resolveSunroof(
   const raw = sunroof.trim();
   const normalized = raw.toUpperCase().replace(/[\s-]+/g, '_');
 
-  const SUNROOF_TRANSLATIONS: Record<
-    string,
-    { ar: string; en: string }
-  > = {
+  const SUNROOF_TRANSLATIONS: Record<string, { ar: string; en: string }> = {
     NO_SUNROOF: { ar: 'بدون فتحة سقف', en: 'No Sunroof' },
     NONE: { ar: 'بدون فتحة سقف', en: 'No Sunroof' },
     WITHOUT: { ar: 'بدون فتحة سقف', en: 'No Sunroof' },
@@ -462,8 +459,6 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
   while (exteriorPhotos.length < 4) {
     exteriorPhotos.push('');
   }
-
-  const perspectiveLabels = [t.angle1, t.angle2, t.angle3, t.angle4];
 
   // Assemble all evidence photos (to be rendered 2 per page)
   interface EvidencePhotoItem {

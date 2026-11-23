@@ -31,7 +31,6 @@ import {
   VehicleDataRequiredException,
 } from '../../../shared/exceptions/inspection.exceptions';
 import { Role } from '../../../identity/domain/value-objects/role.enum';
-import { getCdnAsset } from '../../../shared/utils/assets.util';
 
 export interface GenerateReportPdfInput {
   bankId: string;

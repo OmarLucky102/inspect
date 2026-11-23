@@ -7,13 +7,20 @@ import {
 import * as fs from 'fs';
 import { IPdfGeneratorService } from '../../domain/interfaces/pdf-generator.interface';
 
+interface PuppeteerBrowserLike {
+  connected?: boolean;
+  newPage(): Promise<any>;
+  close(): Promise<void>;
+  on?(event: string, handler: (...args: any[]) => void): void;
+}
+
 @Injectable()
 export class PuppeteerPdfGeneratorAdapter
   implements IPdfGeneratorService, OnModuleInit, OnApplicationShutdown
 {
   private readonly logger = new Logger(PuppeteerPdfGeneratorAdapter.name);
-  private browser: any | null = null;
-  private browserInitPromise: Promise<any> | null = null;
+  private browser: PuppeteerBrowserLike | null = null;
+  private browserInitPromise: Promise<PuppeteerBrowserLike> | null = null;
 
   onModuleInit(): void {
     // Non-blocking warmup in background so application starts and passes healthchecks immediately
@@ -30,7 +37,9 @@ export class PuppeteerPdfGeneratorAdapter
       try {
         await this.browser.close();
       } catch (err) {
-        this.logger.warn(`Failed to cleanly close browser: ${(err as Error).message}`);
+        this.logger.warn(
+          `Failed to cleanly close browser: ${(err as Error).message}`,
+        );
       } finally {
         this.browser = null;
         this.browserInitPromise = null;
@@ -38,7 +47,7 @@ export class PuppeteerPdfGeneratorAdapter
     }
   }
 
-  private async getBrowser(): Promise<any> {
+  private async getBrowser(): Promise<PuppeteerBrowserLike> {
     if (this.browser && this.browser.connected) {
       return this.browser;
     }
@@ -79,7 +88,9 @@ export class PuppeteerPdfGeneratorAdapter
 
         this.attachBrowserListeners(browser);
         this.browser = browser;
-        this.logger.log('Persistent Chromium browser initialized successfully.');
+        this.logger.log(
+          'Persistent Chromium browser initialized successfully.',
+        );
         return browser;
       } catch (error) {
         this.logger.error(
@@ -95,7 +106,7 @@ export class PuppeteerPdfGeneratorAdapter
     return this.browserInitPromise;
   }
 
-  private attachBrowserListeners(browser: any): void {
+  private attachBrowserListeners(browser: PuppeteerBrowserLike): void {
     if (!browser || typeof browser.on !== 'function') return;
     browser.on('disconnected', () => {
       this.logger.warn(

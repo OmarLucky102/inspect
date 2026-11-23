@@ -57,7 +57,9 @@ describe('PuppeteerPdfGeneratorAdapter', () => {
       height: 1123,
       deviceScaleFactor: 1,
     });
-    expect(mockPage.evaluateHandle).toHaveBeenCalledWith('document.fonts.ready');
+    expect(mockPage.evaluateHandle).toHaveBeenCalledWith(
+      'document.fonts.ready',
+    );
   });
 
   it('should close page even if pdf generation throws an error', async () => {

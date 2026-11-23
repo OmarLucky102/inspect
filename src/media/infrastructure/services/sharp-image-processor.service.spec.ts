@@ -148,7 +148,9 @@ describe('SharpImageProcessorService', () => {
     });
 
     it('should throw InvalidImageFormatException when optimizing empty buffer', async () => {
-      await expect(service.optimizeForReport(Buffer.alloc(0))).rejects.toThrow();
+      await expect(
+        service.optimizeForReport(Buffer.alloc(0)),
+      ).rejects.toThrow();
     });
   });
 });
