@@ -27,8 +27,6 @@ import {
   ShieldAlert,
   Sun,
   Binary,
-  Cpu,
-  CircleDot,
   FileText,
   Play,
   Check,
@@ -129,22 +127,13 @@ const CHECKLIST_ITEMS: ChecklistItemDef[] = [
     suggestedAngle: 'Close-up with clear macro focus',
   },
   {
-    id: 'engine_bay',
-    title: 'Engine Bay & Fluid Systems',
+    id: 'other',
+    title: 'Other',
     description:
-      'Wide shot of the engine compartment, reservoir levels, and battery terminals.',
-    category: 'mechanical',
-    icon: Cpu,
-    suggestedAngle: 'Top-down open hood view',
-  },
-  {
-    id: 'tire_tread',
-    title: 'Tires & Brake Assembly',
-    description:
-      'Tire wear indicators, sidewall DOT timestamp, and wheel rim condition.',
-    category: 'safety',
-    icon: CircleDot,
-    suggestedAngle: '45-degree angle to front tire',
+      'Any additional, optional, or supporting evidence photos.',
+    category: 'body',
+    icon: FileText,
+    suggestedAngle: 'Clear contextual shot',
   },
 ];
 
@@ -265,10 +254,6 @@ export function CompleteMediaReviewWizard({
       const match = CHECKLIST_ITEMS.find((c) => c.id === 'chassis_vin');
       if (match) items.push(match);
     }
-    const engineMatch = CHECKLIST_ITEMS.find((c) => c.id === 'engine_bay');
-    if (engineMatch) items.push(engineMatch);
-    const tireMatch = CHECKLIST_ITEMS.find((c) => c.id === 'tire_tread');
-    if (tireMatch) items.push(tireMatch);
 
     if (Array.isArray(photoChecklist.customFields)) {
       photoChecklist.customFields.forEach((cf) => {
@@ -284,6 +269,9 @@ export function CompleteMediaReviewWizard({
         });
       });
     }
+
+    const otherMatch = CHECKLIST_ITEMS.find((c) => c.id === 'other');
+    if (otherMatch) items.push(otherMatch);
 
     return items;
   }, [photoChecklist]);

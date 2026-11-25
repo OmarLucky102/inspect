@@ -322,6 +322,15 @@ export function getPhotoLabel(
       ? 'توثيق الملاحظات الفنية والخدوش الظاهرية'
       : 'Observed Cosmetic / Body Flaw Evidence';
   }
+  if (
+    code.includes('OTHER') ||
+    cat.includes('OTHER') ||
+    file.includes('OTHER')
+  ) {
+    return isArabic
+      ? 'صور وتوثيقات فنية إضافية'
+      : 'Additional / Other Evidence Photo';
+  }
 
   if (photo.categoryName && photo.categoryName.trim()) {
     return photo.categoryName.trim();
@@ -480,6 +489,7 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
     'ODOMETER',
     'ROOF',
     'SUNROOF',
+    'OTHER',
   ]);
 
   if (
@@ -500,7 +510,10 @@ export function renderInspectionReportHtml(data: ReportRenderData): string {
         /odometer|mileage/i.test(fn) ||
         /roof|sunroof/i.test(code) ||
         /roof|sunroof/i.test(cat) ||
-        /roof|sunroof/i.test(fn)
+        /roof|sunroof/i.test(fn) ||
+        /other/i.test(code) ||
+        /other/i.test(cat) ||
+        /other/i.test(fn)
       );
     });
     allEvidencePhotos.push(...filtered);
