@@ -29,9 +29,9 @@ export function ModuleEmptyState({
           {title}
         </h2>
       </div>
-      <div className="mt-6 rounded-2xl border border-hairline bg-white p-6 shadow-xs sm:p-8">
+      <div className="glass-card mt-6 rounded-2xl p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-start">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-hairline bg-bone text-ink">
+          <span className="glass-subtle flex size-12 shrink-0 items-center justify-center rounded-2xl text-accent">
             <Icon className="size-5" aria-hidden />
           </span>
           <div className="min-w-0">

@@ -28,15 +28,19 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-2xl border border-hairline bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between',
+        'glass-card relative overflow-hidden flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
     >
-      <div className="min-w-0">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-12 end-8 size-36 rounded-full bg-accent/10 blur-2xl"
+      />
+      <div className="relative min-w-0">
         {(kicker || badges) && (
-          <div className="mb-1 flex flex-wrap items-center gap-2">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
             {kicker && (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
                 {KickerIcon && <KickerIcon className="size-3.5 shrink-0" aria-hidden />}
                 {kicker}
               </span>
@@ -44,18 +48,18 @@ export function PageHeader({
             {badges}
           </div>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-ink">
+        <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
           {title}
-        </h1>
+        </h2>
         {subtitle && (
-          <p className="mt-0.5 text-xs text-ink-mute">
+          <p className="mt-0.5 text-xs text-ink-mute leading-relaxed">
             {subtitle}
           </p>
         )}
       </div>
 
       {actions && (
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div className="relative flex flex-wrap items-center gap-2.5 shrink-0">
           {actions}
         </div>
       )}

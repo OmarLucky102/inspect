@@ -21,9 +21,9 @@ export function ProfilePage() {
       />
 
       {/* Language / Localization Preference Card */}
-      <div className="rounded-2xl border border-hairline bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+      <div className="glass-card rounded-2xl p-5 sm:p-6 flex flex-col gap-4">
         <div className="flex items-center gap-3.5">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-paper text-accent border border-hairline">
+          <span className="glass-subtle flex size-10 shrink-0 items-center justify-center rounded-xl text-accent">
             <Globe className="size-5" />
           </span>
           <div>
@@ -42,9 +42,9 @@ export function ProfilePage() {
       </div>
 
       {/* Theme / Appearance Preference Card */}
-      <div className="rounded-2xl border border-hairline bg-white p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="glass-card rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-paper text-accent border border-hairline">
+          <span className="glass-subtle flex size-10 shrink-0 items-center justify-center rounded-xl text-accent">
             <Palette className="size-5" />
           </span>
           <div>

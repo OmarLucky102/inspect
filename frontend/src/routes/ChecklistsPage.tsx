@@ -8,11 +8,11 @@ import {
   Car,
   FileText,
   CheckCircle,
-} from '@phosphor-icons/react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
+} from '@phosphor-icons/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useWorkspace } from '@/features/workspaces/workspace-context';
 import {
   fetchVehicleCategories,
   fetchCategoryChecklist,
@@ -22,44 +22,49 @@ import {
   type ChecklistItem,
   type AddChecklistItemDto,
   type ChecklistInputType,
-} from '@/features/checklists/api'
-import { fetchInspectionRequests } from '@/features/inspection-requests/api'
-import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { toast } from 'sonner'
-import { getApiErrorMessage } from '@/lib/api'
-import { ErrorView } from '@/components/errors/ErrorView'
-import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView'
-import { PageHeader } from '@/components/layout/PageHeader'
+} from '@/features/checklists/api';
+import { fetchInspectionRequests } from '@/features/inspection-requests/api';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export function ChecklistsPage() {
-  const { t, i18n } = useTranslation()
-  const isArabic = i18n.language?.startsWith('ar')
-  const { activeBankId, banks, user } = useWorkspace()
-  const queryClient = useQueryClient()
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
+  const { activeBankId, banks, user } = useWorkspace();
+  const queryClient = useQueryClient();
 
   // Permissions: MANAGER, REVIEWER, SUPER_ADMIN, SYSTEM_ADMIN can access checklists
-  const isGlobalStaff = user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN'
+  const isGlobalStaff =
+    user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
   const canAccessChecklists =
-    isGlobalStaff || user?.role === 'MANAGER' || user?.role === 'REVIEWER'
-  const canManage = isGlobalStaff || user?.role === 'MANAGER'
+    isGlobalStaff || user?.role === 'MANAGER' || user?.role === 'REVIEWER';
+  const canManage = isGlobalStaff || user?.role === 'MANAGER';
 
-  const [activeTab, setActiveTab] = useState<'templates' | 'evidence'>('templates')
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState<ChecklistItem | null>(null)
+  const [activeTab, setActiveTab] = useState<'templates' | 'evidence'>(
+    'templates',
+  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<ChecklistItem | null>(null);
 
   // Request evidence inspector state
-  const [selectedRequestId, setSelectedRequestId] = useState<string>('')
+  const [selectedRequestId, setSelectedRequestId] = useState<string>('');
 
   // Add Item Form State
   const [form, setForm] = useState<{
-    code: string
-    label: string
-    description: string
-    inputType: ChecklistInputType
-    options: string
-    weight: number
+    code: string;
+    label: string;
+    description: string;
+    inputType: ChecklistInputType;
+    options: string;
+    weight: number;
   }>({
     code: '',
     label: '',
@@ -67,7 +72,7 @@ export function ChecklistsPage() {
     inputType: 'BOOLEAN',
     options: '',
     weight: 1,
-  })
+  });
 
   // 1. Fetch Vehicle Categories
   const {
@@ -80,10 +85,11 @@ export function ChecklistsPage() {
     queryKey: ['checklist-categories', activeBankId],
     queryFn: () => fetchVehicleCategories(activeBankId!),
     enabled: !!activeBankId && canAccessChecklists,
-  })
+  });
 
   // Auto-select first category if none active
-  const currentCategoryId = selectedCategoryId || (categories.length > 0 ? categories[0].id : null)
+  const currentCategoryId =
+    selectedCategoryId || (categories.length > 0 ? categories[0].id : null);
 
   // 2. Fetch Checklist Items for Category
   const {
@@ -96,20 +102,20 @@ export function ChecklistsPage() {
     queryKey: ['category-checklist', activeBankId, currentCategoryId],
     queryFn: () => fetchCategoryChecklist(activeBankId!, currentCategoryId!),
     enabled: !!activeBankId && !!currentCategoryId && canAccessChecklists,
-  })
+  });
 
   // Derive template checklist ID (from any existing item or system mandatory ID)
   const activeChecklistId =
     checklistItems.length > 0
       ? checklistItems[0].checklistId
-      : '0259bafa-b32d-4837-85db-08cd609dc036'
+      : '0259bafa-b32d-4837-85db-08cd609dc036';
 
   // 3. Fetch Requests for Evidence View
   const { data: requests = [] } = useQuery({
     queryKey: ['inspection-requests', activeBankId],
     queryFn: () => fetchInspectionRequests(activeBankId!),
     enabled: !!activeBankId && activeTab === 'evidence' && canAccessChecklists,
-  })
+  });
 
   // 4. Fetch Evidence Checklist items for Selected Request
   const {
@@ -121,19 +127,23 @@ export function ChecklistsPage() {
   } = useQuery({
     queryKey: ['request-evidence-items', activeBankId, selectedRequestId],
     queryFn: () => fetchRequestChecklistItems(activeBankId!, selectedRequestId),
-    enabled: !!activeBankId && !!selectedRequestId && activeTab === 'evidence' && canAccessChecklists,
-  })
+    enabled:
+      !!activeBankId &&
+      !!selectedRequestId &&
+      activeTab === 'evidence' &&
+      canAccessChecklists,
+  });
 
   // Add Custom Item Mutation
   const addMutation = useMutation({
     mutationFn: (dto: AddChecklistItemDto) =>
       addCustomChecklistItem(activeBankId!, activeChecklistId, dto),
     onSuccess: () => {
-      toast.success('Checklist item added successfully')
+      toast.success('Checklist item added successfully');
       void queryClient.invalidateQueries({
         queryKey: ['category-checklist', activeBankId, currentCategoryId],
-      })
-      setIsAddModalOpen(false)
+      });
+      setIsAddModalOpen(false);
       setForm({
         code: '',
         label: '',
@@ -141,50 +151,54 @@ export function ChecklistsPage() {
         inputType: 'BOOLEAN',
         options: '',
         weight: 1,
-      })
+      });
     },
-    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to add checklist item')),
-  })
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, 'Failed to add checklist item')),
+  });
 
   // Remove Custom Item Mutation
   const deleteMutation = useMutation({
     mutationFn: (itemId: string) =>
       removeCustomChecklistItem(activeBankId!, activeChecklistId, itemId),
     onSuccess: () => {
-      toast.success('Custom checklist item removed')
+      toast.success('Custom checklist item removed');
       void queryClient.invalidateQueries({
         queryKey: ['category-checklist', activeBankId, currentCategoryId],
-      })
-      setItemToDelete(null)
+      });
+      setItemToDelete(null);
     },
-    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to delete checklist item')),
-  })
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, 'Failed to delete checklist item')),
+  });
 
   const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmedCode = form.code.trim().toUpperCase().replace(/\s+/g, '_')
+    e.preventDefault();
+    const trimmedCode = form.code.trim().toUpperCase().replace(/\s+/g, '_');
     if (!trimmedCode) {
-      toast.error('Item code is required')
-      return
+      toast.error('Item code is required');
+      return;
     }
     if (!form.label.trim()) {
-      toast.error('Item label is required')
-      return
+      toast.error('Item label is required');
+      return;
     }
 
     const payload: AddChecklistItemDto = {
       code: trimmedCode,
       label: form.label.trim(),
-      ...(form.description.trim() ? { description: form.description.trim() } : {}),
+      ...(form.description.trim()
+        ? { description: form.description.trim() }
+        : {}),
       inputType: form.inputType,
       weight: Number(form.weight) || 1,
       ...(form.inputType === 'SELECT' && form.options.trim()
         ? { options: form.options.trim() }
         : {}),
-    }
+    };
 
-    addMutation.mutate(payload)
-  }
+    addMutation.mutate(payload);
+  };
 
   if (user && !canAccessChecklists) {
     return (
@@ -201,7 +215,7 @@ export function ChecklistsPage() {
           backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
         />
       </div>
-    )
+    );
   }
 
   if (!activeBankId || (!isGlobalStaff && banks.length === 0)) {
@@ -212,7 +226,7 @@ export function ChecklistsPage() {
           featureNameAr="قوائم الفحص"
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -224,13 +238,13 @@ export function ChecklistsPage() {
         subtitle="Configure audit templates per vehicle category & inspect completed request evidence"
         actions={
           <>
-            <div className="inline-flex rounded-xl border border-hairline bg-paper p-1">
+            <div className="glass-subtle inline-flex rounded-xl p-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('templates')}
-                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                   activeTab === 'templates'
-                    ? 'bg-white text-ink shadow-xs font-semibold'
+                    ? 'bg-white dark:bg-white/15 text-ink shadow-2xs font-semibold'
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
@@ -239,9 +253,9 @@ export function ChecklistsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('evidence')}
-                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                   activeTab === 'evidence'
-                    ? 'bg-white text-ink shadow-xs font-semibold'
+                    ? 'bg-white dark:bg-white/15 text-ink shadow-2xs font-semibold'
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
@@ -250,7 +264,11 @@ export function ChecklistsPage() {
             </div>
 
             {activeTab === 'templates' && canManage && (
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="h-9 rounded-xl px-3.5 cursor-pointer">
+              <Button
+                size="sm"
+                onClick={() => setIsAddModalOpen(true)}
+                className="h-9 rounded-xl px-3.5 cursor-pointer"
+              >
                 <Plus className="me-1 size-4" /> Add Item
               </Button>
             )}
@@ -264,7 +282,9 @@ export function ChecklistsPage() {
           {isCategoriesLoading ? (
             <div className="flex items-center gap-2 py-4">
               <CircleNotch className="size-5 animate-spin text-ink-mute" />
-              <span className="text-xs text-ink-mute">Loading vehicle categories…</span>
+              <span className="text-xs text-ink-mute">
+                Loading vehicle categories…
+              </span>
             </div>
           ) : isCategoriesError ? (
             <div className="py-2">
@@ -280,7 +300,7 @@ export function ChecklistsPage() {
                 Category:
               </span>
               {categories.map((cat) => {
-                const isSelected = cat.id === currentCategoryId
+                const isSelected = cat.id === currentCategoryId;
                 return (
                   <button
                     key={cat.id}
@@ -304,22 +324,26 @@ export function ChecklistsPage() {
                       </span>
                     )}
                   </button>
-                )
+                );
               })}
             </div>
           )}
 
           {/* Checklist Items Table */}
-          <div className="overflow-hidden rounded-2xl border border-hairline bg-white shadow-xs">
-            <div className="border-b border-hairline bg-paper/30 px-6 py-3.5 flex items-center justify-between">
+          <div className="glass-card overflow-hidden rounded-2xl">
+            <div className="border-b border-hairline/70 bg-paper/35 dark:bg-white/[0.02] px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-sm font-semibold text-ink">Checklist Items</h3>
+                <h3 className="text-sm font-semibold text-ink">
+                  Checklist Items
+                </h3>
                 <p className="text-[11px] text-ink-mute">
-                  Items evaluated during vehicle inspection. Mandatory items are enforced system-wide.
+                  Items evaluated during vehicle inspection. Mandatory items are
+                  enforced system-wide.
                 </p>
               </div>
               <span className="font-mono text-xs text-ink-mute">
-                {checklistItems.length} {checklistItems.length === 1 ? 'item' : 'items'}
+                {checklistItems.length}{' '}
+                {checklistItems.length === 1 ? 'item' : 'items'}
               </span>
             </div>
 
@@ -338,8 +362,12 @@ export function ChecklistsPage() {
             ) : checklistItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-ink-mute">
                 <ListChecks className="mb-2 size-10 opacity-30" />
-                <p className="text-sm font-medium">No items found for this category</p>
-                <p className="mt-1 text-xs">Add a custom item to define inspection criteria.</p>
+                <p className="text-sm font-medium">
+                  No items found for this category
+                </p>
+                <p className="mt-1 text-xs">
+                  Add a custom item to define inspection criteria.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -352,12 +380,17 @@ export function ChecklistsPage() {
                       <th className="px-6 py-3">Type</th>
                       <th className="px-6 py-3">Weight</th>
                       <th className="px-6 py-3">Scope</th>
-                      {canManage && <th className="px-6 py-3 text-right">Actions</th>}
+                      {canManage && (
+                        <th className="px-6 py-3 text-right">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-hairline">
                     {checklistItems.map((item) => (
-                      <tr key={item.id} className="transition-colors hover:bg-paper/30">
+                      <tr
+                        key={item.id}
+                        className="transition-colors hover:bg-paper/30"
+                      >
                         <td className="px-6 py-3.5 font-mono text-xs text-ink-mute">
                           #{item.sortOrder}
                         </td>
@@ -367,7 +400,9 @@ export function ChecklistsPage() {
                         <td className="px-6 py-3.5">
                           <p className="font-medium text-ink">{item.label}</p>
                           {item.description && (
-                            <p className="text-xs text-ink-mute">{item.description}</p>
+                            <p className="text-xs text-ink-mute">
+                              {item.description}
+                            </p>
                           )}
                         </td>
                         <td className="px-6 py-3.5">
@@ -422,14 +457,19 @@ export function ChecklistsPage() {
         /* Request Evidence Inspector View */
         <div className="space-y-4">
           <div className="rounded-2xl border border-hairline bg-white p-6 shadow-xs">
-            <h3 className="mb-1 text-sm font-semibold text-ink">Inspection Request Evidence</h3>
+            <h3 className="mb-1 text-sm font-semibold text-ink">
+              Inspection Request Evidence
+            </h3>
             <p className="mb-4 text-xs text-ink-mute">
-              Inspect submitted checklist items, recorded values, and completion status for a specific vehicle request.
+              Inspect submitted checklist items, recorded values, and completion
+              status for a specific vehicle request.
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex-1">
-                <label className="mb-1 block text-xs font-medium text-ink-soft">Select Request</label>
+                <label className="mb-1 block text-xs font-medium text-ink-soft">
+                  Select Request
+                </label>
                 <Select
                   searchable="auto"
                   clearable
@@ -446,7 +486,9 @@ export function ChecklistsPage() {
               </div>
 
               <div className="flex-1">
-                <label className="mb-1 block text-xs font-medium text-ink-soft">Or Enter Request UUID</label>
+                <label className="mb-1 block text-xs font-medium text-ink-soft">
+                  Or Enter Request UUID
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -462,13 +504,18 @@ export function ChecklistsPage() {
 
           {selectedRequestId && (
             <div className="overflow-hidden rounded-2xl border border-hairline bg-white shadow-xs">
-              <div className="border-b border-hairline bg-paper/30 px-6 py-3.5 flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold text-ink">Evaluated Checklist Results</h4>
-                  <p className="font-mono text-xs text-ink-mute">Request ID: {selectedRequestId}</p>
+              <div className="border-b border-hairline bg-paper/30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h4 className="text-sm font-semibold text-ink">
+                    Evaluated Checklist Results
+                  </h4>
+                  <p className="font-mono text-xs text-ink-mute break-all">
+                    Request ID: {selectedRequestId}
+                  </p>
                 </div>
                 <span className="font-mono text-xs text-ink-mute">
-                  {evidenceItems.length} {evidenceItems.length === 1 ? 'item' : 'items'}
+                  {evidenceItems.length}{' '}
+                  {evidenceItems.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
 
@@ -487,9 +534,12 @@ export function ChecklistsPage() {
               ) : evidenceItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center text-ink-mute">
                   <FileText className="mb-2 size-10 opacity-30" />
-                  <p className="text-sm font-medium">No checklist evidence submitted yet</p>
+                  <p className="text-sm font-medium">
+                    No checklist evidence submitted yet
+                  </p>
                   <p className="mt-1 text-xs">
-                    Evidence items will be recorded once the inspector evaluates vehicle checkpoints.
+                    Evidence items will be recorded once the inspector evaluates
+                    vehicle checkpoints.
                   </p>
                 </div>
               ) : (
@@ -506,7 +556,10 @@ export function ChecklistsPage() {
                     </thead>
                     <tbody className="divide-y divide-hairline">
                       {evidenceItems.map((e) => (
-                        <tr key={e.id} className="transition-colors hover:bg-paper/30">
+                        <tr
+                          key={e.id}
+                          className="transition-colors hover:bg-paper/30"
+                        >
                           <td className="px-6 py-3.5 font-mono text-xs text-ink">
                             {e.checklistItemId}
                           </td>
@@ -530,7 +583,9 @@ export function ChecklistsPage() {
                             {e.notes || '—'}
                           </td>
                           <td className="px-6 py-3.5 font-mono text-xs text-ink-mute">
-                            {e.completedAt ? new Date(e.completedAt).toLocaleString() : '—'}
+                            {e.completedAt
+                              ? new Date(e.completedAt).toLocaleString()
+                              : '—'}
                           </td>
                         </tr>
                       ))}
@@ -545,22 +600,25 @@ export function ChecklistsPage() {
 
       {/* Add Custom Item Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-2xl border border-hairline bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 sm:p-4 backdrop-blur-xs">
+          <div className="glass-popover relative w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl p-5 sm:p-6">
             <button
               type="button"
-              className="absolute top-4 right-4 cursor-pointer text-ink-mute hover:text-ink"
+              className="absolute top-4 end-4 cursor-pointer rounded-lg p-1.5 text-ink-mute hover:text-ink"
               onClick={() => setIsAddModalOpen(false)}
             >
               <X className="size-5" />
             </button>
-            <h3 className="mb-1 text-lg font-semibold text-ink">Add Custom Checklist Item</h3>
+            <h3 className="mb-1 pe-8 text-lg font-semibold text-ink">
+              Add Custom Checklist Item
+            </h3>
             <p className="mb-5 text-xs text-ink-mute">
-              Add a bank-scoped inspection criteria item for this category template.
+              Add a bank-scoped inspection criteria item for this category
+              template.
             </p>
 
             <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ink-soft">
                     Item Code *
@@ -577,7 +635,9 @@ export function ChecklistsPage() {
                       })
                     }
                   />
-                  <p className="mt-1 text-[10px] text-ink-mute">Unique uppercase snake_case identifier</p>
+                  <p className="mt-1 text-[10px] text-ink-mute">
+                    Unique uppercase snake_case identifier
+                  </p>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ink-soft">
@@ -590,7 +650,10 @@ export function ChecklistsPage() {
                     className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 font-mono text-xs text-ink outline-none focus:border-accent"
                     value={form.weight}
                     onChange={(e) =>
-                      setForm({ ...form, weight: Math.max(1, parseInt(e.target.value) || 1) })
+                      setForm({
+                        ...form,
+                        weight: Math.max(1, parseInt(e.target.value) || 1),
+                      })
                     }
                   />
                 </div>
@@ -618,12 +681,16 @@ export function ChecklistsPage() {
                   className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
                   placeholder="Instructions for the field inspector..."
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-ink-soft">Input Type</label>
+                <label className="mb-1 block text-xs font-medium text-ink-soft">
+                  Input Type
+                </label>
                 <Select
                   clearable={false}
                   value={form.inputType}
@@ -631,9 +698,15 @@ export function ChecklistsPage() {
                     setForm({ ...form, inputType: val as ChecklistInputType })
                   }
                   options={[
-                    { value: 'BOOLEAN', label: 'Boolean (Pass / Fail / Yes / No)' },
+                    {
+                      value: 'BOOLEAN',
+                      label: 'Boolean (Pass / Fail / Yes / No)',
+                    },
                     { value: 'TEXT', label: 'Text (Freeform notes / value)' },
-                    { value: 'NUMBER', label: 'Number (Numeric rating or metric)' },
+                    {
+                      value: 'NUMBER',
+                      label: 'Number (Numeric rating or metric)',
+                    },
                     { value: 'SELECT', label: 'Select (Predefined choices)' },
                   ]}
                 />
@@ -648,13 +721,19 @@ export function ChecklistsPage() {
                     className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm text-ink outline-none focus:border-accent"
                     placeholder="e.g. Good, Fair, Poor, Replaced"
                     value={form.options}
-                    onChange={(e) => setForm({ ...form, options: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, options: e.target.value })
+                    }
                   />
                 </div>
               )}
 
               <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={addMutation.isPending}>
@@ -668,22 +747,29 @@ export function ChecklistsPage() {
 
       {/* Delete Confirmation Modal */}
       {itemToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-sm rounded-2xl border border-hairline bg-white p-6 shadow-xl">
-            <h3 className="mb-2 text-base font-semibold text-ink">Remove Custom Item?</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-xs">
+          <div className="glass-popover relative w-full max-w-sm rounded-2xl p-6">
+            <h3 className="mb-2 text-base font-semibold text-ink">
+              Remove Custom Item?
+            </h3>
             <p className="text-xs text-ink-soft leading-relaxed">
               Are you sure you want to remove item{' '}
-              <strong className="font-mono text-ink">{itemToDelete.code}</strong> (
-              {itemToDelete.label}) from this bank&apos;s checklist?
+              <strong className="font-mono text-ink">
+                {itemToDelete.code}
+              </strong>{' '}
+              ({itemToDelete.label}) from this bank&apos;s checklist?
             </p>
             <div className="mt-5 flex justify-end gap-2.5">
-              <Button variant="outline" size="sm" onClick={() => setItemToDelete(null)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setItemToDelete(null)}
+              >
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="glass-rose"
                 size="sm"
-                className="!bg-red-600 hover:!bg-red-700 !text-white shadow-xs"
                 disabled={deleteMutation.isPending}
                 onClick={() => deleteMutation.mutate(itemToDelete.id)}
               >
@@ -694,5 +780,5 @@ export function ChecklistsPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -7,12 +7,12 @@
 export function AppShellSkeleton() {
   return (
     <div
-      className="min-h-[100dvh] bg-bone lg:grid lg:grid-cols-[260px_minmax(0,1fr)] animate-pulse"
+      className="glass-canvas min-h-[100dvh] lg:grid lg:grid-cols-[264px_minmax(0,1fr)] animate-pulse"
       aria-label="Loading application"
       role="status"
     >
       {/* Sidebar Skeleton (desktop) */}
-      <aside className="hidden border-r border-hairline bg-paper/90 p-5 lg:flex lg:flex-col lg:justify-between">
+      <aside className="glass-shell hidden border-e p-5 lg:flex lg:flex-col lg:justify-between">
         <div className="space-y-6">
           {/* Logo / Brand Header */}
           <div className="flex items-center gap-3">

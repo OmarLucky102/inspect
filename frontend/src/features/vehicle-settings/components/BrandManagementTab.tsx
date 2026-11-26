@@ -224,7 +224,7 @@ export function BrandManagementTab() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {brands.length > 0 && (
             <div className="hidden md:flex items-center text-xs text-ink-mute gap-1 me-2">
               <button
@@ -259,7 +259,7 @@ export function BrandManagementTab() {
           <Button
             size="sm"
             onClick={() => setIsNewBrandModalOpen(true)}
-            className="bg-accent text-white cursor-pointer gap-1"
+            className="gap-1"
           >
             <Plus className="size-4" /> {t('vehicleSettings.addMake', 'New Make (Brand)')}
           </Button>
@@ -317,7 +317,7 @@ export function BrandManagementTab() {
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-ink text-base">
                           {brand.name}
                         </span>

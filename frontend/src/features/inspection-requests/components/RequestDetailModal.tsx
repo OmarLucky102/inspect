@@ -774,25 +774,25 @@ export function RequestDetailModal({
       className={
         isFullPage
           ? 'w-full'
-          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs'
+          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs'
       }
     >
       <div
         className={
           isFullPage
             ? 'relative flex w-full flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-xs'
-            : 'relative flex h-[90vh] max-h-[850px] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-2xl'
+            : 'relative flex h-[94dvh] sm:h-[90dvh] max-h-[850px] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-2xl'
         }
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-hairline bg-paper/30 px-6 py-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-paper/30 px-4 py-3.5 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             {isFullPage && onClose && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onClose}
-                className="mr-1 h-8 px-2.5 text-xs text-ink-soft hover:text-ink cursor-pointer gap-1"
+                className="me-1 h-8 px-2.5 text-xs text-ink-soft hover:text-ink cursor-pointer gap-1 shrink-0"
               >
                 {isArabic ? (
                   <ArrowRight className="size-3.5" />
@@ -802,12 +802,12 @@ export function RequestDetailModal({
                 {t('common.back', 'Back')}
               </Button>
             )}
-            <span className="flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+            <span className="hidden min-[380px]:flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
               <FileText className="size-5" />
             </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-mono text-lg font-bold text-ink">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-mono text-base sm:text-lg font-bold text-ink truncate">
                   {details
                     ? details.requestNumber || 'Inspection Request'
                     : isArabic
@@ -817,7 +817,7 @@ export function RequestDetailModal({
                 {details && getStatusBadge(details.currentStatus)}
               </div>
               {details ? (
-                <p className="text-xs text-ink-mute">
+                <p className="text-[11px] sm:text-xs text-ink-mute break-all">
                   ID: {requestId} • {isArabic ? 'الأولوية:' : 'Priority:'}{' '}
                   <span className="font-mono font-medium text-ink">
                     {details.priority
@@ -917,11 +917,11 @@ export function RequestDetailModal({
             }
           >
             {/* Quick Transition Action Ribbon */}
-            <div className="flex items-center justify-between border-b border-hairline bg-accent/5 px-6 py-2.5">
+            <div className="flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:justify-between border-b border-hairline bg-accent/5 px-4 sm:px-6 py-3 sm:py-2.5">
               <span className="text-xs font-semibold text-ink dark:text-ink-soft">
                 {getWorkflowStatusMessage()}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Under Review: If media review is pending, show primary wizard button; if completed, show Edit Media trigger */}
                 {details?.currentStatus === 'UNDER_REVIEW' &&
                   (isReviewer || isSuperAdmin) && (
@@ -981,7 +981,7 @@ export function RequestDetailModal({
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-hairline bg-bone px-6">
+            <div className="flex overflow-x-auto no-scrollbar border-b border-hairline bg-bone px-3 sm:px-6">
               {[
                 {
                   key: 'overview',
@@ -1020,7 +1020,7 @@ export function RequestDetailModal({
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab.key as any)}
-                    className={`flex cursor-pointer items-center gap-1.5 border-b-2 px-4 py-3 text-xs font-medium transition-colors ${
+                    className={`flex shrink-0 whitespace-nowrap cursor-pointer items-center gap-1.5 border-b-2 px-3 sm:px-4 py-3 text-xs font-medium transition-colors ${
                       isActive
                         ? 'border-accent text-accent font-semibold'
                         : 'border-transparent text-ink-mute hover:text-ink'
@@ -1036,7 +1036,7 @@ export function RequestDetailModal({
             {/* Tab Panes */}
             <div
               className={
-                isFullPage ? 'p-6 space-y-6' : 'flex-1 overflow-y-auto p-6'
+                isFullPage ? 'p-4 sm:p-6 space-y-6' : 'flex-1 overflow-y-auto p-4 sm:p-6'
               }
             >
               {/* TAB 1: OVERVIEW */}
@@ -1047,8 +1047,8 @@ export function RequestDetailModal({
                     details.currentStatus === 'COMPLETED' ||
                     details.currentStatus === 'APPROVED' ||
                     details.currentStatus === 'UNDER_REVIEW') && (
-                    <div className="rounded-xl border border-hairline bg-white p-5 shadow-2xs">
-                      <div className="flex items-center justify-between border-b border-hairline pb-4">
+                    <div className="rounded-xl border border-hairline bg-white p-4 sm:p-5 shadow-2xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-hairline pb-4">
                         <div className="flex items-center gap-2">
                           <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
                             <ShieldCheck className="size-4" />
@@ -1229,7 +1229,6 @@ export function RequestDetailModal({
                           <div className="flex flex-wrap items-center gap-2">
                             <Button
                               size="sm"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white"
                               onClick={() =>
                                 handleDownloadReport(isArabic ? 'ar' : 'en')
                               }
@@ -1247,7 +1246,6 @@ export function RequestDetailModal({
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
                               onClick={() =>
                                 handleDownloadReport(isArabic ? 'en' : 'ar')
                               }
@@ -1302,8 +1300,7 @@ export function RequestDetailModal({
                             <div className="flex items-center gap-2">
                               <Button
                                 size="sm"
-                                variant="outline"
-                                className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                variant="glass-rose"
                                 onClick={() => setIsPriceRevisionOpen(true)}
                               >
                                 {isArabic
@@ -1312,7 +1309,6 @@ export function RequestDetailModal({
                               </Button>
                               <Button
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                                 onClick={handleOpenFinalApprove}
                               >
                                 <Check className="mr-1 size-3.5" />
@@ -2736,7 +2732,7 @@ export function RequestDetailModal({
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                  size="sm"
                   disabled={finalApproveMutation.isPending}
                 >
                   {finalApproveMutation.isPending ? (
@@ -2839,7 +2835,8 @@ export function RequestDetailModal({
                 </Button>
                 <Button
                   type="submit"
-                  className="border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100"
+                  size="sm"
+                  variant="glass-rose"
                   disabled={
                     priceRevisionMutation.isPending ||
                     !priceRevisionNotes.trim()

@@ -6,6 +6,8 @@ import { cn } from '@/lib/cn'
 import { NAV_SECTIONS, type NavItem } from './nav'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { getCdnAsset } from '@/lib/assets'
+import { LanguageSelector } from './LanguageToggle'
+import { ThemeSelector } from './ThemeToggle'
 
 interface SidebarProps {
   mobileOpen: boolean
@@ -20,11 +22,13 @@ function SidebarBody({
   collapsed = false,
   onToggleCollapse,
   onExpand,
+  isMobileDrawer = false,
 }: {
   onNavigate?: () => void
   collapsed?: boolean
   onToggleCollapse?: () => void
   onExpand?: () => void
+  isMobileDrawer?: boolean
 }) {
   const { user } = useWorkspace()
   const { t } = useTranslation()
@@ -215,6 +219,7 @@ function SidebarBody({
         className={cn(
           'flex h-16 shrink-0 items-center border-b border-hairline',
           collapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4',
+          isMobileDrawer && 'pe-14',
         )}
       >
         {!collapsed && (
@@ -506,19 +511,36 @@ function SidebarBody({
         ))}
       </nav>
 
-      <div className={cn('border-t border-hairline', collapsed ? 'p-3' : 'p-4')}>
+      <div className={cn('border-t border-hairline/70 space-y-2.5', collapsed ? 'p-3' : 'p-4')}>
+        {isMobileDrawer && !collapsed && (
+          <div className="space-y-2 pb-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-ink-mute">
+                {t('common.language', 'Language')}
+              </span>
+              <LanguageSelector variant="segmented" />
+            </div>
+            <ThemeSelector className="w-full" />
+          </div>
+        )}
         {collapsed ? (
           <div
             title="EuroInspect 360 · Live"
-            className="mx-auto flex size-9 items-center justify-center rounded-xl bg-paper"
+            className="glass-subtle mx-auto flex size-9 items-center justify-center rounded-xl"
           >
-            <span className="size-2 rounded-full bg-accent" aria-hidden />
+            <span className="relative flex size-2" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-accent" />
+            </span>
           </div>
         ) : (
-          <div className="flex items-center justify-between rounded-xl bg-paper px-3.5 py-2.5 font-mono text-[10px] tracking-[0.14em] text-ink-mute">
-            <span className="truncate">EUROINSPECT 360</span>
-            <span className="inline-flex items-center gap-1.5 shrink-0 text-accent font-semibold">
-              <span className="size-1.5 rounded-full bg-accent" aria-hidden />
+          <div className="glass-subtle flex items-center justify-between rounded-xl px-3.5 py-2.5 font-mono text-[10px] tracking-[0.14em] text-ink-mute">
+            <span className="truncate font-medium">EUROINSPECT 360</span>
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-accent">
+              <span className="relative flex size-1.5" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
+              </span>
               LIVE
             </span>
           </div>
@@ -537,11 +559,11 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <>
-      {/* Desktop: collapsible column */}
+      {/* Desktop: collapsible frosted glass column */}
       <aside
         className={cn(
-          'hidden shrink-0 border-r rtl:border-r-0 rtl:border-l border-hairline bg-white transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block',
-          collapsed ? 'w-[72px]' : 'w-[260px]',
+          'glass-shell relative z-20 hidden shrink-0 border-e transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block',
+          collapsed ? 'w-[74px]' : 'w-[264px]',
         )}
       >
         <div className="sticky top-0 h-[100dvh]">
@@ -553,7 +575,7 @@ export function Sidebar({
         </div>
       </aside>
 
-      {/* Mobile: drawer + overlay */}
+      {/* Mobile: frosted glass drawer + dimmed overlay */}
       <div
         className={cn(
           'fixed inset-0 z-40 lg:hidden',
@@ -564,13 +586,13 @@ export function Sidebar({
         <div
           onClick={onClose}
           className={cn(
-            'absolute inset-0 bg-ink/45 transition-opacity duration-200',
+            'absolute inset-0 bg-ink/45 backdrop-blur-xs transition-opacity duration-200',
             mobileOpen ? 'opacity-100' : 'opacity-0',
           )}
         />
         <aside
           className={cn(
-            'absolute top-0 left-0 rtl:left-auto rtl:right-0 h-full w-[260px] bg-white shadow-2xl transition-transform duration-200',
+            'glass-popover absolute top-0 start-0 h-full w-[min(280px,85vw)] pt-safe pb-safe transition-transform duration-200',
             mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full',
           )}
           role="dialog"
@@ -580,11 +602,11 @@ export function Sidebar({
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="absolute top-5 right-4 rtl:right-auto rtl:left-4 cursor-pointer rounded-lg p-1.5 text-ink-mute hover:bg-paper hover:text-ink"
+            className="absolute top-3 end-3 z-10 flex size-10 cursor-pointer items-center justify-center rounded-xl text-ink-mute transition-colors hover:bg-paper/70 hover:text-ink"
           >
             <X className="size-4" aria-hidden />
           </button>
-          <SidebarBody onNavigate={onClose} />
+          <SidebarBody onNavigate={onClose} isMobileDrawer />
         </aside>
       </div>
     </>

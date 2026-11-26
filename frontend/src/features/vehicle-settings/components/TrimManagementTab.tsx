@@ -236,7 +236,7 @@ export function TrimManagementTab() {
           <Button
             size="sm"
             onClick={openAddModal}
-            className="bg-accent text-white cursor-pointer gap-1"
+            className="gap-1"
           >
             <Plus className="size-4" /> {t('vehicleSettings.addNewTrim', 'Add New Trim')}
           </Button>
@@ -481,8 +481,8 @@ export function TrimManagementTab() {
                 </Button>
                 <Button
                   type="submit"
+                  size="sm"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="bg-accent text-white"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <>

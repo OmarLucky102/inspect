@@ -547,8 +547,9 @@ export function RepresentativeFormModal({
             </Button>
             <Button
               type="submit"
+              size="sm"
               disabled={isSubmitting}
-              className="min-w-[130px] gap-2 bg-ink text-white hover:bg-ink/90 cursor-pointer"
+              className="min-w-[130px] gap-2"
             >
               {isSubmitting ? (
                 <>

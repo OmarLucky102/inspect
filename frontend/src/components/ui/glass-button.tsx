@@ -3,23 +3,13 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { GLASS_INTENT_VARIANTS, GLASS_INTERACTIVE_BASE } from './button-styles';
 
 export const glassButtonVariants = cva(
-  'glassPill group relative inline-flex items-center justify-center gap-2 font-bold whitespace-nowrap select-none transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:hover:scale-100 shadow-md text-slate-900 dark:text-white',
+  `${GLASS_INTERACTIVE_BASE} font-bold hover:scale-[1.03] shadow-md text-slate-900 dark:text-white`,
   {
     variants: {
-      intent: {
-        emerald:
-          'text-slate-900 dark:text-emerald-100 hover:shadow-emerald-500/25',
-        primary:
-          'text-slate-900 dark:text-emerald-100 hover:shadow-emerald-500/25',
-        amber:
-          'text-slate-900 dark:text-amber-100 hover:shadow-amber-500/25',
-        rose:
-          'text-slate-900 dark:text-rose-100 hover:shadow-rose-500/25',
-        neutral:
-          'text-slate-900 dark:text-white hover:shadow-neutral-500/20',
-      },
+      intent: GLASS_INTENT_VARIANTS,
       size: {
         sm: 'h-8 px-3.5 py-1 text-xs gap-1.5',
         md: 'h-9.5 px-4 py-2 text-xs gap-2',
@@ -104,7 +94,7 @@ export const GlassButton = forwardRef<HTMLButtonElement, GlassButtonProps>(
           </span>
         )}
 
-        <span className="relative z-10 font-bold tracking-tight text-slate-900 dark:text-inherit">
+        <span className="relative z-10 font-bold tracking-tight text-inherit">
           {children}
         </span>
 

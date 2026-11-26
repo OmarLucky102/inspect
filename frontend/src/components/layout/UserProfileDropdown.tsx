@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { UserCircle, ArrowSquareOut, X } from '@phosphor-icons/react'
 import { useWorkspace } from '@/features/workspaces/workspace-context'
 import { UserProfileForm } from '@/features/users/components/UserProfileForm'
+import { useAnimatedMount } from '@/lib/use-animated-mount'
 import { useDropdownDismiss } from '@/lib/use-dropdown-dismiss'
 import { ThemeSelector } from './ThemeToggle'
 import { LanguageSelector } from './LanguageToggle'
@@ -12,6 +13,7 @@ export function UserProfileDropdown() {
   const { t } = useTranslation()
   const { user } = useWorkspace()
   const [isOpen, setIsOpen] = useState(false)
+  const { mounted: menuMounted, state: menuState } = useAnimatedMount(isOpen, 140)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const initials = user
@@ -49,14 +51,15 @@ export function UserProfileDropdown() {
       </button>
 
       {/* Anchored Profile Dropdown Panel */}
-      {isOpen && (
+      {menuMounted && (
         <div
           role="dialog"
           aria-label="User profile settings"
-          className="fixed inset-x-3 top-18 sm:absolute sm:inset-auto sm:end-0 sm:top-full sm:mt-2.5 z-50 w-auto sm:w-[500px] md:w-[540px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-hairline bg-white shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 max-h-[calc(100dvh-5.5rem)] flex flex-col"
+          data-state={menuState}
+          className="glass-popover fixed inset-x-3 top-18 sm:absolute sm:inset-auto sm:end-0 sm:top-full sm:mt-2.5 z-50 w-auto sm:w-[500px] md:w-[540px] max-w-[calc(100vw-1.5rem)] rounded-2xl overflow-hidden origin-top-right data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-top-2 max-h-[calc(100dvh-5.5rem)] flex flex-col"
         >
           {/* Dropdown Header */}
-          <div className="flex items-center justify-between border-b border-hairline px-4 sm:px-5 py-3 bg-paper/60 shrink-0">
+          <div className="flex items-center justify-between border-b border-hairline/70 px-4 sm:px-5 py-3 bg-paper/45 shrink-0">
             <div className="flex items-center gap-2.5">
               <span className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-ink text-white shadow-2xs">
                 <UserCircle className="size-4" />
@@ -75,7 +78,7 @@ export function UserProfileDropdown() {
               <Link
                 to="/profile"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium text-ink-soft hover:bg-paper hover:text-ink transition-colors border border-hairline/80 bg-white"
+                className="glass-subtle flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-ink-soft hover:text-ink transition-colors"
                 title="Open full profile page"
               >
                 <ArrowSquareOut className="size-3" />
@@ -85,7 +88,7 @@ export function UserProfileDropdown() {
                 type="button"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close profile menu"
-                className="cursor-pointer rounded-md p-1 text-ink-mute hover:bg-paper hover:text-ink transition-colors"
+                className="cursor-pointer rounded-lg p-1 text-ink-mute hover:bg-paper/70 hover:text-ink transition-colors"
               >
                 <X className="size-4" />
               </button>
@@ -93,7 +96,7 @@ export function UserProfileDropdown() {
           </div>
 
           {/* Theme Appearance Selector */}
-          <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/40 px-4 sm:px-5 py-2 shrink-0">
+          <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-center justify-between gap-2 min-[380px]:gap-3 border-b border-hairline/70 bg-paper/30 px-4 sm:px-5 py-2.5 shrink-0">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-ink leading-tight">
                 {t('common.theme', 'Theme')}
@@ -102,11 +105,11 @@ export function UserProfileDropdown() {
                 {t('profile.themeSystem', 'Light, dark, or system preference')}
               </p>
             </div>
-            <ThemeSelector className="w-44 shrink-0" />
+            <ThemeSelector className="w-full min-[380px]:w-44 shrink-0" />
           </div>
 
           {/* Language Selector */}
-          <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/40 px-4 sm:px-5 py-2 shrink-0">
+          <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-center justify-between gap-2 min-[380px]:gap-3 border-b border-hairline/70 bg-paper/30 px-4 sm:px-5 py-2.5 shrink-0">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-ink leading-tight">
                 {t('common.language', 'Language')}

@@ -173,7 +173,7 @@ export function LanguageToggle({ className }: { className?: string }) {
       <button
         type="button"
         onClick={toggleLanguage}
-        className="flex h-9 items-center gap-1.5 rounded-xl border border-hairline bg-white/80 px-2.5 text-xs font-medium text-ink-soft shadow-2xs backdrop-blur-xs transition-colors hover:bg-paper hover:text-ink cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent"
+        className="glass-subtle flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-ink-soft transition-all hover:text-ink cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         title={`Current language: ${activeObj.nativeName}. Click to switch to ${
           currentLang === 'en' ? 'العربية' : 'English'
         }`}

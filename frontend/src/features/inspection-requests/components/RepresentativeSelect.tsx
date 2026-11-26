@@ -10,6 +10,7 @@ import {
   EnvelopeSimple,
   CircleNotch,
 } from '@phosphor-icons/react';
+import { useAnimatedMount } from '@/lib/use-animated-mount';
 import { useDropdownDismiss } from '@/lib/use-dropdown-dismiss';
 
 export interface RepresentativeOption {
@@ -52,6 +53,7 @@ export function RepresentativeSelect({
   className = '',
 }: RepresentativeSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { mounted: menuMounted, state: menuState } = useAnimatedMount(isOpen, 140);
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -188,8 +190,11 @@ export function RepresentativeSelect({
       </button>
 
       {/* Dropdown Popover */}
-      {isOpen && (
-        <div className="absolute left-0 right-0 z-70 mt-1.5 max-h-80 overflow-hidden rounded-xl border border-hairline bg-white shadow-xl animate-in fade-in-50 zoom-in-95">
+      {menuMounted && (
+        <div
+          data-state={menuState}
+          className="glass-popover absolute left-0 right-0 z-70 mt-1.5 max-h-80 overflow-hidden rounded-xl origin-top data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-top-2"
+        >
           {/* Search Box */}
           <div className="flex items-center gap-2 border-b border-hairline bg-paper/50 px-3.5 py-2.5">
             <MagnifyingGlass className="size-4 shrink-0 text-ink-mute" />

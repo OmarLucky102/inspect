@@ -212,7 +212,7 @@ export function SunroofManagementTab() {
           <Button
             size="sm"
             onClick={openAddModal}
-            className="bg-accent text-white cursor-pointer gap-1"
+            className="gap-1"
           >
             <Plus className="size-4" /> {t('vehicleSettings.addNewSunroof', 'Add New Sunroof Spec')}
           </Button>
@@ -396,8 +396,8 @@ export function SunroofManagementTab() {
                 </Button>
                 <Button
                   type="submit"
+                  size="sm"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="bg-accent text-white cursor-pointer"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <>
@@ -442,10 +442,9 @@ export function SunroofManagementTab() {
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="glass-rose"
                 onClick={() => deleteMutation.mutate(sunroofToDelete.id)}
                 disabled={deleteMutation.isPending}
-                className="bg-red-600 text-white hover:bg-red-700 border-red-600 cursor-pointer"
               >
                 {deleteMutation.isPending ? (
                   <CircleNotch className="size-4 animate-spin mr-1" />

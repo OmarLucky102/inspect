@@ -12,12 +12,12 @@ import {
   Power,
   Eye,
   EyeSlash,
-} from '@phosphor-icons/react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
-import { PageHeader } from '@/components/layout/PageHeader'
+} from '@phosphor-icons/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState';
+import { PageHeader } from '@/components/layout/PageHeader';
 import {
   fetchUsers,
   fetchUserById,
@@ -27,29 +27,30 @@ import {
   activateUser,
   deactivateUser,
   type CreateUserInput,
-} from '@/features/users/api'
-import { fetchBanks, type Bank } from '@/features/banks/api'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
-import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { ErrorView } from '@/components/errors/ErrorView'
-import { toast } from 'sonner'
-import { getApiErrorMessage } from '@/lib/api'
-import type { UserProfile } from '@/features/workspaces/api'
+} from '@/features/users/api';
+import { fetchBanks, type Bank } from '@/features/banks/api';
+import { useWorkspace } from '@/features/workspaces/workspace-context';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
+import type { UserProfile } from '@/features/workspaces/api';
 
 export function UsersPage() {
-  const { t } = useTranslation()
-  const { user } = useWorkspace()
-  const queryClient = useQueryClient()
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [isCreatingUser, setIsCreatingUser] = useState(false)
-  const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserProfile | null>(null)
+  const { t } = useTranslation();
+  const { user } = useWorkspace();
+  const queryClient = useQueryClient();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [deleteConfirmUser, setDeleteConfirmUser] =
+    useState<UserProfile | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
     enabled: user?.role === 'SUPER_ADMIN',
-  })
+  });
 
   const {
     data: selectedUser,
@@ -60,22 +61,27 @@ export function UsersPage() {
     queryKey: ['users', selectedUserId],
     queryFn: () => fetchUserById(selectedUserId!),
     enabled: !!selectedUserId,
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (userId: string) => deleteUser(userId),
     onSuccess: () => {
-      toast.success(t('users.userDeleted', 'User deleted successfully'))
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success(t('users.userDeleted', 'User deleted successfully'));
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       if (selectedUserId === deleteConfirmUser?.id) {
-        setSelectedUserId(null)
+        setSelectedUserId(null);
       }
-      setDeleteConfirmUser(null)
+      setDeleteConfirmUser(null);
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, t('users.deleteFailed', 'Failed to delete user')))
+      toast.error(
+        getApiErrorMessage(
+          err,
+          t('users.deleteFailed', 'Failed to delete user'),
+        ),
+      );
     },
-  })
+  });
 
   if (user?.role !== 'SUPER_ADMIN') {
     return (
@@ -83,12 +89,15 @@ export function UsersPage() {
         <ErrorView
           status={403}
           title={t('errors.forbiddenTitle', 'Access Restricted')}
-          message={t('errors.forbiddenDesc', 'You do not have permission to view this page.')}
+          message={t(
+            'errors.forbiddenDesc',
+            'You do not have permission to view this page.',
+          )}
           backUrl="/"
           backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
         />
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -96,42 +105,39 @@ export function UsersPage() {
       <div className="flex justify-center py-20">
         <CircleNotch className="size-8 animate-spin text-ink-mute" />
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div className="py-8">
-        <ErrorView
-          error={error}
-          onRetry={() => refetch()}
-        />
+        <ErrorView error={error} onRetry={() => refetch()} />
       </div>
-    )
+    );
   }
 
   const renderCreateModal = () => {
-    if (!isCreatingUser) return null
+    if (!isCreatingUser) return null;
     return (
       <CreateUserModal
         onClose={() => setIsCreatingUser(false)}
         onCreated={() => {
-          setIsCreatingUser(false)
-          queryClient.invalidateQueries({ queryKey: ['users'] })
+          setIsCreatingUser(false);
+          queryClient.invalidateQueries({ queryKey: ['users'] });
         }}
       />
-    )
-  }
+    );
+  };
 
   const renderDeleteConfirmModal = () => {
-    if (!deleteConfirmUser) return null
+    if (!deleteConfirmUser) return null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className="fixed inset-0 bg-ink/50 backdrop-blur-xs transition-opacity"
           onClick={() => setDeleteConfirmUser(null)}
         />
-        <div className="relative w-full max-w-md bg-white rounded-xl shadow-xl border border-hairline overflow-hidden p-6 z-10 space-y-4">
+        <div className="glass-popover relative w-full max-w-md rounded-2xl overflow-hidden p-6 z-10 space-y-4">
           <div className="flex items-center gap-3 text-red-600">
             <WarningCircle className="size-6" weight="bold" />
             <h3 className="font-semibold text-lg text-ink">
@@ -158,8 +164,8 @@ export function UsersPage() {
               {t('common.cancel', 'Cancel')}
             </Button>
             <Button
+              variant="glass-rose"
               size="sm"
-              className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => deleteMutation.mutate(deleteConfirmUser.id!)}
               disabled={deleteMutation.isPending}
             >
@@ -170,8 +176,8 @@ export function UsersPage() {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   if (!data || data.length === 0) {
     return (
@@ -189,7 +195,7 @@ export function UsersPage() {
         />
         {renderCreateModal()}
       </>
-    )
+    );
   }
 
   return (
@@ -201,7 +207,10 @@ export function UsersPage() {
         kicker={t('titles.usersMeta', 'IDENTITY · ACCESS')}
         kickerIcon={UsersThree}
         title={t('users.title', 'System Users')}
-        subtitle={t('users.subtitle', 'Manage user access, roles, and bank affiliations across EuroInspect 360.')}
+        subtitle={t(
+          'users.subtitle',
+          'Manage user access, roles, and bank affiliations across EuroInspect 360.',
+        )}
         actions={
           <>
             <span className="rounded-lg bg-paper px-2.5 py-1.5 font-mono text-xs text-ink-mute border border-hairline">
@@ -219,28 +228,46 @@ export function UsersPage() {
         }
       />
 
-      <div className="rounded-2xl border border-hairline bg-white shadow-xs overflow-hidden">
+      <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm">
-            <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">
+            <thead className="border-b border-hairline/80 bg-paper/55 dark:bg-white/[0.03] font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-mute">
               <tr>
-                <th className="px-5 py-3 text-start">{t('users.thName', 'Name')}</th>
-                <th className="px-5 py-3 text-start">{t('users.thEmail', 'Email')}</th>
-                <th className="px-5 py-3 text-start">{t('users.thRole', 'Role')}</th>
-                <th className="px-5 py-3 text-start">{t('users.thAssignedBanks', 'Assigned Banks')}</th>
-                <th className="px-5 py-3 text-start">{t('users.thStatus', 'Status')}</th>
-                <th className="px-5 py-3 text-end">{t('users.thActions', 'Actions')}</th>
+                <th className="px-5 py-3 text-start">
+                  {t('users.thName', 'Name')}
+                </th>
+                <th className="px-5 py-3 text-start">
+                  {t('users.thEmail', 'Email')}
+                </th>
+                <th className="px-5 py-3 text-start">
+                  {t('users.thRole', 'Role')}
+                </th>
+                <th className="px-5 py-3 text-start">
+                  {t('users.thAssignedBanks', 'Assigned Banks')}
+                </th>
+                <th className="px-5 py-3 text-start">
+                  {t('users.thStatus', 'Status')}
+                </th>
+                <th className="px-5 py-3 text-end">
+                  {t('users.thActions', 'Actions')}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
               {data.map((u) => {
-                const isActive = u.isActive !== false
+                const isActive = u.isActive !== false;
                 return (
-                  <tr key={u.id} className="hover:bg-paper/50 transition-colors">
+                  <tr
+                    key={u.id}
+                    className="hover:bg-paper/50 transition-colors"
+                  >
                     <td className="px-5 py-3 font-medium text-ink">
                       {u.firstName} {u.lastName}
                     </td>
-                    <td className="px-5 py-3 text-ink-soft ltr-force text-start" dir="ltr">
+                    <td
+                      className="px-5 py-3 text-ink-soft ltr-force text-start"
+                      dir="ltr"
+                    >
                       {u.email}
                     </td>
                     <td className="px-5 py-3">
@@ -268,15 +295,22 @@ export function UsersPage() {
                             >
                               {b.code || b.name}
                               {b.isPrimary && (
-                                <span title={t('users.primaryBank', 'Primary Bank')}>
-                                  <Star weight="fill" className="size-3 text-amber-500" />
+                                <span
+                                  title={t('users.primaryBank', 'Primary Bank')}
+                                >
+                                  <Star
+                                    weight="fill"
+                                    className="size-3 text-amber-500"
+                                  />
                                 </span>
                               )}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-xs text-ink-mute italic">{t('users.noBanks', 'No banks assigned')}</span>
+                        <span className="text-xs text-ink-mute italic">
+                          {t('users.noBanks', 'No banks assigned')}
+                        </span>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -303,7 +337,7 @@ export function UsersPage() {
                       </Button>
                     </td>
                   </tr>
-                )
+                );
               })}
             </tbody>
           </table>
@@ -347,17 +381,17 @@ export function UsersPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function CreateUserModal({
   onClose,
   onCreated,
 }: {
-  onClose: () => void
-  onCreated: () => void
+  onClose: () => void;
+  onCreated: () => void;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<CreateUserInput>({
     firstName: '',
     lastName: '',
@@ -365,46 +399,72 @@ function CreateUserModal({
     password: '',
     phone: '',
     role: 'USER',
-  })
-  const [showPassword, setShowPassword] = useState(false)
+  });
+  const [showPassword, setShowPassword] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: (data: CreateUserInput) => createUser(data),
     onSuccess: () => {
-      toast.success(t('users.userCreatedSuccess', 'User created successfully'))
-      onCreated()
+      toast.success(t('users.userCreatedSuccess', 'User created successfully'));
+      onCreated();
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, t('users.createFailed', 'Failed to create user')))
+      toast.error(
+        getApiErrorMessage(
+          err,
+          t('users.createFailed', 'Failed to create user'),
+        ),
+      );
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password) {
-      toast.error(t('common.fillRequired', 'Please fill in all required fields'))
-      return
+    e.preventDefault();
+    if (
+      !formData.firstName.trim() ||
+      !formData.lastName.trim() ||
+      !formData.email.trim() ||
+      !formData.password
+    ) {
+      toast.error(
+        t('common.fillRequired', 'Please fill in all required fields'),
+      );
+      return;
     }
     if (formData.password.length < 8) {
-      toast.error(t('users.passwordMinLength', 'Password must be at least 8 characters long'))
-      return
+      toast.error(
+        t(
+          'users.passwordMinLength',
+          'Password must be at least 8 characters long',
+        ),
+      );
+      return;
     }
-    createMutation.mutate(formData)
-  }
+    createMutation.mutate(formData);
+  };
 
   const roleOptions = [
-    { value: 'SUPER_ADMIN', label: t('roles.superAdmin', 'Super Admin (Full Platform Access)') },
+    {
+      value: 'SUPER_ADMIN',
+      label: t('roles.superAdmin', 'Super Admin (Full Platform Access)'),
+    },
     { value: 'SYSTEM_ADMIN', label: t('roles.systemAdmin', 'System Admin') },
     { value: 'MANAGER', label: t('roles.manager', 'Manager') },
     { value: 'REVIEWER', label: t('roles.reviewer', 'Reviewer') },
     { value: 'USER', label: t('roles.user', 'User') },
     { value: 'VIEWER', label: t('roles.viewer', 'Viewer') },
-    { value: 'REPRESENTATIVE', label: t('roles.representative', 'Field Representative') },
-  ]
+    {
+      value: 'REPRESENTATIVE',
+      label: t('roles.representative', 'Field Representative'),
+    },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-ink/50 backdrop-blur-xs transition-opacity" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-ink/50 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
       <div className="relative w-full max-w-lg bg-white rounded-xl shadow-xl border border-hairline overflow-hidden z-10 flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-hairline flex items-center justify-between bg-paper/50">
           <div>
@@ -413,10 +473,16 @@ function CreateUserModal({
               {t('users.createTitle', 'Create New User')}
             </h3>
             <p className="text-xs text-ink-mute mt-0.5">
-              {t('users.createSubtitle', 'Add a new user and assign their system role.')}
+              {t(
+                'users.createSubtitle',
+                'Add a new user and assign their system role.',
+              )}
             </p>
           </div>
-          <button onClick={onClose} className="text-ink-mute hover:text-ink cursor-pointer p-1">
+          <button
+            onClick={onClose}
+            className="text-ink-mute hover:text-ink cursor-pointer p-1"
+          >
             <X className="size-5" />
           </button>
         </div>
@@ -425,26 +491,32 @@ function CreateUserModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5">
-                {t('users.thFirstName', 'First Name')} <span className="text-red-500">*</span>
+                {t('users.thFirstName', 'First Name')}{' '}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.firstName}
-                onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, firstName: e.target.value }))
+                }
                 className="w-full text-sm px-3 py-2 rounded-md border border-hairline bg-paper/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder={t('users.firstNamePlaceholder', 'e.g. Ahmed')}
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5">
-                {t('users.thLastName', 'Last Name')} <span className="text-red-500">*</span>
+                {t('users.thLastName', 'Last Name')}{' '}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.lastName}
-                onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, lastName: e.target.value }))
+                }
                 className="w-full text-sm px-3 py-2 rounded-md border border-hairline bg-paper/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder={t('users.lastNamePlaceholder', 'e.g. Hassan')}
               />
@@ -453,13 +525,16 @@ function CreateUserModal({
 
           <div>
             <label className="block text-xs font-medium text-ink mb-1.5">
-              {t('users.thEmail', 'Email Address')} <span className="text-red-500">*</span>
+              {t('users.thEmail', 'Email Address')}{' '}
+              <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
               required
               value={formData.email}
-              onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, email: e.target.value }))
+              }
               className="w-full text-sm px-3 py-2 rounded-md border border-hairline bg-paper/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent ltr-force text-start"
               dir="ltr"
               placeholder="user@euroinspect360.com"
@@ -468,7 +543,8 @@ function CreateUserModal({
 
           <div>
             <label className="block text-xs font-medium text-ink mb-1.5">
-              {t('users.password', 'Password')} <span className="text-red-500">*</span>
+              {t('users.password', 'Password')}{' '}
+              <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -476,7 +552,9 @@ function CreateUserModal({
                 required
                 minLength={8}
                 value={formData.password}
-                onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, password: e.target.value }))
+                }
                 className="w-full text-sm px-3 py-2 pe-10 rounded-md border border-hairline bg-paper/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent ltr-force"
                 dir="ltr"
                 placeholder="••••••••"
@@ -486,7 +564,11 @@ function CreateUserModal({
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute end-2.5 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink cursor-pointer"
               >
-                {showPassword ? <EyeSlash className="size-4" /> : <Eye className="size-4" />}
+                {showPassword ? (
+                  <EyeSlash className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
               </button>
             </div>
             <p className="text-[11px] text-ink-mute mt-1">
@@ -501,7 +583,9 @@ function CreateUserModal({
             <input
               type="tel"
               value={formData.phone}
-              onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, phone: e.target.value }))
+              }
               className="w-full text-sm px-3 py-2 rounded-md border border-hairline bg-paper/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent ltr-force text-start"
               dir="ltr"
               placeholder="+20 100 000 0000"
@@ -510,7 +594,8 @@ function CreateUserModal({
 
           <div>
             <label className="block text-xs font-medium text-ink mb-1.5">
-              {t('users.thRole', 'Role')} <span className="text-red-500">*</span>
+              {t('users.thRole', 'Role')}{' '}
+              <span className="text-red-500">*</span>
             </label>
             <Select
               required
@@ -541,7 +626,7 @@ function CreateUserModal({
         </form>
       </div>
     </div>
-  )
+  );
 }
 
 function UserDetailsPanel({
@@ -552,126 +637,167 @@ function UserDetailsPanel({
   onClose,
   onRequestDelete,
 }: {
-  userId: string
-  user: UserProfile
-  currentUserId?: string
-  currentUserEmail?: string
-  onClose: () => void
-  onRequestDelete: () => void
+  userId: string;
+  user: UserProfile;
+  currentUserId?: string;
+  currentUserEmail?: string;
+  onClose: () => void;
+  onRequestDelete: () => void;
 }) {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { data: allBanks = [], isLoading: isBanksLoading } = useQuery<Bank[]>({
     queryKey: ['banks'],
     queryFn: fetchBanks,
-  })
+  });
 
-  const isSelf = currentUserId === userId || currentUserEmail === user.email
-  const isActive = user.isActive !== false
+  const isSelf = currentUserId === userId || currentUserEmail === user.email;
+  const isActive = user.isActive !== false;
 
   // Initial bank assignments from user prop
-  const initialBankIds = useMemo(() => user.banks?.map((b) => b.id) || [], [user.banks])
+  const initialBankIds = useMemo(
+    () => user.banks?.map((b) => b.id) || [],
+    [user.banks],
+  );
   const initialPrimaryBankId = useMemo(() => {
-    const primary = user.banks?.find((b) => b.isPrimary)
-    return primary ? primary.id : user.banks?.[0]?.id || null
-  }, [user.banks])
+    const primary = user.banks?.find((b) => b.isPrimary);
+    return primary ? primary.id : user.banks?.[0]?.id || null;
+  }, [user.banks]);
 
-  const [selectedBankIds, setSelectedBankIds] = useState<string[]>(initialBankIds)
-  const [primaryBankId, setPrimaryBankId] = useState<string | null>(initialPrimaryBankId)
+  const [selectedBankIds, setSelectedBankIds] =
+    useState<string[]>(initialBankIds);
+  const [primaryBankId, setPrimaryBankId] = useState<string | null>(
+    initialPrimaryBankId,
+  );
 
   // Determine if there are actual assignment changes
   const hasChanges = useMemo(() => {
-    const sameCount = selectedBankIds.length === initialBankIds.length
-    const sameItems = sameCount && selectedBankIds.every((id) => initialBankIds.includes(id))
-    const samePrimary = (primaryBankId || null) === (initialPrimaryBankId || null)
-    return !(sameItems && samePrimary)
-  }, [selectedBankIds, initialBankIds, primaryBankId, initialPrimaryBankId])
+    const sameCount = selectedBankIds.length === initialBankIds.length;
+    const sameItems =
+      sameCount && selectedBankIds.every((id) => initialBankIds.includes(id));
+    const samePrimary =
+      (primaryBankId || null) === (initialPrimaryBankId || null);
+    return !(sameItems && samePrimary);
+  }, [selectedBankIds, initialBankIds, primaryBankId, initialPrimaryBankId]);
 
   const toggleBank = (bankId: string) => {
     setSelectedBankIds((prev) => {
-      const exists = prev.includes(bankId)
+      const exists = prev.includes(bankId);
       if (exists) {
-        const next = prev.filter((id) => id !== bankId)
+        const next = prev.filter((id) => id !== bankId);
         if (primaryBankId === bankId) {
-          setPrimaryBankId(next[0] || null)
+          setPrimaryBankId(next[0] || null);
         }
-        return next
+        return next;
       } else {
-        const next = [...prev, bankId]
+        const next = [...prev, bankId];
         if (!primaryBankId) {
-          setPrimaryBankId(bankId)
+          setPrimaryBankId(bankId);
         }
-        return next
+        return next;
       }
-    })
-  }
+    });
+  };
 
   const saveMutation = useMutation({
-    mutationFn: () => updateUserBanks(userId, selectedBankIds, primaryBankId || undefined),
+    mutationFn: () =>
+      updateUserBanks(userId, selectedBankIds, primaryBankId || undefined),
     onSuccess: () => {
-      toast.success(t('users.assignedBanksUpdated', 'Assigned banks updated successfully'))
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      queryClient.invalidateQueries({ queryKey: ['users', userId] })
+      toast.success(
+        t('users.assignedBanksUpdated', 'Assigned banks updated successfully'),
+      );
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', userId] });
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, t('users.alreadyAssignedError', 'This user is already assigned to this bank.')))
+      toast.error(
+        getApiErrorMessage(
+          err,
+          t(
+            'users.alreadyAssignedError',
+            'This user is already assigned to this bank.',
+          ),
+        ),
+      );
     },
-  })
+  });
 
   const toggleStatusMutation = useMutation({
-    mutationFn: () => (isActive ? deactivateUser(userId) : activateUser(userId)),
+    mutationFn: () =>
+      isActive ? deactivateUser(userId) : activateUser(userId),
     onSuccess: () => {
       toast.success(
         isActive
           ? t('users.deactivatedSuccess', 'User deactivated successfully')
           : t('users.activatedSuccess', 'User activated successfully'),
-      )
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      queryClient.invalidateQueries({ queryKey: ['users', userId] })
+      );
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', userId] });
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, t('users.statusUpdateFailed', 'Failed to update user status')))
+      toast.error(
+        getApiErrorMessage(
+          err,
+          t('users.statusUpdateFailed', 'Failed to update user status'),
+        ),
+      );
     },
-  })
+  });
 
   const handleSave = () => {
     if (!hasChanges) {
-      toast.error(t('users.alreadyAssignedError', 'This user is already assigned to this bank.'))
-      return
+      toast.error(
+        t(
+          'users.alreadyAssignedError',
+          'This user is already assigned to this bank.',
+        ),
+      );
+      return;
     }
-    saveMutation.mutate()
-  }
+    saveMutation.mutate();
+  };
 
-  const isPlatformAdmin = user.role === 'SUPER_ADMIN' || user.role === 'SYSTEM_ADMIN'
+  const isPlatformAdmin =
+    user.role === 'SUPER_ADMIN' || user.role === 'SYSTEM_ADMIN';
 
   return (
     <div className="space-y-6">
       {/* User Info Grid & Account Status */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-lg bg-paper/60 border border-hairline text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-lg bg-paper/60 border border-hairline text-sm">
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thName', 'NAME')}</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">
+            {t('users.thName', 'NAME')}
+          </p>
           <p className="text-ink font-medium">
             {user.firstName} {user.lastName}
           </p>
         </div>
-        <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thEmail', 'EMAIL')}</p>
-          <p className="text-ink ltr-force text-start" dir="ltr">
+        <div className="min-w-0">
+          <p className="text-ink-mute font-medium text-xs mb-1">
+            {t('users.thEmail', 'EMAIL')}
+          </p>
+          <p className="text-ink ltr-force text-start break-all" dir="ltr">
             {user.email}
           </p>
         </div>
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thRole', 'ROLE')}</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">
+            {t('users.thRole', 'ROLE')}
+          </p>
           <span className="inline-flex rounded-md bg-ink-mute/10 px-2 py-0.5 text-xs font-mono font-medium text-ink">
             {user.role}
           </span>
         </div>
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">{t('banks.thPhone', 'PHONE')}</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">
+            {t('banks.thPhone', 'PHONE')}
+          </p>
           <p className="text-ink">{user.phone || t('common.na', '—')}</p>
         </div>
         <div>
-          <p className="text-ink-mute font-medium text-xs mb-1">{t('users.thStatus', 'STATUS')}</p>
+          <p className="text-ink-mute font-medium text-xs mb-1">
+            {t('users.thStatus', 'STATUS')}
+          </p>
           {isActive ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
               <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -688,7 +814,7 @@ function UserDetailsPanel({
 
       {/* Account Operations Toolbar (Activate, Deactivate, Delete) */}
       <div className="p-3.5 rounded-lg border border-hairline bg-white flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium text-ink-mute">
             {t('users.accountActions', 'Account Management:')}
           </span>
@@ -697,7 +823,14 @@ function UserDetailsPanel({
             size="sm"
             onClick={() => toggleStatusMutation.mutate()}
             disabled={toggleStatusMutation.isPending || isSelf}
-            title={isSelf ? t('users.cannotModifySelf', 'You cannot deactivate your own account') : undefined}
+            title={
+              isSelf
+                ? t(
+                    'users.cannotModifySelf',
+                    'You cannot deactivate your own account',
+                  )
+                : undefined
+            }
             className={`cursor-pointer text-xs flex items-center gap-1.5 ${
               isActive
                 ? 'text-amber-700 hover:bg-amber-50 hover:border-amber-300'
@@ -708,8 +841,8 @@ function UserDetailsPanel({
             {toggleStatusMutation.isPending
               ? t('common.updating', 'Updating...')
               : isActive
-              ? t('users.deactivateBtn', 'Deactivate Account')
-              : t('users.activateBtn', 'Activate Account')}
+                ? t('users.deactivateBtn', 'Deactivate Account')
+                : t('users.activateBtn', 'Activate Account')}
           </Button>
 
           <Button
@@ -717,7 +850,14 @@ function UserDetailsPanel({
             size="sm"
             onClick={onRequestDelete}
             disabled={isSelf}
-            title={isSelf ? t('users.cannotDeleteSelf', 'You cannot delete your own account') : undefined}
+            title={
+              isSelf
+                ? t(
+                    'users.cannotDeleteSelf',
+                    'You cannot delete your own account',
+                  )
+                : undefined
+            }
             className="cursor-pointer text-xs text-red-600 hover:bg-red-50 hover:border-red-300 flex items-center gap-1.5"
           >
             <Trash className="size-3.5" weight="bold" />
@@ -737,7 +877,10 @@ function UserDetailsPanel({
         <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/70 text-blue-900 space-y-2">
           <div className="flex items-center gap-2 font-semibold text-sm">
             <ShieldCheck className="size-5 text-blue-600" />
-            {t('users.platformAdminTitle', 'Platform Administrator — Global Access')}
+            {t(
+              'users.platformAdminTitle',
+              'Platform Administrator — Global Access',
+            )}
           </div>
           <p className="text-xs text-blue-800 leading-relaxed">
             {t(
@@ -753,11 +896,12 @@ function UserDetailsPanel({
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h4 className="font-medium text-sm text-ink flex items-center gap-1.5">
                 <Buildings className="size-4 text-ink-mute" />
-                {t('users.assignedBanksTitle', 'Assigned Banks')} ({selectedBankIds.length})
+                {t('users.assignedBanksTitle', 'Assigned Banks')} (
+                {selectedBankIds.length})
               </h4>
               <p className="text-xs text-ink-mute">
                 {t(
@@ -766,11 +910,15 @@ function UserDetailsPanel({
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Button variant="outline" size="sm" onClick={onClose}>
                 {t('common.done', 'Done')}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+              >
                 {saveMutation.isPending
                   ? t('common.saving', 'Saving...')
                   : t('users.saveBankAssignments', 'Save Bank Assignments')}
@@ -789,9 +937,9 @@ function UserDetailsPanel({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
               {allBanks.map((b) => {
-                const isChecked = selectedBankIds.includes(b.id)
-                const isPrimary = primaryBankId === b.id
-                const isAlreadyAssigned = initialBankIds.includes(b.id)
+                const isChecked = selectedBankIds.includes(b.id);
+                const isPrimary = primaryBankId === b.id;
+                const isAlreadyAssigned = initialBankIds.includes(b.id);
 
                 return (
                   <div
@@ -812,7 +960,9 @@ function UserDetailsPanel({
                               : 'border-hairline bg-white'
                           }`}
                         >
-                          {isChecked && <Check weight="bold" className="size-3" />}
+                          {isChecked && (
+                            <Check weight="bold" className="size-3" />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
@@ -825,7 +975,9 @@ function UserDetailsPanel({
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-ink-soft leading-tight line-clamp-1">{b.name}</p>
+                          <p className="text-xs text-ink-soft leading-tight line-clamp-1">
+                            {b.name}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -835,8 +987,8 @@ function UserDetailsPanel({
                         <button
                           type="button"
                           onClick={(e) => {
-                            e.stopPropagation()
-                            setPrimaryBankId(b.id)
+                            e.stopPropagation();
+                            setPrimaryBankId(b.id);
                           }}
                           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
                             isPrimary
@@ -848,17 +1000,19 @@ function UserDetailsPanel({
                             weight={isPrimary ? 'fill' : 'regular'}
                             className={`size-3 ${isPrimary ? 'text-amber-500' : ''}`}
                           />
-                          {isPrimary ? t('users.primaryBank', 'Primary Bank') : t('users.setPrimary', 'Set as Primary')}
+                          {isPrimary
+                            ? t('users.primaryBank', 'Primary Bank')
+                            : t('users.setPrimary', 'Set as Primary')}
                         </button>
                       </div>
                     )}
                   </div>
-                )
+                );
               })}
             </div>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

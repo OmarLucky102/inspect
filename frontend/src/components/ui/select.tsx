@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom'
 import { CaretDown, Check, MagnifyingGlass, Plus, X } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
+import { useAnimatedMount } from '@/lib/use-animated-mount'
 import { useDropdownDismiss } from '@/lib/use-dropdown-dismiss'
 
 export interface SelectOption {
@@ -68,8 +69,8 @@ const SIZE_CLASSES: Record<NonNullable<SelectProps['size']>, string> = {
 }
 
 const VARIANT_CLASSES: Record<NonNullable<SelectProps['variant']>, string> = {
-  default: 'border-hairline bg-white hover:border-ink/25',
-  subtle: 'border-hairline bg-paper hover:border-ink/25 hover:bg-bone',
+  default: 'border-hairline bg-white/80 dark:bg-white/[0.05] backdrop-blur-xs hover:border-ink/25',
+  subtle: 'glass-subtle hover:border-ink/25',
 }
 
 /**
@@ -113,9 +114,14 @@ export function Select({
     emptyText ?? t('common.noOptions', 'No options found')
 
   const [isOpen, setIsOpen] = useState(false)
+  const { mounted: menuMounted, state: menuState } = useAnimatedMount(isOpen, 140)
+  const [openAbove, setOpenAbove] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
-  const [menuStyle, setMenuStyle] = useState<CSSProperties>({})
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({
+    position: 'fixed',
+    visibility: 'hidden',
+  })
 
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -159,13 +165,18 @@ export function Select({
     const isRtl = document.documentElement.dir === 'rtl'
     const viewportPadding = 8
     const maxViewportW = window.innerWidth - viewportPadding * 2
-    const measuredW = menuRef.current?.offsetWidth ?? 0
+    const isMenuPositioned = menuRef.current?.style.position === 'fixed'
+    const measuredW = isMenuPositioned ? (menuRef.current?.offsetWidth ?? 0) : 0
 
     let left = rect.left
     const widthStyle: CSSProperties = {}
 
     if (align === 'stretch') {
       widthStyle.width = rect.width
+      left = Math.max(
+        viewportPadding,
+        Math.min(rect.left, window.innerWidth - rect.width - viewportPadding),
+      )
     } else {
       const targetW = Math.min(
         Math.max(rect.width, measuredW || 288),
@@ -184,27 +195,38 @@ export function Select({
 
     const spaceBelow = window.innerHeight - rect.bottom - viewportPadding
     const spaceAbove = rect.top - viewportPadding
-    const openAbove = spaceBelow < 240 && spaceAbove > spaceBelow
+    const shouldOpenAbove = spaceBelow < 240 && spaceAbove > spaceBelow
     const maxHeight = Math.max(
       160,
-      Math.min(340, (openAbove ? spaceAbove : spaceBelow) - 6),
+      Math.min(340, (shouldOpenAbove ? spaceAbove : spaceBelow) - 6),
     )
 
+    setOpenAbove(shouldOpenAbove)
     setMenuStyle({
       position: 'fixed',
+      visibility: 'visible',
       left,
       ...widthStyle,
-      ...(openAbove
+      ...(shouldOpenAbove
         ? { bottom: window.innerHeight - rect.top + 6 }
         : { top: rect.bottom + 6 }),
       maxHeight,
     })
   }, [align])
 
+  const openMenu = useCallback(
+    (initialHighlightIndex: number) => {
+      updatePosition()
+      setHighlightedIndex(initialHighlightIndex)
+      setIsOpen(true)
+    },
+    [updatePosition],
+  )
+
   useLayoutEffect(() => {
-    if (!isOpen) return
+    if (!menuMounted) return
     updatePosition()
-  }, [isOpen, filteredOptions.length, updatePosition])
+  }, [menuMounted, filteredOptions.length, updatePosition])
 
   useEffect(() => {
     if (!isOpen) return
@@ -218,21 +240,31 @@ export function Select({
   }, [isOpen, showSearch])
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!menuMounted) return
+
+    let rafId = 0
+    const schedulePosition = () => {
+      if (rafId) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0
+        updatePosition()
+      })
+    }
 
     const handleScroll = (event: Event) => {
       if (menuRef.current?.contains(event.target as Node)) return
-      updatePosition()
+      schedulePosition()
     }
 
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', handleScroll, true)
+    window.addEventListener('resize', schedulePosition, { passive: true })
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
 
     return () => {
-      window.removeEventListener('resize', updatePosition)
+      if (rafId) window.cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', schedulePosition)
       window.removeEventListener('scroll', handleScroll, true)
     }
-  }, [isOpen, updatePosition])
+  }, [menuMounted, updatePosition])
 
   const handleSelect = (opt: SelectOption) => {
     if (opt.disabled) return
@@ -267,9 +299,8 @@ export function Select({
     if (!isOpen) {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault()
-        setIsOpen(true)
         const selectedIdx = filteredOptions.findIndex((o) => o.value === value)
-        setHighlightedIndex(selectedIdx >= 0 ? selectedIdx : 0)
+        openMenu(selectedIdx >= 0 ? selectedIdx : 0)
       }
       return
     }
@@ -330,8 +361,7 @@ export function Select({
             closeMenu()
           } else {
             const idx = options.findIndex((o) => o.value === value)
-            setHighlightedIndex(idx >= 0 ? idx : 0)
-            setIsOpen(true)
+            openMenu(idx >= 0 ? idx : 0)
           }
         }}
         className={cn(
@@ -401,15 +431,22 @@ export function Select({
         </span>
       </button>
 
-      {isOpen && (() => {
+      {menuMounted && (() => {
         const menuElement = (
           <div
             ref={menuRef}
             role="listbox"
+            data-state={menuState}
             style={portal ? menuStyle : { maxHeight: 280 }}
             onKeyDown={handleKeyNavigation}
             className={cn(
-              'z-[120] flex flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150',
+              'glass-popover z-[120] flex flex-col overflow-hidden rounded-2xl',
+              openAbove ? 'origin-bottom' : 'origin-top',
+              'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+              openAbove
+                ? 'data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:slide-out-to-bottom-2'
+                : 'data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2',
+              'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
               !portal && 'absolute top-full mt-1.5 w-full start-0',
               menuClassName,
             )}

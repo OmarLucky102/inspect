@@ -30,7 +30,7 @@ export function LoginPage() {
   ]
 
   return (
-    <main className="relative h-screen h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#07090e] text-white">
+    <main className="relative min-h-[100dvh] lg:h-[100dvh] lg:max-h-[100dvh] w-full overflow-x-clip overflow-y-auto lg:overflow-hidden bg-[#07090e] text-white">
       {/* Cinematic Background Layer with login_background.webp */}
       <div className="fixed inset-0 pointer-events-none select-none z-0">
         <img
@@ -58,8 +58,8 @@ export function LoginPage() {
         />
       </div>
 
-      {/* Foreground Content Container - locked to 100dvh with zero scrolling */}
-      <div className="relative z-10 flex h-full max-h-[100dvh] flex-col justify-between p-4 sm:px-8 sm:py-4 lg:px-12 lg:py-5 xl:px-14 xl:py-6 overflow-hidden">
+      {/* Foreground Content Container - locked to 100dvh on desktop, scrollable on short mobile screens */}
+      <div className="relative z-10 flex min-h-[100dvh] lg:h-full lg:max-h-[100dvh] flex-col justify-between gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] sm:px-8 sm:py-5 lg:gap-0 lg:px-12 lg:py-5 xl:px-14 xl:py-6 lg:overflow-hidden">
         {/* Top Header Bar */}
         <header className="flex shrink-0 items-center justify-between">
           <div className="flex items-center gap-3">
@@ -137,7 +137,7 @@ export function LoginPage() {
             </div>
 
             {/* Mini Dossier Feature Strip */}
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-1 min-[420px]:grid-cols-3 gap-2">
               {DOSSIER_BADGES.map((item) => (
                 <div
                   key={item.label}
