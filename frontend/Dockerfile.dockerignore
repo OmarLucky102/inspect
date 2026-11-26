@@ -1,0 +1,37 @@
+# ==============================================================================
+# frontend/Dockerfile.dockerignore
+# Docker uses this file automatically when building frontend/Dockerfile with
+# context: . (repo root).
+#
+# Allowlist pattern: ignore everything in the repo by default, then explicitly
+# allow only the root workspace files and frontend/ source files needed to build.
+# Re-exclude local frontend artifacts (node_modules, dist, .vite, .env) so host
+# Windows junctions/caches never bloat the context or overwrite Linux container
+# node_modules.
+# ==============================================================================
+
+# 1. Ignore everything at repo root by default
+*
+
+# 2. Allow root workspace files needed by pnpm --frozen-lockfile
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+
+# 3. Allow frontend directory and its source files
+!frontend
+!frontend/**
+
+# 4. Re-exclude local frontend dependencies, build outputs, caches, and secrets
+frontend/node_modules
+frontend/node_modules/**
+frontend/dist
+frontend/dist/**
+frontend/.vite
+frontend/.vite/**
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/*.7z
+frontend/**/*.log
