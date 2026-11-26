@@ -85,7 +85,7 @@ function WorkspaceRequiredViewInner({
   if (hasNoBanksAssigned) {
     return (
       <div
-        className={`relative flex min-h-[460px] w-full flex-col items-center justify-center rounded-3xl border border-hairline bg-white/80 p-8 text-center backdrop-blur-sm sm:p-12 ${className}`}
+        className={`glass-card relative flex min-h-[460px] w-full flex-col items-center justify-center rounded-3xl p-8 text-center sm:p-12 ${className}`}
       >
         {/* Status Badge */}
         <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-rose-500/10 px-3.5 py-1 font-mono text-[11px] font-semibold text-rose-600 uppercase tracking-wider">
@@ -201,7 +201,7 @@ function WorkspaceRequiredViewInner({
   // Case 2: User HAS available bank workspaces, but none is actively chosen
   return (
     <div
-      className={`relative flex min-h-[460px] w-full flex-col items-center justify-center rounded-3xl border border-hairline bg-white/80 p-8 text-center backdrop-blur-sm sm:p-12 ${className}`}
+      className={`glass-card relative flex min-h-[460px] w-full flex-col items-center justify-center rounded-3xl p-8 text-center sm:p-12 ${className}`}
     >
       {/* Status Badge */}
       <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-semibold text-amber-600 uppercase tracking-wider">

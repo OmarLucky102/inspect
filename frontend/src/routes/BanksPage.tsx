@@ -1,82 +1,110 @@
-import { Bank as BankIcon, CircleNotch, X, Plus } from '@phosphor-icons/react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchBanks, createBank, type CreateBankDto } from '@/features/banks/api'
-import { useWorkspace } from '@/features/workspaces/workspace-context'
-import { Button } from '@/components/ui/button'
-import { BankDetails } from '@/features/banks/components/BankDetails'
-import { toast } from 'sonner'
-import { getApiErrorMessage } from '@/lib/api'
-import { ErrorView } from '@/components/errors/ErrorView'
-import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView'
+import { Bank as BankIcon, CircleNotch, X, Plus } from '@phosphor-icons/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ModuleEmptyState } from '@/components/layout/ModuleEmptyState';
+import { PageHeader } from '@/components/layout/PageHeader';
+import {
+  fetchBanks,
+  createBank,
+  type CreateBankDto,
+} from '@/features/banks/api';
+import { useWorkspace } from '@/features/workspaces/workspace-context';
+import { Button } from '@/components/ui/button';
+import { BankDetails } from '@/features/banks/components/BankDetails';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
+import { ErrorView } from '@/components/errors/ErrorView';
+import { WorkspaceRequiredView } from '@/components/errors/WorkspaceRequiredView';
 
 function getSuggestedBankCode(name: string): string {
-  const trimmed = name.trim()
-  if (!trimmed) return ''
+  const trimmed = name.trim();
+  if (!trimmed) return '';
   const stopWords = new Set([
-    'AND', '&', 'THE', 'OF', 'FOR', 'DE', 'DU', 'EL', 'AL',
-    'BANK', 'BANQUE', 'بنك', 'مصرف',
-  ])
-  const tokens = trimmed.split(/[\s\-_,.]+/).filter(Boolean)
+    'AND',
+    '&',
+    'THE',
+    'OF',
+    'FOR',
+    'DE',
+    'DU',
+    'EL',
+    'AL',
+    'BANK',
+    'BANQUE',
+    'بنك',
+    'مصرف',
+  ]);
+  const tokens = trimmed.split(/[\s\-_,.]+/).filter(Boolean);
   const latinTokens = tokens
-    .filter(t => /^[a-zA-Z0-9]+$/.test(t))
-    .filter(t => !stopWords.has(t.toUpperCase()))
+    .filter((t) => /^[a-zA-Z0-9]+$/.test(t))
+    .filter((t) => !stopWords.has(t.toUpperCase()));
 
   if (latinTokens.length >= 2) {
-    return latinTokens.map(t => t[0].toUpperCase()).join('').slice(0, 8)
+    return latinTokens
+      .map((t) => t[0].toUpperCase())
+      .join('')
+      .slice(0, 8);
   }
   if (latinTokens.length === 1) {
-    return latinTokens[0].toUpperCase().slice(0, 6)
+    return latinTokens[0].toUpperCase().slice(0, 6);
   }
-  const anyLatin = trimmed.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+  const anyLatin = trimmed.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   if (anyLatin.length >= 2) {
-    return anyLatin.slice(0, 6)
+    return anyLatin.slice(0, 6);
   }
-  return ''
+  return '';
 }
 
 export function BanksPage() {
-  const { t, i18n } = useTranslation()
-  const isArabic = i18n.language?.startsWith('ar')
-  const { user, banks, activeBankId } = useWorkspace()
-  const queryClient = useQueryClient()
-  const [selectedBankId, setSelectedBankId] = useState<string | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
-  
-  const [formData, setFormData] = useState<CreateBankDto>({ name: '', code: '', email: '', phone: '' })
-  const [isCodeManual, setIsCodeManual] = useState(false)
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
+  const { user, banks, activeBankId } = useWorkspace();
+  const queryClient = useQueryClient();
+  const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const [formData, setFormData] = useState<CreateBankDto>({
+    name: '',
+    code: '',
+    email: '',
+    phone: '',
+  });
+  const [isCodeManual, setIsCodeManual] = useState(false);
 
   const handleNameChange = (name: string) => {
     if (!isCodeManual) {
-      const suggested = getSuggestedBankCode(name)
-      setFormData(prev => ({ ...prev, name, code: suggested }))
+      const suggested = getSuggestedBankCode(name);
+      setFormData((prev) => ({ ...prev, name, code: suggested }));
     } else {
-      setFormData(prev => ({ ...prev, name }))
+      setFormData((prev) => ({ ...prev, name }));
     }
-  }
+  };
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['banks'],
     queryFn: fetchBanks,
     enabled: user?.role === 'SUPER_ADMIN',
-  })
+  });
 
   const createMutation = useMutation({
     mutationFn: createBank,
     onSuccess: () => {
-      toast.success(t('banks.createSuccess', 'Bank created successfully'))
-      queryClient.invalidateQueries({ queryKey: ['banks'] })
-      setIsCreating(false)
-      setFormData({ name: '', code: '', email: '', phone: '' })
-      setIsCodeManual(false)
+      toast.success(t('banks.createSuccess', 'Bank created successfully'));
+      queryClient.invalidateQueries({ queryKey: ['banks'] });
+      setIsCreating(false);
+      setFormData({ name: '', code: '', email: '', phone: '' });
+      setIsCodeManual(false);
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, t('banks.createError', 'Failed to create bank')))
-    }
-  })
+      toast.error(
+        getApiErrorMessage(
+          err,
+          t('banks.createError', 'Failed to create bank'),
+        ),
+      );
+    },
+  });
 
   if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'MANAGER') {
     return (
@@ -93,7 +121,7 @@ export function BanksPage() {
           backLabel={t('errors.backToDashboard', 'Back to Dashboard')}
         />
       </div>
-    )
+    );
   }
 
   if (user?.role !== 'SUPER_ADMIN') {
@@ -105,7 +133,7 @@ export function BanksPage() {
             featureNameAr="تفاصيل البنك وأعضائه"
           />
         </div>
-      )
+      );
     }
 
     return (
@@ -114,11 +142,14 @@ export function BanksPage() {
           kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
           kickerIcon={BankIcon}
           title={t('banks.title', 'Bank Workspace')}
-          subtitle={t('banks.subtitle', 'Review your bank workspace details and manage assigned team members.')}
+          subtitle={t(
+            'banks.subtitle',
+            'Review your bank workspace details and manage assigned team members.',
+          )}
         />
         <BankDetails bankId={activeBankId} onClose={() => {}} />
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -126,27 +157,24 @@ export function BanksPage() {
       <div className="flex justify-center py-20">
         <CircleNotch className="size-8 animate-spin text-ink-mute" />
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div className="py-8">
-        <ErrorView
-          error={error}
-          onRetry={() => refetch()}
-        />
+        <ErrorView error={error} onRetry={() => refetch()} />
       </div>
-    )
+    );
   }
 
   const renderCreateModal = () => {
-    if (!isCreating) return null
+    if (!isCreating) return null;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         {/* Backdrop */}
-        <div 
+        <div
           className="fixed inset-0 bg-ink/50 backdrop-blur-xs transition-opacity duration-200"
           onClick={() => setIsCreating(false)}
           aria-hidden
@@ -156,34 +184,42 @@ export function BanksPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-hairline overflow-hidden z-10 animate-in fade-in-0 zoom-in-95 duration-200 p-6"
+          className="glass-popover relative w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl z-10 animate-in fade-in-0 zoom-in-95 duration-200 p-5 sm:p-6"
         >
-          <button 
+          <button
             className="absolute top-4 end-4 text-ink-mute hover:text-ink cursor-pointer modal-close"
             onClick={() => setIsCreating(false)}
           >
             <X className="size-5" />
           </button>
-          <h3 className="font-semibold text-lg mb-4">{t('banks.createModalTitle', 'Create New Bank Workspace')}</h3>
-          <form 
+          <h3 className="font-semibold text-lg mb-4">
+            {t('banks.createModalTitle', 'Create New Bank Workspace')}
+          </h3>
+          <form
             onSubmit={(e) => {
-              e.preventDefault()
-              const payload: CreateBankDto = { name: formData.name.trim() }
-              if (formData.code?.trim()) payload.code = formData.code.trim().toUpperCase()
-              if (formData.email?.trim()) payload.email = formData.email.trim()
-              if (formData.phone?.trim()) payload.phone = formData.phone.trim()
-              createMutation.mutate(payload)
+              e.preventDefault();
+              const payload: CreateBankDto = { name: formData.name.trim() };
+              if (formData.code?.trim())
+                payload.code = formData.code.trim().toUpperCase();
+              if (formData.email?.trim()) payload.email = formData.email.trim();
+              if (formData.phone?.trim()) payload.phone = formData.phone.trim();
+              createMutation.mutate(payload);
             }}
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-medium text-ink-mute mb-1">{t('banks.nameLabel', 'Bank Name *')}</label>
-              <input 
+              <label className="block text-xs font-medium text-ink-mute mb-1">
+                {t('banks.nameLabel', 'Bank Name *')}
+              </label>
+              <input
                 required
                 className="w-full rounded-md border border-hairline px-3 py-2 text-sm"
                 value={formData.name}
-                onChange={e => handleNameChange(e.target.value)}
-                placeholder={t('banks.namePlaceholder', 'e.g. Commercial International Bank')}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder={t(
+                  'banks.namePlaceholder',
+                  'e.g. Commercial International Bank',
+                )}
               />
             </div>
             <div>
@@ -192,54 +228,83 @@ export function BanksPage() {
                   {t('banks.codeLabel', 'Bank Code (Workspace Identifier)')}
                 </label>
                 <span className="text-[10px] text-ink-mute bg-bone px-1.5 py-0.5 rounded">
-                  {formData.code ? t('banks.codeAutoFilled', 'Auto-generated') : t('banks.codeAutoBlank', 'Auto-generated if left blank')}
+                  {formData.code
+                    ? t('banks.codeAutoFilled', 'Auto-generated')
+                    : t('banks.codeAutoBlank', 'Auto-generated if left blank')}
                 </span>
               </div>
-              <input 
+              <input
                 className="w-full rounded-md border border-hairline px-3 py-2 text-sm ltr-force text-start font-mono"
                 dir="ltr"
                 value={formData.code || ''}
-                onChange={e => {
-                  setIsCodeManual(true)
-                  setFormData({ ...formData, code: e.target.value.toUpperCase() })
+                onChange={(e) => {
+                  setIsCodeManual(true);
+                  setFormData({
+                    ...formData,
+                    code: e.target.value.toUpperCase(),
+                  });
                 }}
-                placeholder={t('banks.codePlaceholderAuto', 'Auto-generated (e.g. CIB / BNK-001)')}
+                placeholder={t(
+                  'banks.codePlaceholderAuto',
+                  'Auto-generated (e.g. CIB / BNK-001)',
+                )}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-mute mb-1">{t('banks.emailLabel', 'Contact Email')}</label>
-              <input 
+              <label className="block text-xs font-medium text-ink-mute mb-1">
+                {t('banks.emailLabel', 'Contact Email')}
+              </label>
+              <input
                 type="email"
                 dir="ltr"
                 className="w-full rounded-md border border-hairline px-3 py-2 text-sm ltr-force text-start"
                 value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                placeholder={t('banks.emailPlaceholder', 'e.g. bank@example.com')}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder={t(
+                  'banks.emailPlaceholder',
+                  'e.g. bank@example.com',
+                )}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-mute mb-1">{t('banks.phoneLabel', 'Phone Number')}</label>
-              <input 
+              <label className="block text-xs font-medium text-ink-mute mb-1">
+                {t('banks.phoneLabel', 'Phone Number')}
+              </label>
+              <input
                 dir="ltr"
                 className="w-full rounded-md border border-hairline px-3 py-2 text-sm ltr-force text-start"
                 value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 placeholder={t('banks.phonePlaceholder', 'e.g. 0212345678')}
               />
             </div>
             <div className="flex items-center gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreating(false)}
+              >
                 {t('common.cancel', 'Cancel')}
               </Button>
-              <Button type="submit" disabled={createMutation.isPending} className="cursor-pointer">
-                {createMutation.isPending ? t('common.loading', 'Creating...') : t('banks.createButton', 'Create Bank Workspace')}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="cursor-pointer"
+              >
+                {createMutation.isPending
+                  ? t('common.loading', 'Creating...')
+                  : t('banks.createButton', 'Create Bank Workspace')}
               </Button>
             </div>
           </form>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   if (!data || data.length === 0) {
     return (
@@ -247,14 +312,17 @@ export function BanksPage() {
         <ModuleEmptyState
           kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
           title={t('banks.title', 'Bank workspaces and memberships.')}
-          body={t('banks.subtitle', 'Banks, membership roles and inspection scopes will live here, backed by the organization module and bank-membership guard.')}
+          body={t(
+            'banks.subtitle',
+            'Banks, membership roles and inspection scopes will live here, backed by the organization module and bank-membership guard.',
+          )}
           icon={BankIcon}
           actionLabel={t('banks.newBank', 'New Bank')}
           onAction={() => setIsCreating(true)}
         />
         {renderCreateModal()}
       </>
-    )
+    );
   }
 
   return (
@@ -263,40 +331,62 @@ export function BanksPage() {
         kicker={t('titles.banksMeta', 'ORGANIZATION · WORKSPACES')}
         kickerIcon={BankIcon}
         title={t('banks.title', 'Banks (Workspaces)')}
-        subtitle={t('banks.subtitle', 'Administer partner bank workspaces, codes, and assigned team memberships.')}
+        subtitle={t(
+          'banks.subtitle',
+          'Administer partner bank workspaces, codes, and assigned team memberships.',
+        )}
         actions={
           <>
             <span className="rounded-lg bg-paper px-2.5 py-1.5 font-mono text-xs text-ink-mute border border-hairline">
               {data.length} {t('banks.total', 'TOTAL')}
             </span>
-            <Button size="sm" onClick={() => setIsCreating(true)} className="h-9 gap-1.5 rounded-xl px-3.5 cursor-pointer">
+            <Button
+              size="sm"
+              onClick={() => setIsCreating(true)}
+              className="h-9 gap-1.5 rounded-xl px-3.5 cursor-pointer"
+            >
               <Plus className="size-4" /> {t('banks.newBank', 'New Bank')}
             </Button>
           </>
         }
       />
 
-      <div className="rounded-2xl border border-hairline bg-white shadow-xs overflow-hidden">
+      <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm">
-            <thead className="bg-bone text-ink-mute font-medium border-b border-hairline">
+            <thead className="border-b border-hairline/80 bg-paper/55 dark:bg-white/[0.03] font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-mute">
               <tr>
-                <th className="px-5 py-3 text-start">{t('banks.thCode', 'Code')}</th>
-                <th className="px-5 py-3 text-start">{t('banks.thName', 'Name')}</th>
-                <th className="px-5 py-3 text-start">{t('banks.thContact', 'Contact')}</th>
-                <th className="px-5 py-3 text-end">{t('banks.thActions', 'Actions')}</th>
+                <th className="px-5 py-3 text-start">
+                  {t('banks.thCode', 'Code')}
+                </th>
+                <th className="px-5 py-3 text-start">
+                  {t('banks.thName', 'Name')}
+                </th>
+                <th className="px-5 py-3 text-start">
+                  {t('banks.thContact', 'Contact')}
+                </th>
+                <th className="px-5 py-3 text-end">
+                  {t('banks.thActions', 'Actions')}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
               {data.map((b) => (
                 <tr key={b.id} className="hover:bg-paper/50 transition-colors">
-                  <td className="px-5 py-3 font-mono font-medium text-ink">{b.code}</td>
+                  <td className="px-5 py-3 font-mono font-medium text-ink">
+                    {b.code}
+                  </td>
                   <td className="px-5 py-3 text-ink">{b.name}</td>
                   <td className="px-5 py-3 text-ink-soft">
                     {b.email || b.phone || '—'}
                   </td>
                   <td className="px-5 py-3 text-end">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedBankId(b.id)} className="cursor-pointer text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedBankId(b.id)}
+                      className="cursor-pointer text-xs"
+                    >
                       {t('banks.manage', 'Manage')}
                     </Button>
                   </td>
@@ -310,11 +400,11 @@ export function BanksPage() {
       {renderCreateModal()}
 
       {selectedBankId && (
-        <BankDetails 
-          bankId={selectedBankId} 
-          onClose={() => setSelectedBankId(null)} 
+        <BankDetails
+          bankId={selectedBankId}
+          onClose={() => setSelectedBankId(null)}
         />
       )}
     </div>
-  )
+  );
 }

@@ -844,7 +844,7 @@ function CreateRequestContent() {
       {currentStep === 1 && (
         <form onSubmit={handleStep1Submit} className="space-y-6">
           {/* Customer Details Card */}
-          <div className="rounded-2xl border border-hairline bg-white p-6 shadow-2xs">
+          <div className="rounded-2xl border border-hairline bg-white p-4 sm:p-6 shadow-2xs">
             <div className="mb-4 flex items-center gap-2 border-b border-hairline pb-3">
               <IdentificationCard className="size-5 text-accent" />
               <div>
@@ -926,7 +926,7 @@ function CreateRequestContent() {
           </div>
 
           {/* Location & Scheduling Card */}
-          <div className="rounded-2xl border border-hairline bg-white p-6 shadow-2xs">
+          <div className="rounded-2xl border border-hairline bg-white p-4 sm:p-6 shadow-2xs">
             <div className="mb-4 flex items-center gap-2 border-b border-hairline pb-3">
               <MapPin className="size-5 text-accent" />
               <div>
@@ -1043,7 +1043,7 @@ function CreateRequestContent() {
       {currentStep === 2 && (
         <div className="space-y-6">
           {/* Active Request Banner */}
-          <div className="flex items-center justify-between rounded-xl border border-accent/20 bg-accent/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-accent/20 bg-accent/5 p-4">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-white">
                 <Car className="size-5" />
@@ -1073,7 +1073,7 @@ function CreateRequestContent() {
           </div>
 
           {/* Vehicle Information Card (13 Bank Fields) */}
-          <div className="rounded-2xl border border-hairline bg-white p-6 shadow-2xs space-y-6">
+          <div className="rounded-2xl border border-hairline bg-white p-4 sm:p-6 shadow-2xs space-y-6">
             <div className="flex items-center gap-2 border-b border-hairline pb-3">
               <Car className="size-5 text-accent" />
               <div>
@@ -1445,7 +1445,7 @@ function CreateRequestContent() {
               {t('createRequest.backToCustomer', 'Back to Customer Info')}
             </Button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 sm:gap-3">
               <Button
                 type="button"
                 variant="outline"
@@ -1587,7 +1587,6 @@ function CreateRequestContent() {
                   type="submit"
                   size="sm"
                   disabled={addTrimMutation.isPending}
-                  className="bg-accent text-white"
                 >
                   {addTrimMutation.isPending ? (
                     <>
@@ -1701,7 +1700,6 @@ function CreateRequestContent() {
                   type="submit"
                   size="sm"
                   disabled={addCategoryMutation.isPending}
-                  className="bg-accent text-white"
                 >
                   {addCategoryMutation.isPending ? (
                     <>
@@ -1814,7 +1812,6 @@ function CreateRequestContent() {
                   type="submit"
                   size="sm"
                   disabled={addSunroofMutation.isPending}
-                  className="bg-accent text-white"
                 >
                   {addSunroofMutation.isPending ? (
                     <>

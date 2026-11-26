@@ -404,7 +404,7 @@ function ProfileContent({
               type="submit"
               size="sm"
               disabled={!isDirty || updateMutation.isPending}
-              className="w-full sm:w-auto gap-2 bg-ink text-white hover:bg-ink/90 min-w-[130px] text-xs cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto gap-2 min-w-[130px] text-xs"
             >
               {updateMutation.isPending ? (
                 <>

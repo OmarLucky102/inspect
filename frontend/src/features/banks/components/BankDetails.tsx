@@ -35,15 +35,15 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
   })
 
   return (
-    <div className="rounded-2xl border border-hairline bg-white shadow-xs overflow-hidden relative">
-      <div className="flex border-b border-hairline bg-paper/50 px-5 pt-4">
-        <h3 className="font-semibold text-lg pb-4 me-6">{t('banks.manageBank', 'Manage Bank')}</h3>
-        <nav className="flex gap-4">
+    <div className="glass-card rounded-2xl overflow-hidden relative">
+      <div className="flex flex-col sm:flex-row sm:items-end border-b border-hairline/70 bg-paper/45 dark:bg-white/[0.02] px-4 sm:px-5 pt-4 pe-12">
+        <h3 className="font-semibold text-base sm:text-lg pb-2 sm:pb-4 sm:me-6 shrink-0">{t('banks.manageBank', 'Manage Bank')}</h3>
+        <nav className="flex gap-4 overflow-x-auto no-scrollbar whitespace-nowrap">
           {(['details', 'members', 'newUser', 'existingUser'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+              className={`shrink-0 pb-3 sm:pb-4 text-xs sm:text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                 activeTab === tab
                   ? 'border-ink text-ink font-semibold'
                   : 'border-transparent text-ink-mute hover:text-ink'
@@ -65,7 +65,7 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
         <X className="size-5" />
       </button>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {isLoading ? (
           <div className="flex justify-center py-10">
             <CircleNotch className="size-6 animate-spin text-ink-mute" />
@@ -93,10 +93,10 @@ export function BankDetails({ bankId, onClose }: BankDetailsProps) {
 function TabDetails({ bank }: { bank: any }) {
   const { t } = useTranslation()
   return (
-    <div className="grid grid-cols-2 gap-4 text-sm">
-      <div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <div className="min-w-0">
         <p className="text-ink-mute font-medium text-xs mb-1">{t('banks.detailsId', 'ID')}</p>
-        <p className="font-mono text-ink">{bank.id}</p>
+        <p className="font-mono text-ink break-all text-xs sm:text-sm">{bank.id}</p>
       </div>
       <div>
         <p className="text-ink-mute font-medium text-xs mb-1">{t('banks.detailsCode', 'CODE')}</p>
@@ -265,7 +265,7 @@ function TabNewUser({ bankId }: { bankId: string }) {
       onSubmit={(e) => { e.preventDefault(); createMutation.mutate(formData) }}
       className="space-y-4 max-w-md"
     >
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-ink-mute mb-1">{t('banks.firstNameLabel', 'First Name *')}</label>
           <input required className="w-full rounded-md border border-hairline px-3 py-2 text-sm" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} placeholder={t('banks.firstNamePlaceholder', 'e.g. John')} />

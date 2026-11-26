@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, House, CircleNotch } from '@phosphor-icons/react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  House,
+  CircleNotch,
+} from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/features/workspaces/workspace-context';
 import { fetchInspectionRequestDetails } from '@/features/inspection-requests/api';
@@ -38,7 +43,11 @@ export function RequestDetailPage() {
 
   // Sync URL ?bankId=... only when the user actually has access to that bank
   useEffect(() => {
-    if (bankIdFromUrl && hasBankFromUrlAccess && bankIdFromUrl !== activeBankId) {
+    if (
+      bankIdFromUrl &&
+      hasBankFromUrlAccess &&
+      bankIdFromUrl !== activeBankId
+    ) {
       setActiveBankId(bankIdFromUrl);
     }
   }, [bankIdFromUrl, hasBankFromUrlAccess, activeBankId, setActiveBankId]);
@@ -118,7 +127,9 @@ export function RequestDetailPage() {
       <div className="py-8">
         <ErrorView
           status={404}
-          title={isArabic ? 'طلب الفحص غير موجود' : 'Inspection Request Not Found'}
+          title={
+            isArabic ? 'طلب الفحص غير موجود' : 'Inspection Request Not Found'
+          }
           message={
             isArabic
               ? `لم يتم العثور على طلب فحص بالمعرّف (${id || '—'}) في مساحة العمل الحالية.`
@@ -176,9 +187,13 @@ function RequestDetailContent({
         <div className="flex min-h-[460px] flex-col items-center justify-center rounded-3xl border border-hairline bg-white/70 p-12 text-center shadow-xs">
           <CircleNotch className="size-10 animate-spin text-accent mb-4" />
           <p className="text-sm font-medium text-ink">
-            {isArabic ? 'جاري التحقق من تفاصيل طلب الفحص...' : 'Loading inspection request details...'}
+            {isArabic
+              ? 'جاري التحقق من تفاصيل طلب الفحص...'
+              : 'Loading inspection request details...'}
           </p>
-          <p className="mt-1 text-xs text-ink-mute font-mono" dir="ltr">{id}</p>
+          <p className="mt-1 text-xs text-ink-mute font-mono" dir="ltr">
+            {id}
+          </p>
         </div>
       </div>
     );
@@ -196,14 +211,16 @@ function RequestDetailContent({
           status={isNotFound ? 404 : undefined}
           title={
             isNotFound
-              ? (isArabic ? 'طلب الفحص غير موجود' : 'Inspection Request Not Found')
+              ? isArabic
+                ? 'طلب الفحص غير موجود'
+                : 'Inspection Request Not Found'
               : undefined
           }
           message={
             isNotFound
-              ? (isArabic
-                  ? `لم يتم العثور على طلب فحص بالمعرّف (${id}) في مساحة العمل الحالية.`
-                  : `The inspection request with ID "${id}" does not exist in the selected bank workspace or has been removed.`)
+              ? isArabic
+                ? `لم يتم العثور على طلب فحص بالمعرّف (${id}) في مساحة العمل الحالية.`
+                : `The inspection request with ID "${id}" does not exist in the selected bank workspace or has been removed.`
               : undefined
           }
           backUrl="/requests"
@@ -218,8 +235,8 @@ function RequestDetailContent({
   return (
     <div className="space-y-4 pb-12 animate-in fade-in-0 duration-200">
       {/* Top Breadcrumb & Popout Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-white px-5 py-3 shadow-2xs">
-        <div className="flex items-center gap-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 rounded-2xl border border-hairline bg-white px-4 py-2.5 sm:px-5 sm:py-3 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs min-w-0">
           <button
             type="button"
             onClick={() => navigate('/')}

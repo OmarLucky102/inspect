@@ -174,7 +174,7 @@ export function ColorManagementTab() {
           <Button
             size="sm"
             onClick={() => setIsAddColorModalOpen(true)}
-            className="bg-accent text-white cursor-pointer gap-1"
+            className="gap-1"
           >
             <Plus className="size-4" /> {t('vehicleSettings.addNewColor', 'Add New Color')}
           </Button>
@@ -483,7 +483,7 @@ function CreateColorModal({
             <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading} className="cursor-pointer">
               {t('common.cancel', 'Cancel')}
             </Button>
-            <Button type="submit" disabled={isLoading || !name.trim()} className="cursor-pointer bg-accent text-white">
+            <Button type="submit" size="sm" disabled={isLoading || !name.trim()}>
               {isLoading ? (
                 <>
                   <CircleNotch className="size-4 animate-spin mr-1.5" />
@@ -620,7 +620,7 @@ function EditColorModal({
             <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading} className="cursor-pointer">
               {t('common.cancel', 'Cancel')}
             </Button>
-            <Button type="submit" disabled={isLoading || !name.trim()} className="cursor-pointer bg-accent text-white">
+            <Button type="submit" size="sm" disabled={isLoading || !name.trim()}>
               {isLoading ? (
                 <>
                   <CircleNotch className="size-4 animate-spin mr-1.5" />

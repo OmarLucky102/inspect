@@ -176,8 +176,9 @@ export function RepresentativesPage() {
         actions={
           <Button
             type="button"
+            size="sm"
             onClick={handleOpenAdd}
-            className="h-9 gap-2 rounded-xl bg-ink text-white hover:bg-ink/90 text-xs font-medium cursor-pointer shadow-xs"
+            className="gap-1.5 text-xs font-semibold"
           >
             <Plus className="size-4" />
             {t('representatives.addRep', 'Add Representative')}
@@ -189,7 +190,7 @@ export function RepresentativesPage() {
       <RepresentativeOverviewStats />
 
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl border border-hairline bg-white shadow-xs space-y-3">
+      <div className="glass-card p-4 rounded-2xl space-y-3">
         <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
@@ -198,7 +199,7 @@ export function RepresentativesPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('representatives.searchPlaceholder', 'Search by name, code, branch, governorate, phone...')}
-              className="ps-9 pe-8 text-xs h-9 bg-paper/30"
+              className="ps-9 pe-8 text-xs h-9"
             />
             {searchTerm && (
               <button
@@ -214,13 +215,13 @@ export function RepresentativesPage() {
           {/* Filter Controls */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Status Tabs */}
-            <div className="inline-flex rounded-lg border border-hairline bg-paper/60 p-0.5 text-xs font-medium">
+            <div className="glass-subtle inline-flex rounded-xl p-0.5 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   statusFilter === 'all'
-                    ? 'bg-white text-ink shadow-2xs font-semibold'
+                    ? 'bg-white dark:bg-white/15 text-ink shadow-2xs font-semibold'
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
@@ -229,9 +230,9 @@ export function RepresentativesPage() {
               <button
                 type="button"
                 onClick={() => setStatusFilter('active')}
-                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   statusFilter === 'active'
-                    ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
+                    ? 'bg-white dark:bg-white/15 text-emerald-700 dark:text-emerald-300 shadow-2xs font-semibold'
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
@@ -240,9 +241,9 @@ export function RepresentativesPage() {
               <button
                 type="button"
                 onClick={() => setStatusFilter('inactive')}
-                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   statusFilter === 'inactive'
-                    ? 'bg-white text-amber-800 shadow-2xs font-semibold'
+                    ? 'bg-white dark:bg-white/15 text-amber-700 dark:text-amber-300 shadow-2xs font-semibold'
                     : 'text-ink-mute hover:text-ink'
                 }`}
               >
@@ -260,7 +261,7 @@ export function RepresentativesPage() {
                 value={selectedGovernorateId}
                 onChange={setSelectedGovernorateId}
                 leadingIcon={<MapPin className="size-3.5" />}
-                triggerClassName="max-w-[220px]"
+                triggerClassName="w-full sm:w-auto max-w-full sm:max-w-[220px]"
                 options={[
                   {
                     value: 'all',
@@ -307,7 +308,7 @@ export function RepresentativesPage() {
       </div>
 
       {/* Main Representatives Table */}
-      <div className="rounded-xl border border-hairline bg-white shadow-2xs overflow-hidden">
+      <div className="glass-card rounded-2xl overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
             <CircleNotch className="size-7 animate-spin text-accent mb-2" />
@@ -357,8 +358,9 @@ export function RepresentativesPage() {
                 </p>
                 <Button
                   type="button"
+                  size="sm"
                   onClick={handleOpenAdd}
-                  className="mt-4 text-xs bg-ink text-white hover:bg-ink/90 gap-1.5"
+                  className="mt-4 text-xs gap-1.5"
                 >
                   <Plus className="size-4" />
                   {t('representatives.addFirstRep', 'Add First Representative')}
@@ -400,7 +402,7 @@ export function RepresentativesPage() {
                             type="button"
                             onClick={() => handleCopyCode(rep.representativeId)}
                             title="Copy code"
-                            className="cursor-pointer p-1 text-ink-mute hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="cursor-pointer p-1.5 text-ink-mute hover:text-ink opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           >
                             {copiedId === rep.representativeId ? (
                               <Check className="size-3.5 text-emerald-600" />

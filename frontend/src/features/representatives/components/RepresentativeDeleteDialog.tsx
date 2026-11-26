@@ -86,9 +86,11 @@ export function RepresentativeDeleteDialog({
             </Button>
             <Button
               type="button"
+              variant="glass-rose"
+              size="sm"
               onClick={() => deleteMutation.mutate(representative.id)}
               disabled={deleteMutation.isPending}
-              className="bg-rose-600 hover:bg-rose-700 text-white gap-1.5"
+              className="gap-1.5"
             >
               {deleteMutation.isPending ? (
                 <>

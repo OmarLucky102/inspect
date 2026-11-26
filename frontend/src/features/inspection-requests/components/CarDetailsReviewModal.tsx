@@ -401,7 +401,7 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
           dir={isArabic ? 'rtl' : 'ltr'}
         >
           {/* Top Header */}
-          <SheetHeader className="px-6 py-5 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/50 backdrop-blur-md shrink-0">
+          <SheetHeader className="px-4 py-4 pe-12 sm:px-6 sm:py-5 sm:pe-14 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/50 backdrop-blur-md shrink-0">
             <div className="flex flex-col gap-1 text-start">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -552,7 +552,7 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
           </SheetHeader>
 
           {/* Step Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
             {/* STEP 1: VEHICLE SPECIFICATIONS (Transmission, Mirrors, Interior) */}
             {currentStep === 1 && (
               <div className="space-y-6 animate-in fade-in duration-200">
@@ -993,7 +993,7 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
           </div>
 
           {/* Wizard Navigation Footer */}
-          <SheetFooter className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/50 backdrop-blur-md flex flex-row items-center justify-between shrink-0">
+          <SheetFooter className="px-4 py-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/50 backdrop-blur-md flex flex-row flex-wrap items-center justify-between gap-2 shrink-0">
             <div>
               {currentStep > 1 ? (
                 <Button
@@ -1017,8 +1017,9 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
               {currentStep === 1 && (
                 <Button
                   type="button"
+                  size="sm"
                   onClick={handleNext}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer gap-1.5 text-xs px-5 shadow-sm shadow-emerald-500/20"
+                  className="gap-1.5 text-xs px-5"
                 >
                   <span>{isArabic ? 'المتابعة للعداد والسقف' : 'Continue to Mileage & Sunroof'}</span>
                   <ChevronRight className="size-4 rtl:rotate-180" />
@@ -1028,8 +1029,9 @@ export const CarDetailsReviewModal: React.FC<CarDetailsReviewModalProps> = ({
               {currentStep === 2 && (
                 <Button
                   type="button"
+                  size="sm"
                   onClick={handleNext}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer gap-1.5 text-xs px-5 shadow-sm shadow-emerald-500/20"
+                  className="gap-1.5 text-xs px-5"
                 >
                   <span>{isArabic ? 'المتابعة للتقييم النهائي' : 'Continue to Valuation'}</span>
                   <ChevronRight className="size-4 rtl:rotate-180" />
